@@ -9,7 +9,7 @@
 | Name | Student Roll No. | Github User ID |
 | :---: | :---: | :---: |
 | Mayank Singh | 23f1000598 | *Mayank8IITM* |
-| Ali Jawed | 22f3001825 | *22f3001825* |
+| Ali Jawad | 22f3001825 | *22f3001825* |
 | Sachi Dhaturaha | 21f1000471 | *21f1000471* |
 | Aaryan Pratap Maurya  | 22f1000559 | *AryanPratap455* |
 | Jibin V Mathews | 21f1001895 | *21f1001895* |
