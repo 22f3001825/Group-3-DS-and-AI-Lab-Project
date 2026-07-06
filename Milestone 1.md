@@ -100,11 +100,14 @@ The table below lines up the three categories against the dimensions that matter
 **3.5 Evaluation Metrics**
 
 To ensure the Course-Aware Learning Companion meets its objectives quantitatively, the system will be evaluated using standard Retrieval-Augmented Generation (RAG) metrics [4]. Frameworks such as Ragas or TruLens will be utilized to measure:
-*   **Context Precision & Recall:** To evaluate the quality of the retriever in finding the exact relevant chunks from course transcripts and notes without retrieving irrelevant material.
-*   **Faithfulness (Groundedness):** To measure whether the generated answer is strictly derived from the provided course context, minimizing hallucination.
-*   **Answer Relevance:** To ensure the generated response directly answers the student's question.
-*   **Adaptive Assessment Accuracy:** To track how effectively the personalized quizzes identify and adapt to the student's knowledge gaps, measured through subsequent quiz score improvements over time.
 
+* **RAG Q&A:** Retrieval Precision and Recall at *k*, with a target of **≥ 80%**; Answer Faithfulness (Groundedness) to the provided course material, with a target of **≥ 88%**; and Citation Accuracy, with a target of **≥ 85%**.
+* **Lecture Navigation:** Timestamp Accuracy within **±10 seconds** for **≥ 80%** of evaluated queries.
+* **Learner Profile:** Knowledge Gap Detection Precision of **≥ 80%**, validated against actual quiz performance.
+* **Personalized Quizzes:** Relevance to identified weak areas of **≥ 80%**, with an average **pre/post revision quiz score improvement of at least 15%**.
+* **Question Intelligence:** Deduplication Precision of **≥ 85%** and **Cluster F1 Score of ≥ 80%**.
+* **Overall Experience:** Task completion time **at least 20% faster** than manual search and a **usability rating of at least 3.8/5**.
+  
 **3.6 What This Review Suggests About Baselines**
 
 Taken together, these three categories suggest a reasonable set of informal baselines for the proposed system rather than formal published benchmarks, since no single existing tool combines all the target capabilities:
