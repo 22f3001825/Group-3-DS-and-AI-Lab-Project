@@ -16,8 +16,8 @@ This document records the consent of all team members regarding their individual
 
 | Name | Contribution |
 | :--- | :--- |
-| Mayank Singh | Problem definition, scoping & objectives drafting |
-| Ali Jawad | NotebookLM research & source-grounded RAG analysis |
-| Sachi Dhaturaha | Adaptive quiz/assessment tools review & comparison table |
-| Aaryan Pratap Maurya | General LLM assistant review & gap analysis |
-| Jibin V Mathews | Opportunities, conclusion & report compilation |
+| Mayank Singh | Drafted the introduction framing the scattered-resource problem; authored the primary and 8 supporting objectives; defined and justified the single-course (MLT) scope boundary. |
+| Ali Jawad | Researched NotebookLM's source-grounded citation approach and feature set (summaries,audio overview, flashcards); identified its 3 structural gaps: course-awareness, learner modelling, timestamp linking. |
+| Sachi Dhaturaha | Surveyed adaptive assessment platforms and difficulty-adjustment approaches; compared their performance-tracking to our learner-profile objective; built the comparative summary |
+| Aaryan Pratap Maurya | Assessed grounding limitations and hallucination risk of general-purpose LLMs in education contexts; contrasted with RAG-anchored answering; co-developed the gap analysis. |
+| Jibin V Mathews | Synthesized opportunities from the 5 identified gaps; wrote the conclusion tying objectives to gaps; compiled,formatted and finalized the full milestone report and references. |
