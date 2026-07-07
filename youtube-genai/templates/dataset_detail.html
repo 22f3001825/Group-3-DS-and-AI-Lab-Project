@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Pipeline — {{ video_id }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dataset Pipeline</h1>
+    <p class="page-subtitle">
+      <i class="bi bi-youtube text-danger me-1"></i>{{ video_id }}
+    </p>
+  </div>
+  <a href="{{ url_for('dataset.index') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Back
+  </a>
+</div>
+
+<!-- Pipeline Steps -->
+<div class="pipeline-card mb-4">
+  <h3 class="pipeline-card-title">Pipeline Status</h3>
+  <div class="pipeline-steps-vertical">
+
+    <div class="pipeline-step-v {% if status.raw %}done{% endif %}" id="step-raw">
+      <div class="psv-indicator">
+        <i class="bi bi-{% if status.raw %}check-circle-fill{% else %}circle{% endif %}"></i>
+      </div>
+      <div class="psv-body">
+        <div class="psv-title">Raw Transcript</div>
+        <div class="psv-desc">Original YouTube captions saved to disk</div>
+      </div>
+      <div class="psv-badge">{% if status.raw %}<span class="badge bg-success">✔ Done</span>{% else %}<span class="badge bg-secondary">Pending</span>{% endif %}</div>
+    </div>
+
+    <div class="pipeline-step-v {% if status.cleaned %}done{% endif %}" id="step-cleaned">
+      <div class="psv-indicator">
+        <i class="bi bi-{% if status.cleaned %}check-circle-fill{% else %}circle{% endif %}"></i>
+      </div>
+      <div class="psv-body">
+        <div class="psv-title">Cleaned Transcript</div>
+        <div class="psv-desc">Filler words removed, text normalized</div>
+      </div>
+      <div class="psv-badge">{% if status.cleaned %}<span class="badge bg-success">✔ Done</span>{% else %}<span class="badge bg-secondary">Pending</span>{% endif %}</div>
+    </div>
+
+    <div class="pipeline-step-v {% if status.chunks %}done{% endif %}" id="step-chunks">
+      <div class="psv-indicator">
+        <i class="bi bi-{% if status.chunks %}check-circle-fill{% else %}circle{% endif %}"></i>
+      </div>
+      <div class="psv-body">
+        <div class="psv-title">Chunk Creation</div>
+        <div class="psv-desc">Transcript split into overlapping word windows</div>
+      </div>
+      <div class="psv-badge">{% if status.chunks %}<span class="badge bg-success">✔ Done</span>{% else %}<span class="badge bg-secondary">Pending</span>{% endif %}</div>
+    </div>
+
+    <div class="pipeline-step-v {% if status.embeddings %}done{% endif %}" id="step-embeddings">
+      <div class="psv-indicator">
+        <i class="bi bi-{% if status.embeddings %}check-circle-fill{% else %}circle{% endif %}"></i>
+      </div>
+      <div class="psv-body">
+        <div class="psv-title">Embedding Generation</div>
+        <div class="psv-desc">Sentence-transformers encode each chunk into a vector</div>
+      </div>
+      <div class="psv-badge">{% if status.embeddings %}<span class="badge bg-success">✔ Done</span>{% else %}<span class="badge bg-secondary">Pending</span>{% endif %}</div>
+    </div>
+
+    <div class="pipeline-step-v {% if status.faiss %}done{% endif %}" id="step-faiss">
+      <div class="psv-indicator">
+        <i class="bi bi-{% if status.faiss %}check-circle-fill{% else %}circle{% endif %}"></i>
+      </div>
+      <div class="psv-body">
+        <div class="psv-title">Stored in FAISS</div>
+        <div class="psv-desc">Vectors indexed for fast semantic retrieval</div>
+      </div>
+      <div class="psv-badge">{% if status.faiss %}<span class="badge bg-success">✔ Done</span>{% else %}<span class="badge bg-secondary">Pending</span>{% endif %}</div>
+    </div>
+
+  </div>
+
+  <!-- Run Button -->
+  <div class="mt-4 d-flex gap-3 align-items-center">
+    <button class="btn btn-primary-blue btn-lg" id="runPipelineBtn" onclick="runPipeline()">
+      <span id="runBtnText"><i class="bi bi-play-circle me-2"></i>Run Full Pipeline</span>
+      <span id="runBtnLoading" class="d-none">
+        <span class="spinner-border spinner-border-sm me-2"></span>Processing…
+      </span>
+    </button>
+    <span id="pipelineMsg" class="text-muted small"></span>
+  </div>
+</div>
+
+<!-- Progress log -->
+<div class="log-card" id="logCard" style="display:none">
+  <div class="log-header">Pipeline Log</div>
+  <div class="log-body" id="logBody"></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const VIDEO_ID    = "{{ video_id }}";
+const PROCESS_URL = "{{ url_for('dataset.process', video_id=video_id) }}";
+const STATUS_URL  = "{{ url_for('dataset.status', video_id=video_id) }}";
+
+function log(msg, cls='text-muted') {
+  const lb = document.getElementById('logBody');
+  document.getElementById('logCard').style.display = '';
+  const line = document.createElement('div');
+  line.className = cls;
+  line.innerHTML = `<span class="log-time">${new Date().toLocaleTimeString()}</span> ${msg}`;
+  lb.appendChild(line);
+  lb.scrollTop = lb.scrollHeight;
+}
+
+function updateStep(id, done) {
+  const el = document.getElementById('step-' + id);
+  if (!el) return;
+  if (done) {
+    el.classList.add('done');
+    el.querySelector('.psv-indicator i').className = 'bi bi-check-circle-fill';
+    el.querySelector('.psv-badge').innerHTML = '<span class="badge bg-success">✔ Done</span>';
+  }
+}
+
+async function runPipeline() {
+  const btn    = document.getElementById('runPipelineBtn');
+  const text   = document.getElementById('runBtnText');
+  const loading= document.getElementById('runBtnLoading');
+  const msg    = document.getElementById('pipelineMsg');
+
+  btn.disabled = true;
+  text.classList.add('d-none');
+  loading.classList.remove('d-none');
+  msg.textContent = '';
+
+  log('🚀 Starting pipeline…', 'text-primary');
+
+  try {
+    const res  = await fetch(PROCESS_URL, { method: 'POST',
+      headers: {'Content-Type': 'application/json'} });
+    const data = await res.json();
+
+    if (data.error) {
+      log('❌ Error: ' + data.error, 'text-danger');
+      msg.textContent = 'Pipeline failed. See log.';
+    } else {
+      const p = data.pipeline;
+      ['raw','cleaned','chunks','embeddings','faiss'].forEach(k => {
+        if (p[k]) { updateStep(k, true); log(`✔ ${k} complete`, 'text-success'); }
+      });
+      log(`✅ Pipeline complete — ${data.chunks} chunks indexed`, 'text-success fw-bold');
+      msg.textContent = `${data.chunks} chunks ready for RAG!`;
+    }
+  } catch(e) {
+    log('❌ Network error: ' + e, 'text-danger');
+  } finally {
+    btn.disabled = false;
+    text.classList.remove('d-none');
+    loading.classList.add('d-none');
+  }
+}
+</script>
+{% endblock %}

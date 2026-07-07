@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}DS-AI Platform{% endblock %} | IIT Madras</title>
+  <meta name="description" content="{% block meta_desc %}IIT Madras Data Science AI-powered RAG learning platform for lecture transcripts and intelligent Q&A.{% endblock %}" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  <!-- ── TOP NAVBAR ──────────────────────────────────────────────────── -->
+  <nav class="top-navbar navbar">
+    <div class="d-flex align-items-center gap-3">
+      <button class="sidebar-toggle btn btn-icon" id="sidebarToggle" aria-label="Toggle sidebar">
+        <i class="bi bi-list fs-5"></i>
+      </button>
+      <div class="brand-logo d-flex align-items-center gap-2">
+        <div class="brand-icon">
+          <i class="bi bi-cpu-fill"></i>
+        </div>
+        <div>
+          <span class="brand-name">DS-AI Platform</span>
+          <span class="brand-sub d-none d-md-inline">IIT Madras</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="navbar-center d-none d-lg-flex align-items-center gap-2">
+      <div class="search-bar">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" class="search-input" placeholder="Search lectures, topics…" id="globalSearch" />
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      {% if current_user.is_authenticated %}
+      <span class="badge bg-blue-soft text-primary-blue px-3 py-2 d-none d-md-inline">
+        <i class="bi bi-mortarboard-fill me-1"></i>{{ current_user.name }}
+      </span>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm" id="logoutBtn">
+        <i class="bi bi-box-arrow-right me-1"></i>Logout
+      </a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <div class="app-shell">
+    <!-- ── SIDEBAR ─────────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-nav">
+        <ul class="nav-list">
+
+          <li class="nav-section-label">Main</li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('dashboard.index') }}"
+               class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}"
+               id="nav-dashboard">
+              <span class="nav-icon"><i class="bi bi-grid-fill"></i></span>
+              <span class="nav-text">Dashboard</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('upload.index') }}"
+               class="nav-link {% if request.endpoint in ['upload.index', 'upload.extract'] %}active{% endif %}"
+               id="nav-upload">
+              <span class="nav-icon"><i class="bi bi-youtube"></i></span>
+              <span class="nav-text">Upload Lecture</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('transcript.index') }}"
+               class="nav-link {% if 'transcript' in request.endpoint %}active{% endif %}"
+               id="nav-transcript">
+              <span class="nav-icon"><i class="bi bi-file-text-fill"></i></span>
+              <span class="nav-text">Transcripts</span>
+            </a>
+          </li>
+
+          <li class="nav-section-label mt-2">AI Tools</li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('dataset.index') }}"
+               class="nav-link {% if 'dataset' in request.endpoint %}active{% endif %}"
+               id="nav-dataset">
+              <span class="nav-icon"><i class="bi bi-database-fill-gear"></i></span>
+              <span class="nav-text">Dataset Prep</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('rag.index') }}"
+               class="nav-link {% if 'rag' in request.endpoint %}active{% endif %}"
+               id="nav-rag">
+              <span class="nav-icon"><i class="bi bi-chat-dots-fill"></i></span>
+              <span class="nav-text">RAG Chat</span>
+              <span class="nav-badge">AI</span>
+            </a>
+          </li>
+
+          <li class="nav-section-label mt-2">Account</li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('auth.logout') }}" class="nav-link nav-link-danger" id="nav-logout">
+              <span class="nav-icon"><i class="bi bi-box-arrow-right"></i></span>
+              <span class="nav-text">Logout</span>
+            </a>
+          </li>
+
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="ai-backend-badge">
+          <i class="bi bi-stars"></i>
+          <span id="backendLabel">AI Backend Active</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN CONTENT ────────────────────────────────────────────────── -->
+    <main class="main-content" id="mainContent">
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-container">
+            {% for cat, msg in messages %}
+              <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
+                <i class="bi bi-{% if cat == 'success' %}check-circle-fill{% elif cat == 'danger' %}exclamation-triangle-fill{% elif cat == 'warning' %}exclamation-circle-fill{% else %}info-circle-fill{% endif %} me-2"></i>
+                {{ msg }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+
+    </main>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Custom JS -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

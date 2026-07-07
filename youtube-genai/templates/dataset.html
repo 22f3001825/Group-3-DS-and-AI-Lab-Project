@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Dataset Preparation{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dataset Preparation</h1>
+    <p class="page-subtitle">Select a lecture and run the full preprocessing pipeline</p>
+  </div>
+</div>
+
+{% if transcripts %}
+<div class="row g-4">
+  {% for t in transcripts %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card-panel h-100" id="card-{{ t.video_id }}">
+      <div class="card-panel-header">
+        <i class="bi bi-youtube text-danger me-2"></i>
+        <span class="text-truncate">{{ t.video_id }}</span>
+      </div>
+      <div class="card-panel-body">
+        <div class="meta-row mb-3">
+          <span class="badge bg-blue-soft text-primary-blue">{{ t.segments }} segments</span>
+        </div>
+        <a href="{{ url_for('dataset.detail', video_id=t.video_id) }}" class="btn btn-primary-blue w-100" id="openPipeline-{{ t.video_id }}">
+          <i class="bi bi-play-circle me-2"></i>Open Pipeline
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon"><i class="bi bi-database-x"></i></div>
+  <div class="empty-title">No transcripts to process</div>
+  <div class="empty-desc">Upload a YouTube lecture first.</div>
+  <a href="{{ url_for('upload.index') }}" class="btn btn-primary-blue mt-3">
+    <i class="bi bi-youtube me-2"></i>Upload Lecture
+  </a>
+</div>
+{% endif %}
+{% endblock %}

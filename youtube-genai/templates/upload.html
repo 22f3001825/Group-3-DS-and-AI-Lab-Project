@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Upload Lecture{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Upload YouTube Lecture</h1>
+    <p class="page-subtitle">Paste a YouTube URL to extract and save the transcript</p>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <!-- URL Input Card -->
+    <div class="card-panel mb-4" id="uploadCard">
+      <div class="card-panel-header">
+        <i class="bi bi-youtube text-danger me-2"></i>
+        <span>YouTube Transcript Extractor</span>
+      </div>
+      <div class="card-panel-body">
+        <form method="POST" action="{{ url_for('upload.extract') }}" id="uploadForm">
+          <div class="mb-4">
+            <label for="youtube_url" class="form-label fw-semibold">YouTube URL</label>
+            <div class="url-input-wrap">
+              <span class="url-prefix"><i class="bi bi-link-45deg"></i></span>
+              <input
+                type="url"
+                id="youtube_url"
+                name="youtube_url"
+                class="form-control form-control-lg url-input"
+                placeholder="https://www.youtube.com/watch?v=..."
+                required
+                autocomplete="off"
+                aria-describedby="urlHelp"
+              />
+            </div>
+            <div id="urlHelp" class="form-text mt-2">
+              Supports: <code>youtube.com/watch?v=...</code> · <code>youtu.be/...</code> · <code>youtube.com/embed/...</code>
+            </div>
+          </div>
+
+          <!-- Example URLs -->
+          <div class="example-urls mb-4">
+            <p class="text-muted small mb-2 fw-semibold"><i class="bi bi-lightbulb me-1"></i>Try an example:</p>
+            <div class="d-flex flex-wrap gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary example-btn"
+                data-url="https://www.youtube.com/watch?v=aircAruvnKk">
+                3Blue1Brown — Neural Nets
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary example-btn"
+                data-url="https://www.youtube.com/watch?v=kpkQzF0zCFI">
+                MIT — Linear Regression
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary-blue btn-lg w-100" id="extractBtn">
+            <span class="btn-text"><i class="bi bi-play-circle me-2"></i>Extract Transcript</span>
+            <span class="btn-loading d-none">
+              <span class="spinner-border spinner-border-sm me-2"></span>Extracting…
+            </span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="info-card">
+      <h3 class="info-card-title"><i class="bi bi-info-circle me-2"></i>What happens next?</h3>
+      <ol class="info-steps">
+        <li>The YouTube video ID is extracted from your URL</li>
+        <li>Captions are fetched via YouTube's transcript API (auto-generated or manual)</li>
+        <li>The transcript is saved with timestamps to <code>data/transcripts/</code></li>
+        <li>You can then view, preprocess, and chat with it on the Dataset &amp; RAG pages</li>
+      </ol>
+      <div class="alert alert-warning mt-3 mb-0">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Note:</strong> The video must have captions enabled (auto-generated or manual). Some videos restrict transcript access.
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Example URL buttons
+  document.querySelectorAll('.example-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('youtube_url').value = btn.dataset.url;
+    });
+  });
+
+  // Show loading state on submit
+  document.getElementById('uploadForm').addEventListener('submit', function() {
+    const btn     = document.getElementById('extractBtn');
+    const text    = btn.querySelector('.btn-text');
+    const loading = btn.querySelector('.btn-loading');
+    text.classList.add('d-none');
+    loading.classList.remove('d-none');
+    btn.disabled = true;
+  });
+</script>
+{% endblock %}

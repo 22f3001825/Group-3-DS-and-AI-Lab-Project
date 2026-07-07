@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Transcripts{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Lecture Transcripts</h1>
+    <p class="page-subtitle">{{ transcripts|length }} transcript(s) available</p>
+  </div>
+  <a href="{{ url_for('upload.index') }}" class="btn btn-primary-blue" id="addTranscriptBtn">
+    <i class="bi bi-plus-circle me-2"></i>Add Lecture
+  </a>
+</div>
+
+{% if transcripts %}
+<div class="transcript-list">
+  {% for t in transcripts %}
+  <div class="transcript-list-item">
+    <div class="tli-icon">
+      <i class="bi bi-file-play-fill"></i>
+    </div>
+    <div class="tli-body">
+      <div class="tli-title">{{ t.video_id }}</div>
+      <div class="tli-meta">
+        <span><i class="bi bi-collection me-1"></i>{{ t.segments }} segments</span>
+        <span><i class="bi bi-clock me-1"></i>
+          {% set h = t.duration // 3600 %}
+          {% set m = (t.duration % 3600) // 60 %}
+          {% set s = t.duration % 60 %}
+          {% if h %}{{ '%02d'|format(h) }}:{% endif %}{{ '%02d'|format(m) }}:{{ '%02d'|format(s) }}
+        </span>
+      </div>
+    </div>
+    <div class="tli-actions">
+      <a href="{{ url_for('transcript.view', video_id=t.video_id) }}" class="btn btn-sm btn-primary-blue" id="viewBtn-{{ t.video_id }}">
+        <i class="bi bi-eye me-1"></i>View
+      </a>
+      <a href="{{ url_for('dataset.detail', video_id=t.video_id) }}" class="btn btn-sm btn-outline-success" id="processBtn-{{ t.video_id }}">
+        <i class="bi bi-gear me-1"></i>Process
+      </a>
+      <a href="{{ url_for('notes.view', video_id=t.video_id) }}" class="btn btn-sm btn-outline-purple" id="notesBtn-{{ t.video_id }}">
+        <i class="bi bi-journal-text me-1"></i>Notes
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon"><i class="bi bi-inbox"></i></div>
+  <div class="empty-title">No transcripts yet</div>
+  <div class="empty-desc">Upload a YouTube lecture to get started.</div>
+  <a href="{{ url_for('upload.index') }}" class="btn btn-primary-blue mt-3">
+    <i class="bi bi-youtube me-2"></i>Upload First Lecture
+  </a>
+</div>
+{% endif %}
+{% endblock %}

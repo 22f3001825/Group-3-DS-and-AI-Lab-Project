@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}RAG Chat{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">RAG Chat</h1>
+    <p class="page-subtitle">Ask questions about your uploaded lectures</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <select class="form-select form-select-sm" id="videoScopeSelect" style="max-width: 260px;" title="Limit search to one video">
+      <option value="">All videos</option>
+    </select>
+    <span class="badge bg-purple-soft text-purple" id="backendBadge">
+      <i class="bi bi-stars me-1"></i>AI-Powered
+    </span>
+  </div>
+</div>
+
+<div class="rag-layout">
+
+  <!-- Chat Panel -->
+  <div class="chat-panel" id="chatPanel">
+    <div class="chat-messages" id="chatMessages">
+      <!-- Welcome message -->
+      <div class="chat-msg chat-msg-bot" id="welcomeMsg">
+        <div class="chat-avatar"><i class="bi bi-robot"></i></div>
+        <div class="chat-bubble">
+          <p class="mb-1">👋 Hi! I'm your AI lecture assistant.</p>
+          <p class="mb-0 text-muted small">Ask me anything about your uploaded lectures. I'll retrieve the most relevant sections and answer based on the actual transcript content.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="chat-input-area">
+      <div class="chat-input-wrap">
+        <textarea
+          id="chatInput"
+          class="chat-textarea"
+          placeholder="Ask a question about your lectures…"
+          rows="1"
+          maxlength="1000"
+        ></textarea>
+        <button class="chat-send-btn" id="sendBtn" onclick="sendMessage()" aria-label="Send">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </div>
+      <div class="chat-input-meta">
+        <span class="text-muted small">Press <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for newline</span>
+        <span class="char-count" id="charCount">0 / 1000</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sources Panel -->
+  <div class="sources-panel" id="sourcesPanel">
+    <div class="sources-header">
+      <i class="bi bi-journals me-2"></i>Retrieved Sources
+    </div>
+    <div class="sources-body" id="sourcesBody">
+      <div class="sources-empty">
+        <i class="bi bi-search"></i>
+        <p>Retrieved transcript chunks will appear here after your first question.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ASK_URL    = "{{ url_for('rag.ask') }}";
+const VIDEOS_URL = "{{ url_for('rag.videos') }}";
+const chatMessages   = document.getElementById('chatMessages');
+const chatInput      = document.getElementById('chatInput');
+const sendBtn        = document.getElementById('sendBtn');
+const sourcesBody    = document.getElementById('sourcesBody');
+const charCount      = document.getElementById('charCount');
+const videoScopeSelect = document.getElementById('videoScopeSelect');
+
+// Populate the "limit to one video" dropdown from currently indexed videos
+(async function loadVideoOptions() {
+  try {
+    const res  = await fetch(VIDEOS_URL);
+    const data = await res.json();
+    (data.videos || []).forEach(vid => {
+      const opt = document.createElement('option');
+      opt.value = vid;
+      opt.textContent = vid;
+      videoScopeSelect.appendChild(opt);
+    });
+  } catch (e) {
+    // Non-fatal: dropdown just stays at "All videos"
+    console.warn('Could not load video list', e);
+  }
+})();
+
+// Auto-resize textarea
+chatInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+  charCount.textContent = this.value.length + ' / 1000';
+});
+
+// Enter to send
+chatInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+function formatTime(seconds) {
+  const s = Math.floor(seconds || 0);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function appendMessage(role, content, isHTML=false) {
+  const div = document.createElement('div');
+  div.className = `chat-msg chat-msg-${role}`;
+  const avatar = role === 'user'
+    ? `<div class="chat-avatar user-avatar"><i class="bi bi-person-fill"></i></div>`
+    : `<div class="chat-avatar"><i class="bi bi-robot"></i></div>`;
+  const bubble = `<div class="chat-bubble">${isHTML ? content : escapeHtml(content)}</div>`;
+  div.innerHTML = role === 'user' ? bubble + avatar : avatar + bubble;
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  return div;
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+             .replace(/\n/g,'<br>');
+}
+
+function showSources(chunks) {
+  if (!chunks || !chunks.length) {
+    sourcesBody.innerHTML = '<div class="sources-empty"><i class="bi bi-search"></i><p>No sources retrieved.</p></div>';
+    return;
+  }
+  // Unique videos in retrieved chunks
+  const uniqueVideos = [...new Set(chunks.map(c => c.video_id).filter(Boolean))];
+  const videoSummary = uniqueVideos.length
+    ? `<div class="source-video-summary mb-2">
+        <i class="bi bi-collection-fill me-1"></i>
+        <span>${uniqueVideos.length} video${uniqueVideos.length > 1 ? 's' : ''} retrieved:</span>
+        ${uniqueVideos.map(v => `<code class="ms-1">${v}</code>`).join('')}
+       </div>`
+    : '';
+
+  sourcesBody.innerHTML = videoSummary + chunks.map((c, i) => `
+    <div class="source-chunk" id="source-${i}">
+      <div class="source-chunk-header">
+        <span class="source-num">#${i+1}</span>
+        <span class="source-ts"><i class="bi bi-clock me-1"></i>${formatTime(c.start_time)}</span>
+        <span class="source-score badge bg-blue-soft text-primary-blue">${(c.score * 100).toFixed(0)}% match</span>
+        ${c.video_id ? `<span class="source-video-id badge bg-purple-soft text-purple ms-auto" title="Source video"><i class="bi bi-youtube me-1"></i>${c.video_id.substring(0,11)}</span>` : ''}
+      </div>
+      <div class="source-chunk-text">${escapeHtml(c.text)}</div>
+    </div>
+  `).join('');
+}
+
+async function sendMessage() {
+  const query = chatInput.value.trim();
+  if (!query) return;
+
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  charCount.textContent = '0 / 1000';
+  sendBtn.disabled = true;
+
+  // User message
+  appendMessage('user', query);
+
+  // Typing indicator
+  const typing = appendMessage('bot',
+    `<span class="typing-dots"><span></span><span></span><span></span></span>`, true);
+
+  try {
+    const res  = await fetch(ASK_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({ query, video_id: videoScopeSelect.value || null })
+    });
+    const data = await res.json();
+
+    // Replace typing with answer
+    typing.remove();
+
+    if (data.error) {
+      appendMessage('bot', `⚠️ ${data.error}`);
+    } else {
+      const answerHtml = `
+        <div class="answer-text">${escapeHtml(data.answer)}</div>
+        <div class="answer-meta mt-2">
+          <span class="badge bg-blue-soft text-primary-blue">
+            <i class="bi bi-stars me-1"></i>${data.backend || 'AI'}
+          </span>
+          <span class="text-muted small ms-2">${data.chunks ? data.chunks.length : 0} sources retrieved</span>
+        </div>`;
+      appendMessage('bot', answerHtml, true);
+      showSources(data.chunks);
+    }
+  } catch(e) {
+    typing.remove();
+    appendMessage('bot', '⚠️ Network error. Please try again.');
+  } finally {
+    sendBtn.disabled = false;
+    chatInput.focus();
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block meta_desc %}IIT Madras DS-AI Platform — Your lecture AI dashboard.{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Welcome back, <strong>{{ current_user.name }}</strong> 👋</p>
+  </div>
+  <a href="{{ url_for('upload.index') }}" class="btn btn-primary-blue" id="uploadNewBtn">
+    <i class="bi bi-plus-circle me-2"></i>Upload Lecture
+  </a>
+</div>
+
+<!-- ── STAT CARDS ──────────────────────────────────────────────────────── -->
+<div class="stats-grid">
+  <div class="stat-card stat-card-blue">
+    <div class="stat-icon"><i class="bi bi-mortarboard-fill"></i></div>
+    <div class="stat-body">
+      <div class="stat-value">{{ current_user.name }}</div>
+      <div class="stat-label">Signed In As</div>
+    </div>
+  </div>
+
+  <div class="stat-card stat-card-purple">
+    <div class="stat-icon"><i class="bi bi-collection-play-fill"></i></div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.transcripts }}</div>
+      <div class="stat-label">Uploaded Lectures</div>
+    </div>
+  </div>
+
+  <div class="stat-card stat-card-green">
+    <div class="stat-icon"><i class="bi bi-layers-fill"></i></div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.chunks }}</div>
+      <div class="stat-label">Total Transcript Chunks</div>
+    </div>
+  </div>
+
+  <div class="stat-card {% if stats.vector_db == 'Not built' %}stat-card-orange{% else %}stat-card-teal{% endif %}">
+    <div class="stat-icon"><i class="bi bi-database-fill{% if stats.vector_db != 'Not built' %}-check{% endif %}"></i></div>
+    <div class="stat-body">
+      <div class="stat-value">{{ stats.vector_db }}</div>
+      <div class="stat-label">Vector Database</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── QUICK ACTIONS ───────────────────────────────────────────────────── -->
+<div class="section-header mt-5 mb-3">
+  <h2 class="section-title">Quick Actions</h2>
+</div>
+
+<div class="quick-actions-grid">
+  <a href="{{ url_for('upload.index') }}" class="quick-action-card" id="qaUpload">
+    <div class="qa-icon" style="background:linear-gradient(135deg,#ef4444,#f97316)">
+      <i class="bi bi-youtube"></i>
+    </div>
+    <div class="qa-body">
+      <div class="qa-title">Upload YouTube Lecture</div>
+      <div class="qa-desc">Paste a YouTube URL and extract the transcript</div>
+    </div>
+    <i class="bi bi-arrow-right-circle qa-arrow"></i>
+  </a>
+
+  <a href="{{ url_for('transcript.index') }}" class="quick-action-card" id="qaTranscript">
+    <div class="qa-icon" style="background:linear-gradient(135deg,#2563eb,#7c3aed)">
+      <i class="bi bi-file-text-fill"></i>
+    </div>
+    <div class="qa-body">
+      <div class="qa-title">View Transcripts</div>
+      <div class="qa-desc">Browse and read all extracted lecture transcripts</div>
+    </div>
+    <i class="bi bi-arrow-right-circle qa-arrow"></i>
+  </a>
+
+  <a href="{{ url_for('dataset.index') }}" class="quick-action-card" id="qaDataset">
+    <div class="qa-icon" style="background:linear-gradient(135deg,#059669,#0d9488)">
+      <i class="bi bi-database-fill-gear"></i>
+    </div>
+    <div class="qa-body">
+      <div class="qa-title">Dataset Preparation</div>
+      <div class="qa-desc">Clean, chunk, embed and index lecture content</div>
+    </div>
+    <i class="bi bi-arrow-right-circle qa-arrow"></i>
+  </a>
+
+  <a href="{{ url_for('rag.index') }}" class="quick-action-card" id="qaRAG">
+    <div class="qa-icon" style="background:linear-gradient(135deg,#7c3aed,#c026d3)">
+      <i class="bi bi-chat-dots-fill"></i>
+    </div>
+    <div class="qa-body">
+      <div class="qa-title">RAG Chat</div>
+      <div class="qa-desc">Ask questions about your lectures using AI</div>
+    </div>
+    <i class="bi bi-arrow-right-circle qa-arrow"></i>
+  </a>
+</div>
+
+<!-- ── PIPELINE FLOW ───────────────────────────────────────────────────── -->
+<div class="section-header mt-5 mb-3">
+  <h2 class="section-title">How It Works</h2>
+</div>
+<div class="pipeline-flow">
+  <div class="pipeline-step">
+    <div class="pipeline-num">1</div>
+    <div class="pipeline-icon"><i class="bi bi-youtube"></i></div>
+    <div class="pipeline-label">Upload Lecture URL</div>
+  </div>
+  <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+  <div class="pipeline-step">
+    <div class="pipeline-num">2</div>
+    <div class="pipeline-icon"><i class="bi bi-file-text"></i></div>
+    <div class="pipeline-label">Extract Transcript</div>
+  </div>
+  <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+  <div class="pipeline-step">
+    <div class="pipeline-num">3</div>
+    <div class="pipeline-icon"><i class="bi bi-scissors"></i></div>
+    <div class="pipeline-label">Chunk &amp; Embed</div>
+  </div>
+  <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+  <div class="pipeline-step">
+    <div class="pipeline-num">4</div>
+    <div class="pipeline-icon"><i class="bi bi-database"></i></div>
+    <div class="pipeline-label">FAISS Vector DB</div>
+  </div>
+  <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+  <div class="pipeline-step">
+    <div class="pipeline-num">5</div>
+    <div class="pipeline-icon"><i class="bi bi-chat-dots"></i></div>
+    <div class="pipeline-label">RAG Q&amp;A</div>
+  </div>
+</div>
+{% endblock %}

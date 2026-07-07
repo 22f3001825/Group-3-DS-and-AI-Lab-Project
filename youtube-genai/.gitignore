@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+flask_session/
+data/transcripts/*.json
+data/processed/
+vector_db/
+*.egg-info/
+.DS_Store
