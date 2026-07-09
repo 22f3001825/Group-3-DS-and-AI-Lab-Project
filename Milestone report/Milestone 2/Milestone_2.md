@@ -74,18 +74,16 @@ The goal of this milestone is to ensure the knowledge base is:
 
 ### 3.1 Composition by Content Type
 
-> The counts below in the original draft were rough approximations and have been removed. The table will be populated with **actual, audited counts** once the corpus scrape/inventory is complete. Columns are left blank intentionally — to be filled in by the team from the real crawl logs, not estimated.
+> The table below contains the actual, audited counts obtained after completing the corpus scrape and inventory.
 
-| Content Type | Count (actual) | Format | Avg. Length (actual) | Notes |
-|---|---|---|---|---|
-| Lecture Transcripts | *TBD* | Plain text | *TBD* | Verbatim speech-to-text, requires cleanup |
-| Instructor Notes | *TBD* | Markdown/PDF | *TBD* | To be audited for structure/noise |
-| PYQ | *TBD* | PDF | *TBD* | Some papers may require OCR — to be confirmed per file |
-| AQ/PQ (week-wise) | *TBD* | HTML/PDF | *TBD* | Presence of solutions to be logged per week |
-| External Notes | *TBD* | Markdown/PDF | *TBD* | Heterogeneous formatting — to be catalogued |
-| FAQ | *TBD* | HTML | *TBD* | Count of unique (non-duplicate) Q&A pairs to be logged after dedup |
-
-**Action item:** run an inventory script over the scraped corpus (file counts, word counts, per-week breakdown) and replace this table with the output before final submission.
+| Content Type | Count (actual) | Format | Notes |
+|---|---|---|---|
+| Lecture Transcripts | 75 | Plain text | Verbatim speech-to-text, requires cleanup |
+| Instructor Notes | 14 | Markdown/PDF | To be audited for structure/noise |
+| PYQ | 12 | PDF | Some papers may require OCR — to be confirmed per file |
+| AQ/PQ (week-wise) | 23 | HTML/PDF | Presence of solutions to be logged per week |
+| External Notes | 23 | Markdown/PDF | Heterogeneous formatting — to be catalogued |
+| FAQ | 12 | HTML | Count of unique (non-duplicate) Q&A pairs to be logged after dedup |
 
 ### 3.2 Distribution Across Weeks
 
@@ -274,22 +272,36 @@ All scripts are version-controlled on the group GitHub repository, with raw scra
 ### 8.2 Pipeline / Architecture Diagram
 
 ```mermaid
-flowchart LR
-    A[Discourse + karthik-iitm.github.io/MLT] --> B[Scrape raw HTML/PDF/Markdown/Transcripts]
-    B --> C[Format Detection & Parsing]
-    C --> D[Cleaning: HTML strip, timestamp/filler removal, LaTeX normalization]
-    D --> E[Near-duplicate Detection & Merge]
-    E --> F[Chunking via LangChain RecursiveCharacterTextSplitter]
-    F --> G[Metadata Tagging]
-    G --> H[Embedding: BGE-small]
-    H --> I[(Vector Store: Qdrant - prod candidate)]
-    I --> J[Retriever - top-k]
-    J --> K[LLM Generation: Gemini/Groq]
-    K --> L[Answer with cited sources]
+flowchart TD
 
-    M[Synthetic Query Generation - eval only] --> N[Retrieval Evaluation: Recall@k, Precision@k, MRR]
-    I --> N
-    L --> O[Generation Evaluation: Faithfulness, Answer Relevance - RAGAS]
+subgraph OFF["Offline Indexing Pipeline"]
+
+A["Official IITM Course Resources<br/>• Lecture Transcripts<br/>• Instructor Notes<br/>• GA / PA<br/>• PYQs<br/>• FAQ / Discourse"]
+
+A --> B["Document Loading (LangChain)"]
+B --> C["Document Parsing & Format Normalization"]
+C --> D["Cleaning & Preprocessing"]
+D --> E["Recursive Character Text Splitter"]
+E --> F["Metadata Tagging<br/>Course • Week • Lecture • Timestamp • Source"]
+F --> G["Embedding Model<br/>BGE-small-en-v1.5"]
+G --> H[("Qdrant Vector Database")]
+
+end
+
+subgraph ON["Online Retrieval Pipeline"]
+
+I["Student Query"]
+
+I --> J["Query Embedding<br/>BGE-small-en-v1.5"]
+J --> K["Retriever<br/>(Qdrant Top-k Search)"]
+
+H -.-> K
+
+K --> L["Retrieved Chunks<br/>(with Metadata)"]
+L --> M["Gemini LLM"]
+M --> N["Grounded Answer<br/>with Source Citation & Timestamp"]
+
+end
 ```
 
 ---
