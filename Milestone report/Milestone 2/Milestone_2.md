@@ -254,18 +254,25 @@ Instead of relying on a slow, computationally expensive Cross-Encoder for rerank
 
 ### 8.1 Pipeline Steps
 
-1. **Scrape** → Discourse (weekly resource thread) + karthik-iitm.github.io/MLT; save raw HTML/PDF/Markdown with source URL retained.
-2. **Format detect & parse** → route to PDF (PyMuPDF/pdfplumber, Tesseract OCR fallback) / HTML (BeautifulSoup) / Markdown (direct parse) / transcript (VTT/plain-text parser).
-3. **Clean:**
+**Offline Indexing Pipeline:**
+1. **Document Loading (LangChain)** → Load official IITM course resources (Transcripts, Instructor Notes, GA/PA, PYQs, FAQ/Discourse).
+2. **Document Parsing & Format Normalization** → Route to PDF (PyMuPDF/pdfplumber, Tesseract OCR fallback) / HTML (BeautifulSoup) / Markdown (direct parse) / transcript (VTT/plain-text parser).
+3. **Cleaning & Preprocessing:**
    - HTML: strip navigation boilerplate, scripts/styles, ad/footer blocks.
    - Transcripts: regex removal of timestamps (e.g., `[00:03:12]`) and filler words ("um", "so yeah"); sentence-boundary re-segmentation.
    - Notes: normalize Markdown/LaTeX/inline-HTML mix into plain text with LaTeX preserved via `$...$` delimiters.
-4. **Deduplicate** → embedding-based cosine-similarity near-duplicate detection; threshold determined experimentally per Section 4.1; keep the most complete version of each duplicate group.
-5. **Chunk** → LangChain `RecursiveCharacterTextSplitter`, 384 tokens / 15% overlap (Section 7.2); 1 chunk = 1 Q&A for FAQ/PYQ/AQ-PQ.
-6. **Tag metadata** → `source_type`, `week`, `lecture_number`/`page_number`, `title`, `url`, `author`, `chunk_id`, `confidence_flag` (schema in Section 3.3).
-7. **Embed** → BGE-small (384-dim).
-8. **Index** → Qdrant (candidate for production, native metadata filtering).
-9. **Evaluate** → topic-wise train/val/test split (Section 6), Recall@k/Precision@k/MRR on held-out queries (Section 7.5).
+   - Deduplication: embedding-based cosine-similarity near-duplicate detection.
+4. **Chunking** → LangChain `RecursiveCharacterTextSplitter`, 384 tokens / 15% overlap (Section 7.2); 1 chunk = 1 Q&A for FAQ/PYQ/AQ-PQ.
+5. **Metadata Tagging** → Tag each chunk with Course, Week, Lecture, Timestamp, and Source (schema in Section 3.3).
+6. **Embedding** → `BGE-small-en-v1.5` (384-dim).
+7. **Indexing** → Store embeddings and metadata into the `Qdrant` vector database.
+
+**Online Retrieval Pipeline:**
+
+8. **Query Embedding** → Student query embedded via `BGE-small-en-v1.5`.
+9. **Retrieval** → Qdrant Top-k Search retrieves most relevant chunks with metadata.
+10. **LLM Generation** → Gemini LLM generates a grounded answer with source citation and timestamp.
+11. **Evaluate** → Topic-wise train/val/test split (Section 6), Recall@k/Precision@k/MRR on held-out queries (Section 7.5).
 
 All scripts are version-controlled on the group GitHub repository, with raw scraped data, cleaned text, and final chunk/embedding artifacts stored in separate pipeline stages to keep preprocessing fully reproducible.
 
