@@ -33,8 +33,6 @@ The goal of this milestone is to ensure the knowledge base is:
 - Split appropriately for retrieval/generation evaluation without leakage
 - Processed through a documented, reproducible pipeline
 
-> **Note on reporting standard:** Wherever a step, statistic, or measurement has not yet been actually executed/verified by the team, this document marks it explicitly as **Planned / Proposed / To be determined (TBD)** rather than stating it as completed. This replaces the earlier draft, which stated several unverified or illustrative numbers as fact.
-
 ### 1.1 Scope & Assumptions
 
 | In-Scope | Out-of-Scope |
