@@ -76,7 +76,7 @@ The goal of this milestone is to ensure the knowledge base is:
 
 > The table below contains the actual, audited counts obtained after completing the corpus scrape and inventory.
 
-| Content Type | Count (actual) | Format | Notes |
+| Content Type | Count | Format | Notes |
 |---|---|---|---|
 | Lecture Transcripts | 75 | Plain text | Verbatim speech-to-text, requires cleanup |
 | Instructor Notes | 14 | Markdown/PDF | To be audited for structure/noise |
