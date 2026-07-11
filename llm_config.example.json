@@ -1,0 +1,5 @@
+{
+  "LLM_BASE_URL": "http://localhost:8317/v1",
+  "LLM_MODEL": "xxx",
+  "LLM_API_KEY": "xxx"
+}

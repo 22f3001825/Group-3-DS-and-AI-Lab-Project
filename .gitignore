@@ -1,0 +1,37 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Local browser/session data
+chrome_debug_user_data/
+
+# Local secrets/config
+config.yaml
+llm_config.json
+.env
+
+# Runtime state and logs
+state.json
+*.log
+topic_errors.jsonl
+llm_fallback_log.jsonl
+
+# Scrape outputs if --output-dir points at this folder
+discourse_export.json
+discourse_posts.csv
+discourse_topics.csv
+discourse_users.csv
+imgs/
+out/
+
+# Generated archives
+*.zip
