@@ -1,0 +1,93 @@
+
+
+# **Machine Learning Techniques Professor Arun Rajkumar Department of Computer Science and Engineering Indian Institute of Technology, Madras Geometric Interpretation of Linear Regression** 
+
+(Refer Slide Time: 00:21) 
+
+
+
+The first question about linear regression we want to ask is, what does this solution mean geometrically? We saw that the linear regression problem solution w* = x x<sup>T</sup> inverse or pseudo inverse xy. So, but what does it mean, let me put pseudo inverse only. But how can we interpret this geometrically. So, how can we interpret this quantity geometrically? 
+
+Well, for that, we’ll take a very simplified example, and then try to understand this geometrically, but then the, that is just because you will want to visualize certain things, we want to restrict the dimensionality, but then whatever we are talking about will eventually can be generalized for the higher dimension as well. For this purpose, we are going to treat our d, the number of features as 2, and the number of data points as 3. Let us say we just have 3 points, and then 3 people and for each of them, we are just measuring the height and weight, 2 features that is the setting we are in. 
+
+(Refer Slide Time: 01:36) 
+
+
+
+Now, what I want you to consider is a 3 dimensional space. Let us draw that maybe a 3 dimensional space like this, where the first vector that we will have, let’s say, points in this direction and I will see what this vector is, let us call it F1, this is a 3 dimensional vector. The second vector points in this direction, this is let’s say, F2, which is also a 3 dimensional vector. 
+
+Now, note that, if I plot points, the data points, if I try to plot that, then each data point is a 2 dimensional point. So, I would plot them in a 2 dimensional data set. Here, I am not plotting the data points, let me make that very clear. I am plotting 3 dimensional vectors. Now, what are these 3 dimensional vector I am interested in? 
+
+(Refer Slide Time: 02:29) 
+
+
+
+Well, my data set is like this. So, x1 x2 x3 and then I have height and I have weight 2, 3 people whose height and weight I have measured. Now, I am going to call the height as feature 1, weight as feature 2, which means that the height of all the people put together is a 3 dimensional vector. In general, an n dimensional vector, a weight of all people put together is F2, which is again, a 3 dimensional vector in general, an n dimensional vector, what I am plotting here are just those 2 guys. So, when I say F1 is an R3, these 3 components corresponds to the height of 3 people F2 is an R3, 3 components corresponds to the weight of 3 people. 
+
+(Refer Slide Time: 03:13) 
+
+
+
+Now, I also have the labels of each of this, so there is a y also sitting with this y1, y2, y3, one label for each data point, which is also a 3 dimensional vector, which means I can plot my y also here, maybe my y is sitting here. This is my y, which is, which is also an R3. Now, I want to understand what is it what is happening here, so in terms of regression, one way to think of this is I have my height feature and the weight feature. Now, let us say I take this point, so maybe this point is 3(F1) + 2.5(F2). 
+
+So, this this vector is some vector, which is some combination of the height and weight, maybe there is a vector here, which is I do not know - 5 (F1) + 3(F2). I am just giving these numbers arbitrarily I mean, they may not exactly correspond to these locations, but that is the main point is that I can any you can put any number combine these numbers and again get linear combinations of these 2 vectors. 
+
+Now, there is also so basically, as I change these linear combinations, I get different vectors. Now, there is there might be like an entire subspace or entire plane, a 2 dimensional plane sitting in this 3 dimensional space, which can be which can be thought of as the plane that spanned by these 2 vectors, F1 and F2. 
+
+(Refer Slide Time: 04:50) 
+
+
+
+So, that plane maybe is this is somewhere here, so, this is the entire plane. So, every time we take a linear combination, some a(F1) + some constant b(F2), I am going to get some point in this plane. So, this is a plane. Make that. So, this is some plane here. 
+
+(Refer Slide Time: 05:24) 
+
+
+
+Now, what I also have is a special point on this plane, where, you know the this point, which is a special point on this plane, this is on the plane, which can also be gotten as a linear combination of F1 and F2. But it is special because it minimizes the distance of my label to this plane. 
+
+In other words, I am taking my label vector y, so this is the label and then I am projecting, projecting, projecting it on to the subspace spanned by the feature vectors, so I am taking all possible linear combinations of the features, and then looking for that way to combine height and weight, which gives me a point which is closest to my label. 
+
+So, because I want to explain my label as some combination of height and weight, and then I am trying to see if there is a point, which is which gets me as close to y as possible, it is not necessary that y will be on this plane. So, y can be anywhere (out) outside this plane also in which case I am trying to find points in this plane which which best explains y in some sense. Now, because of the fact that, so, now, how can I understand this point. So, this is the question. So, how can I understand this point, which is closest? Now, first thing is, by the virtue of the fact that this is on the plane, it is some linear combination of F1 and F2. 
+
+So, this is some α*1 F1 + α*2 F2, it is some α*1 and α* 2 real numbers, which whose combination gives me this point, which means I can write this as F1, F2 into α*1, I am sorry, I should write this this way, F1, F2, α*1 α*2, this is exactly this linear combination that will get meet this, which means I can so now this matrix, which is a matrix of features is what we are exactly thinking of having x as rows, which means this is just x<sup>T</sup> α* for some α*. 
+
+So, this point is x<sup>T</sup> α* for some α*, I do not know what the α* is it but then there is some α* which will get me closest to y. Now, by closest to I am saying I am taking y and projecting it onto the space, which means that there is a 90 degree angle that gets formed between this x<sup>T</sup> α* and the perpendicular that takes me to y. 
+
+(Refer Slide Time: 08:04) 
+
+
+
+So, what does that mean? That means that by the virtue of the fact that x<sup>T</sup> α* is the closest point, the following should hold. So, this is y, this is just zooming in onto these vectors only this is x<sup>T</sup> α*. So, now, what would this vector look like, well, this vector is pointing the perpendicular to the plane, which is y - x<sup>T</sup> α*, the thing that I should add to x α* x<sup>T</sup> α* to get to y. 
+
+So, what I am saying now, is that these 2 guys are perpendicular, which means orthogonal which means y - x<sup>T</sup> α*<sup>T</sup> x<sup>T</sup> α* should be 0. This should happen, now, this simply means that y<sup>T</sup> x<sup>T</sup> α*, I am just multiplying it out - α*<sup>T</sup> x x<sup>T</sup> α* = 0. So, it should satisfy this condition whatever this α* is, it should satisfy this condition. 
+
+(Refer Slide Time: 09:08) 
+
+
+
+Now, we know that we our solution w* = (xx<sup>T</sup> )<sup>✝</sup> xy. Recall this, so, this is something that we saw by solving the linear regression problem. Now, the question is well, now substituting let us say, I want to see how does w* satisfy this equation, that is the question I am asking which means that if I (substitute) substituting w* = α* on LHS we get y<sup>T</sup> x<sup>T</sup> . Now, we know what is w* which is (xx<sup>T</sup> )<sup>✝</sup> xy - ((xx<sup>T</sup> )<sup>✝</sup> xy)<sup>T</sup> (xx<sup>T</sup> )((xx<sup>T</sup> )<sup>✝</sup> xy). So, it is just tedious to write this, but then all I am doing is I know a closed form for w*, I know, equation that α*s should, should satisfy and I am just trying to check if w*s satisfies this equation. 
+
+Now, we can argue and I let you do this, I mean carefully that this is actually 0, one thing that you would want to use this, you would want to use xx<sup>T</sup> is symmetric somewhere. So, some its transpose will be the same use this to show that this is actually 0. What does this tell us? 
+
+(Refer Slide Time: 10:45) 
+
+
+
+This is basically telling us that well, the point that is closest to y that is spanned by our features is in fact x<sup>T</sup> w*. So, that is that is precisely the conclusion that we are drawing that is the geometric interpretation. 
+
+(Refer Slide Time: 10:58) 
+
+
+
+The conclusion geometrically is then the following, x<sup>T</sup> w* is the projection of the labels on to the subspace spanned by the features. This is the geometric interpretation. So, I have a w* with me, well, how do I interpret this geometrically, well, if you take the labels projected onto the (span) 
+
+subspace spanned by the features, that point depends on w*, it is actually x<sup>T</sup> w*. So, that is precisely the that is precisely the solution. That is precisely the geometric view with which you can understand linear regression, all you are doing is projections of labels onto the subspace spanned by the features. 
+
+(Refer Slide Time: 12:09) 
+
+
+
+Of course, if w belongs to this plane already, then the projection of sorry, if y belongs to this plane already, it is not sticking out of this plane, but it belongs to the plane already, then it is projection onto the plane is itself. So, the closest point in the plane is itself, and you can think about when would that happen, so, think of it as an exercise, when what does it mean to say that y is actually on this plane, now, what does it mean to say in terms of the error that we have put down, so if you try to connect it via the equations also, or if you can look at it geometrically also, it should be clear, what does it mean to say that y belongs to this plane, I leave that as an exercise. 
+
+But then this is the main geometric intuition as to what linear regression is. So, we set out to ask a lot of questions. The first question was the about the geometry of the solution and this is what that is. We will answer the other questions in the following videos. Thank you.
