@@ -128,7 +128,12 @@ have kind of argued now. So, what is the argument? So, what have we gained by th
 
 𝑡 𝑡 Well, this quantity here is the objective function, this is just 𝐹𝑍 , ⋯, 𝑍 . Now, this quantity ( 1 𝑛) 𝑡+1 𝑡+1 here is a 𝐹𝑍 , ⋯, 𝑍 . And we are saying using this intermediate quantity, which is the ( 1 𝑛 ) 𝑡+1 𝑡+1 same here and here. We are saying that well, 𝐹𝑍 , ⋯, 𝑍 . is less than or equal to this ( 1 𝑛 ) 𝑡 𝑡 intermediate quantity, which is strictly less than 𝐹𝑍 , ⋯, 𝑍 . ( 1 𝑛))
 
-𝑡+1 𝑡+1<br>same here and here. We are saying that well, 𝐹𝑍 , ⋯, 𝑍 . is less than or equal to this<br>( 1 𝑛 )<br>𝑡 𝑡<br>intermediate quantity, which is strictly less than 𝐹𝑍 , ⋯, 𝑍 .<br>( 1 𝑛))<br>
+𝑡+1 𝑡+1
+same here and here. We are saying that well, 𝐹𝑍 , ⋯, 𝑍 . is less than or equal to this
+( 1 𝑛 )
+𝑡 𝑡
+intermediate quantity, which is strictly less than 𝐹𝑍 , ⋯, 𝑍 .
+( 1 𝑛))
 
 ### Timestamp: 26:36
 
@@ -158,4 +163,8 @@ That is not true at all. All we are saying is that the algorithm will converge. 
 
 This argument just says the algorithm converges, which is a very important thing to know, because otherwise, we will not be sure. If partitions could repeat, then the algorithm can get in some loop and then it will never converge. We do not know when to stop. Now, that problem is not there is what this argument shows. So, that completes our argument about the convergence of the Lloyd’s algorithm. We will next see the nature of clusters that the Lloyd’s algorithm produces.
 
-because otherwise, we will not be sure. If partitions could repeat, then the algorithm can get<br>in some loop and then it will never converge. We do not know when to stop. Now, that<br>problem is not there is what this argument shows. So, that completes our argument about the<br>convergence of the Lloyd’s algorithm. We will next see the nature of clusters that the Lloyd’s<br>algorithm produces.<br>
+because otherwise, we will not be sure. If partitions could repeat, then the algorithm can get
+in some loop and then it will never converge. We do not know when to stop. Now, that
+problem is not there is what this argument shows. So, that completes our argument about the
+convergence of the Lloyd’s algorithm. We will next see the nature of clusters that the Lloyd’s
+algorithm produces.

@@ -18,7 +18,21 @@ So, data points are clear. So, we are going to think about data points is just a
 
 (Refer Slide Time: 3:35)
 
-So, this running theme of what does it mean to understand will come in very handy not just<br>for the representation learning part that we are looking at today, but in general throughout this<br>course. So, what is the running theme that we are going to look at? Well, this is based on a<br>very nice quote by a famous computer scientist and a philosopher George Chaitin. And he<br>says, comprehension and it is worth writing it down, “Comprehension is compression” that is<br>a very interesting statement and this is by George Chaitin.<br>So, we want to comprehend. So, what  does comprehend mean? In our context, we can think<br>of comprehension as well understanding, so or even learning. So, you can comprehend,<br>which means you can understand something you can learn something all these are<br>synonymous in our context. But what does it mean to say you can comprehend something, it<br>means that you are able to compress.<br>So, for instance, if you are able to compress information such that you retain only the<br>important part of the information that can be explained to somebody else, then it means that<br>you have necessarily understood or learned from the data. So, this is a very high-level<br>running  theme that we are going to use not just for the algorithm that we will see for<br>
+So, this running theme of what does it mean to understand will come in very handy not just
+for the representation learning part that we are looking at today, but in general throughout this
+course. So, what is the running theme that we are going to look at? Well, this is based on a
+very nice quote by a famous computer scientist and a philosopher George Chaitin. And he
+says, comprehension and it is worth writing it down, “Comprehension is compression” that is
+a very interesting statement and this is by George Chaitin.
+So, we want to comprehend. So, what  does comprehend mean? In our context, we can think
+of comprehension as well understanding, so or even learning. So, you can comprehend,
+which means you can understand something you can learn something all these are
+synonymous in our context. But what does it mean to say you can comprehend something, it
+means that you are able to compress.
+So, for instance, if you are able to compress information such that you retain only the
+important part of the information that can be explained to somebody else, then it means that
+you have necessarily understood or learned from the data. So, this is a very high-level
+running  theme that we are going to use not just for the algorithm that we will see for
 
 So, this running theme of what does it mean to understand will come in very handy not just for the representation learning part that we are looking at today, but in general throughout this course. So, what is the running theme that we are going to look at? Well, this is based on a very nice quote by a famous computer scientist and a philosopher George Chaitin. And he says, comprehension and it is worth writing it down, “Comprehension is compression” that is a very interesting statement and this is by George Chaitin.
 
@@ -32,7 +46,18 @@ will give you some new insights as to how these algorithms are designed and why 
 
 (Refer Slide Time: 5:47)
 
-For now, we are going to start with the running theme for the problem of  unsupervised<br>learning. So, let us make that problem a little bit more precise. Let me not use yellow, let me<br>use blue. So, here is the problem that we want to think about now. So, you have an input.<br>Now we have decided the input is a bunch of data points and these data points can be thought<br>of as a bunch of vectors in R d .<br>Let us say we have n such vectors, each   is  in R d  which means there are n people. From<br>each person, let us say we collect d different numbers or these are in general data points,<br>maybe these are n images, whatever it could be, but then we just have n different data points,<br>which we are abstracting it out as a bunch of vectors in R d . So, this d can be thought of as<br>features, the number of features.<br>So, what is the output that we want? Well, from this data point, because we are going to think<br>of comprehension as compression, learning as compression, we want some compressed<br>
+For now, we are going to start with the running theme for the problem of  unsupervised
+learning. So, let us make that problem a little bit more precise. Let me not use yellow, let me
+use blue. So, here is the problem that we want to think about now. So, you have an input.
+Now we have decided the input is a bunch of data points and these data points can be thought
+of as a bunch of vectors in R d .
+Let us say we have n such vectors, each   is  in R d  which means there are n people. From
+each person, let us say we collect d different numbers or these are in general data points,
+maybe these are n images, whatever it could be, but then we just have n different data points,
+which we are abstracting it out as a bunch of vectors in R d . So, this d can be thought of as
+features, the number of features.
+So, what is the output that we want? Well, from this data point, because we are going to think
+of comprehension as compression, learning as compression, we want some compressed
 
 For now, we are going to start with the running theme for the problem of  unsupervised learning. So, let us make that problem a little bit more precise. Let me not use yellow, let me use blue. So, here is the problem that we want to think about now. So, you have an input. Now we have decided the input is a bunch of data points and these data points can be thought of as a bunch of vectors in R<sup>d</sup> .
 
@@ -42,7 +67,20 @@ So, what is the output that we want? Well, from this data point, because we are 
 
 (Refer Slide Time: 7:08)
 
-So, here is an example. Let us say I give you a data set, which looks like the following. So,<br>maybe you have  [-7 -14], this is x1, x2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let 1, x2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let , x2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let 2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let , let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let 3 is let us say [0.5, 1], x4 is let  is let us say [0.5, 1], x4 is let 4 is let  is let<br>us say [0, 0]. Let us say you have these four data points, I am going to ask you a question and<br>then maybe you can pause and think about this question a bit and we will talk about what is<br>the answer to this question in the way that we are thinking about.<br>So, how many numbers are needed, when you say numbers, real numbers. So, how many real<br>numbers are needed to store this data set, let us say on a computer? So, there are 4 data<br>points, each data point has 2 coordinates. So, how many numbers do you think are needed to<br>store this data set? Pause and think about this, I will tell you the answer.<br>The naive answer to this question is that well, 4 data points to features per number, so 4  x 2,<br>8, so, you would need 8 numbers, you can store 8 numbers on a computer, and then well<br>good, so that you can retrieve the data set exactly as you are seeing it here, which is good.<br>But then is this the best that we can do, do we really have to store 8 numbers in this case or<br>can we do better?<br>
+So, here is an example. Let us say I give you a data set, which looks like the following. So,
+maybe you have  [-7 -14], this is x1, x2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let 1, x2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let , x2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let 2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let , let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let 3 is let us say [0.5, 1], x4 is let  is let us say [0.5, 1], x4 is let 4 is let  is let
+us say [0, 0]. Let us say you have these four data points, I am going to ask you a question and
+then maybe you can pause and think about this question a bit and we will talk about what is
+the answer to this question in the way that we are thinking about.
+So, how many numbers are needed, when you say numbers, real numbers. So, how many real
+numbers are needed to store this data set, let us say on a computer? So, there are 4 data
+points, each data point has 2 coordinates. So, how many numbers do you think are needed to
+store this data set? Pause and think about this, I will tell you the answer.
+The naive answer to this question is that well, 4 data points to features per number, so 4  x 2,
+8, so, you would need 8 numbers, you can store 8 numbers on a computer, and then well
+good, so that you can retrieve the data set exactly as you are seeing it here, which is good.
+But then is this the best that we can do, do we really have to store 8 numbers in this case or
+can we do better?
 
 So, here is an example. Let us say I give you a data set, which looks like the following. So, maybe you have  [-7 -14], this is x1, x2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let 1, x2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let , x2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let 2, let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let , let us say is [2.5, 5], x3 is let us say [0.5, 1], x4 is let 3 is let us say [0.5, 1], x4 is let  is let us say [0.5, 1], x4 is let 4 is let  is let us say [0, 0]. Let us say you have these four data points, I am going to ask you a question and then maybe you can pause and think about this question a bit and we will talk about what is the answer to this question in the way that we are thinking about.
 
@@ -54,7 +92,20 @@ So, if you think about it, now look at the data set and see if there are some re
 
 (Refer Slide Time: 9:26)
 
-So, which means one way you could store this data set on a computer is going to be as<br>follows. We will store a representative point, this is one type of representing this dataset, not<br>the only type, here is one way. So, the representative in this case, let us say is [1 2]. So, here<br>is a single representative for the entire data set, which is [1 2], which kind of tells us that if<br>the first feature is 1, the second feature is twice the first feature.<br>That is what this representative says. And now for each data point we will store what are<br>called as coefficients, and the score sufficient for the data point 1 is going to be  -7, for data<br>point 2 is going to be 2.5, for   is going to be 0.5 and   is going to be 0. Now, suddenly you<br>see that well, if you exploit the fact that the first two coordinates are related.<br>And if you want a representation where you have a representative, which is one vector in R 2<br>for the entire data set, and coefficients, which is one coefficient per representative, then<br>suddenly we just need only 6 numbers to be stored. Now, one might ask, well is this a big<br>savings, how much of a savings can we really achieve? So, we just went from 8 to 6, but that<br>does not seem like a big savings.<br>
+So, which means one way you could store this data set on a computer is going to be as
+follows. We will store a representative point, this is one type of representing this dataset, not
+the only type, here is one way. So, the representative in this case, let us say is [1 2]. So, here
+is a single representative for the entire data set, which is [1 2], which kind of tells us that if
+the first feature is 1, the second feature is twice the first feature.
+That is what this representative says. And now for each data point we will store what are
+called as coefficients, and the score sufficient for the data point 1 is going to be  -7, for data
+point 2 is going to be 2.5, for   is going to be 0.5 and   is going to be 0. Now, suddenly you
+see that well, if you exploit the fact that the first two coordinates are related.
+And if you want a representation where you have a representative, which is one vector in R 2
+for the entire data set, and coefficients, which is one coefficient per representative, then
+suddenly we just need only 6 numbers to be stored. Now, one might ask, well is this a big
+savings, how much of a savings can we really achieve? So, we just went from 8 to 6, but that
+does not seem like a big savings.
 
 So, which means one way you could store this data set on a computer is going to be as follows. We will store a representative point, this is one type of representing this dataset, not the only type, here is one way. So, the representative in this case, let us say is [1 2]. So, here is a single representative for the entire data set, which is [1 2], which kind of tells us that if the first feature is 1, the second feature is twice the first feature.
 
@@ -78,7 +129,25 @@ these points would be [0 0], [-7  -14], [2.5 5], and I think maybe this is [1 2]
 
 Now, all of these lies along this line, and that is not too hard to see, because the relationship is that the coordinate is two times the coordinate. So, equals 2 , is this line. So, all the points in this line. Now, even if you had other points in this line, well, you could still you could have used a representative and then reconstructed it the way we did. Now, one point to note here, again, a simple point, but then  it will come out very useful as we go along.
 
-note here, again, a simple point, but then  it will come out very useful as we go along.<br>Instead, well, remember what we did was the representative that we choose was [1  2], and<br>the coefficients were -7, 2.5, 0.5 and 0. Now, there is nothing sacrosanct about this<br>representative [1 2], I could have chosen a different representative and achieved the same<br>exact reconstruction. For instance, I could have chosen any point along this line as a<br>representative, of course, except the [0  0], point.<br>Any other point along this line could have been chosen as a representative. For instance, I<br>could have chosen [1/   2/ ]  . For whatever reason I want to let us say choose this as my<br>representative, it is still a valid represented because there are coefficients that I can use,<br>which are -7 , 2.5 , 0.5 , 0, and I still will be able to access exactly the constructor<br>dataset.<br>So, the exact choice of representative is immaterial as long as the representative lies along<br>this line. So let me make a note of that point and then again, it might seem a simple silly point<br>at this point, but we will see the use of this as we go along. So, any vector along the line,<br>purple line that I have drawn here, can be chosen as a representative, of course, except [0  0],<br>which we will not allow, because if it is [0 0], then we will not be able to reconstruct<br>anything.<br>So, originally, if we did not have this representative coefficient view of things, then the<br>number of real numbers that you would have needed to store let us say,   data points in two<br>
+note here, again, a simple point, but then  it will come out very useful as we go along.
+Instead, well, remember what we did was the representative that we choose was [1  2], and
+the coefficients were -7, 2.5, 0.5 and 0. Now, there is nothing sacrosanct about this
+representative [1 2], I could have chosen a different representative and achieved the same
+exact reconstruction. For instance, I could have chosen any point along this line as a
+representative, of course, except the [0  0], point.
+Any other point along this line could have been chosen as a representative. For instance, I
+could have chosen [1/   2/ ]  . For whatever reason I want to let us say choose this as my
+representative, it is still a valid represented because there are coefficients that I can use,
+which are -7 , 2.5 , 0.5 , 0, and I still will be able to access exactly the constructor
+dataset.
+So, the exact choice of representative is immaterial as long as the representative lies along
+this line. So let me make a note of that point and then again, it might seem a simple silly point
+at this point, but we will see the use of this as we go along. So, any vector along the line,
+purple line that I have drawn here, can be chosen as a representative, of course, except [0  0],
+which we will not allow, because if it is [0 0], then we will not be able to reconstruct
+anything.
+So, originally, if we did not have this representative coefficient view of things, then the
+number of real numbers that you would have needed to store let us say,   data points in two
 
 Instead, well, remember what we did was the representative that we choose was [1  2], and the coefficients were -7, 2.5, 0.5 and 0. Now, there is nothing sacrosanct about this representative [1 2], I could have chosen a different representative and achieved the same exact reconstruction. For instance, I could have chosen any point along this line as a representative, of course, except the [0  0], point.
 
@@ -106,7 +175,25 @@ if you want to exactly reconstruct this data set, well, then you have to give up
 
 Now, what else can we do? Well, one thing you can do is, instead of a single representative, you can use two representatives, and then you can think of each data point as a linear combination of these two representatives. For example, I can think of the representatives now as not just a single representative, but a set of representatives. Let us say, {[1 0],  [0 1]}, are my representatives, imagine. And my coefficients would be what?
 
-my representatives, imagine. And my coefficients would be what?<br>Would be to reconstruct the point [-5 -5], the coefficients would be -5, -5. To reconstruct [1<br>1], the coefficients will be 1, 1. To reconstruct [7 7], it would be 7, 7, [5  6] would be 5, 6,<br>and [10 10] would be 10, 10. So, for example, how would I reconstruct the x? Let us say this<br>is x1, x2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 1, x2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x5. If I had to reconstruct x3, how would I do that? Well, I look at the 5. If I had to reconstruct x3, how would I do that? Well, I look at the . If I had to reconstruct x3, how would I do that? Well, I look at the 3, how would I do that? Well, I look at the , how would I do that? Well, I look at the<br>coefficients that are two coefficients.<br>One corresponding to each of the representatives. So, this would be 10 [1 0]+10 [0 1], that<br>gives me [10 10]. Now we can check, you can do this for every data point. But now, the<br>question, is this a great idea? Perhaps not, because what we have done is that we have<br>increased the number of data points that we need number of coefficients that we need to store<br>per data point from 1 to 2.<br>So, which means if I had to store these numbers, I would anyway store two number per data<br>point, in addition I will also store four numbers for the representative. So initially, if it was n<br>numbers, we would have stored  2n numbers, but now we are going to store 2 + 4, that is not<br>really compression at all. So, we are not really compressing we are in fact, increasing the<br>number of data points.<br>Now, that means that this is also not a good idea. So, increasing the number of<br>representatives for this data set does not seem like a great idea, either. But then if you do not<br>increase the number of representative for this dataset, then we know that you cannot exactly<br>
+my representatives, imagine. And my coefficients would be what?
+Would be to reconstruct the point [-5 -5], the coefficients would be -5, -5. To reconstruct [1
+1], the coefficients will be 1, 1. To reconstruct [7 7], it would be 7, 7, [5  6] would be 5, 6,
+and [10 10] would be 10, 10. So, for example, how would I reconstruct the x? Let us say this
+is x1, x2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 1, x2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x5. If I had to reconstruct x3, how would I do that? Well, I look at the 5. If I had to reconstruct x3, how would I do that? Well, I look at the . If I had to reconstruct x3, how would I do that? Well, I look at the 3, how would I do that? Well, I look at the , how would I do that? Well, I look at the
+coefficients that are two coefficients.
+One corresponding to each of the representatives. So, this would be 10 [1 0]+10 [0 1], that
+gives me [10 10]. Now we can check, you can do this for every data point. But now, the
+question, is this a great idea? Perhaps not, because what we have done is that we have
+increased the number of data points that we need number of coefficients that we need to store
+per data point from 1 to 2.
+So, which means if I had to store these numbers, I would anyway store two number per data
+point, in addition I will also store four numbers for the representative. So initially, if it was n
+numbers, we would have stored  2n numbers, but now we are going to store 2 + 4, that is not
+really compression at all. So, we are not really compressing we are in fact, increasing the
+number of data points.
+Now, that means that this is also not a good idea. So, increasing the number of
+representatives for this data set does not seem like a great idea, either. But then if you do not
+increase the number of representative for this dataset, then we know that you cannot exactly
 
 Would be to reconstruct the point [-5 -5], the coefficients would be -5, -5. To reconstruct [1 1], the coefficients will be 1, 1. To reconstruct [7 7], it would be 7, 7, [5  6] would be 5, 6, and [10 10] would be 10, 10. So, for example, how would I reconstruct the x? Let us say this is x1, x2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 1, x2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 2, x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 3, x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the 4, x5. If I had to reconstruct x3, how would I do that? Well, I look at the , x5. If I had to reconstruct x3, how would I do that? Well, I look at the 5. If I had to reconstruct x3, how would I do that? Well, I look at the . If I had to reconstruct x3, how would I do that? Well, I look at the 3, how would I do that? Well, I look at the , how would I do that? Well, I look at the coefficients that are two coefficients.
 
@@ -122,7 +209,26 @@ that. So now, I do not really need exact reconstruction, which means that I know
 
 If I do not have to reconstruct this exactly, which means what does that equivalently mean? It means that I need to somehow find a proxy for this along this line along this blue line. So, if I find a proxy for this , let us say at some point here is a proxy for this line, maybe this is proxy, then I can imagine as if my data set only had proxy, along with , , , and I can forget about .
 
-,  , ,<br>I can forget about  .<br>Now, because all these points lie along the line, I can use a single representative and under<br>coefficients per data point, and compression is still possible. Now, that means we need to find<br>a proxy for this data point along this blue line. So, how can we find this proxy? Well, if you<br>have looked at linear algebra, before you already, perhaps know the answer to this.<br>Well, what could be a good proxy, a proxy the best proxy for x5 along the blue line would be 5 along the blue line would be  along the blue line would be<br>that point which for which we lose the least. So, in other words, so if I choose for instance<br>this point as the proxy, then what do I lose? Well, I lose this bit. So, whereas if I choose this<br>point as the proxy, I lose this bit. Now if I choose the green point as a proxy, I lose this bit.<br>Now, the proxy should be chosen such that I lose the least. So, which means that the length of<br>the vector, which should be added to this proxy to get the original point should be as small as<br>possible. Now, how do we choose that? Well, again, if you have seen linear algebra, this is<br>just projection of x5 on to this blue line. So, now the question that we are asking is, who can 5 on to this blue line. So, now the question that we are asking is, who can  on to this blue line. So, now the question that we are asking is, who can<br>pretend to be a proxy for x5 along the blue line?  5 along the blue line?   along the blue line?<br>Of course, the answer to this is projection of   on to the blue line. Well, projection is just<br>finding that point which is closest to   along the blue line. So, how do we find that point?<br>Well, of course, for people who are conversant, linear algebra might already know the answer<br>to this. Nevertheless, just to keep it self-contained, I will go with this. So basically, this is<br>what we want to do.<br>
+,  , ,
+I can forget about  .
+Now, because all these points lie along the line, I can use a single representative and under
+coefficients per data point, and compression is still possible. Now, that means we need to find
+a proxy for this data point along this blue line. So, how can we find this proxy? Well, if you
+have looked at linear algebra, before you already, perhaps know the answer to this.
+Well, what could be a good proxy, a proxy the best proxy for x5 along the blue line would be 5 along the blue line would be  along the blue line would be
+that point which for which we lose the least. So, in other words, so if I choose for instance
+this point as the proxy, then what do I lose? Well, I lose this bit. So, whereas if I choose this
+point as the proxy, I lose this bit. Now if I choose the green point as a proxy, I lose this bit.
+Now, the proxy should be chosen such that I lose the least. So, which means that the length of
+the vector, which should be added to this proxy to get the original point should be as small as
+possible. Now, how do we choose that? Well, again, if you have seen linear algebra, this is
+just projection of x5 on to this blue line. So, now the question that we are asking is, who can 5 on to this blue line. So, now the question that we are asking is, who can  on to this blue line. So, now the question that we are asking is, who can
+pretend to be a proxy for x5 along the blue line?  5 along the blue line?   along the blue line?
+Of course, the answer to this is projection of   on to the blue line. Well, projection is just
+finding that point which is closest to   along the blue line. So, how do we find that point?
+Well, of course, for people who are conversant, linear algebra might already know the answer
+to this. Nevertheless, just to keep it self-contained, I will go with this. So basically, this is
+what we want to do.
 
 Now, because all these points lie along the line, I can use a single representative and under coefficients per data point, and compression is still possible. Now, that means we need to find a proxy for this data point along this blue line. So, how can we find this proxy? Well, if you have looked at linear algebra, before you already, perhaps know the answer to this.
 
@@ -144,7 +250,24 @@ can set this as an optimization problem where we want to minimise with respect t
 
 But what is the error vector? If the point that you want to project on this , , on the line that you want to project along is , . And if the point is times , , the error vector itself is just what should be added to , , , to get , , well, what should you add, you should add ( ) , And the length square of this is just + .
 
-should add (  )  ,  And the length square of this is just<br>+ .<br>Now, you want to find the c such that this value is as small as possible. So, as I move c, if I c such that this value is as small as possible. So, as I move c, if I  such that this value is as small as possible. So, as I move c, if I c, if I , if I<br>choose a different c, I might get this point where then where I am kind of measuring this line, c, I might get this point where then where I am kind of measuring this line, , I might get this point where then where I am kind of measuring this line,<br>if I choose a different c, negative  c, I might get this point where the length that I am , I might get this point where the length that I am<br>considering caring about is this length. So now, I want to choose a c such that the length is as c such that the length is as  such that the length is as<br>small as possible, which means I need to minimise this function.<br>Now, here is an exercise, take the take the derivative of this function with respect to c, equate c, equate , equate<br>it to 0 and see what we get, I am not going to do that derivation, it is a very simple derivation,<br>I will leave that as an exercise. But then if you do that, you will observe that c* will have the c* will have the * will have the<br>following form  . So, remember this is a scalar.<br>So, it just says that what should I scale my vector  ,   by to get to a point along the line,<br>blue line, which is closest to the point  ,  . And that scalar, of course, has to depend both<br>on   ,  , and it also has to depend on the original point  ,  , and a sanity check, you will<br>see that it depends on both. So, basically what is this c?<br>This is c times w1, w2 is actually from our derivation 1, w2 is actually from our derivation , w2 is actually from our derivation 2 is actually from our derivation  is actually from our derivation  , this is a vector this is a scalar.<br>So, you are multiplying that scalar for both the both the numerator and the denominator. So,<br>it is worthwhile to notice the numerator and the denominator separately. So, what are these,<br>
+should add (  )  ,  And the length square of this is just
++ .
+Now, you want to find the c such that this value is as small as possible. So, as I move c, if I c such that this value is as small as possible. So, as I move c, if I  such that this value is as small as possible. So, as I move c, if I c, if I , if I
+choose a different c, I might get this point where then where I am kind of measuring this line, c, I might get this point where then where I am kind of measuring this line, , I might get this point where then where I am kind of measuring this line,
+if I choose a different c, negative  c, I might get this point where the length that I am , I might get this point where the length that I am
+considering caring about is this length. So now, I want to choose a c such that the length is as c such that the length is as  such that the length is as
+small as possible, which means I need to minimise this function.
+Now, here is an exercise, take the take the derivative of this function with respect to c, equate c, equate , equate
+it to 0 and see what we get, I am not going to do that derivation, it is a very simple derivation,
+I will leave that as an exercise. But then if you do that, you will observe that c* will have the c* will have the * will have the
+following form  . So, remember this is a scalar.
+So, it just says that what should I scale my vector  ,   by to get to a point along the line,
+blue line, which is closest to the point  ,  . And that scalar, of course, has to depend both
+on   ,  , and it also has to depend on the original point  ,  , and a sanity check, you will
+see that it depends on both. So, basically what is this c?
+This is c times w1, w2 is actually from our derivation 1, w2 is actually from our derivation , w2 is actually from our derivation 2 is actually from our derivation  is actually from our derivation  , this is a vector this is a scalar.
+So, you are multiplying that scalar for both the both the numerator and the denominator. So,
+it is worthwhile to notice the numerator and the denominator separately. So, what are these,
 
 Now, you want to find the c such that this value is as small as possible. So, as I move c, if I c such that this value is as small as possible. So, as I move c, if I  such that this value is as small as possible. So, as I move c, if I c, if I , if I choose a different c, I might get this point where then where I am kind of measuring this line, c, I might get this point where then where I am kind of measuring this line, , I might get this point where then where I am kind of measuring this line, if I choose a different c, negative c, I might get this point where the length that I am , I might get this point where the length that I am considering caring about is this length. So now, I want to choose a c such that the length is as c such that the length is as  such that the length is as small as possible, which means I need to minimise this function.
 

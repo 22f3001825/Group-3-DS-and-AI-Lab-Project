@@ -6,7 +6,7 @@
 
 Till now everything we learned was deterministic, In this upcoming slides we will do some probabilistic assumption about the data. "There is some probabilistic mechanism that generates the data about which we don't know something. Given data, find / estimate what we don't know"
 
-Unknown Parameter<br>
+Unknown Parameter
 
 ### **Goal of Estimation**
 
@@ -156,7 +156,10 @@ Introduce for every datapoints i , the parameter 𝜆1i , 𝜆2i , . . . . , �
 
 #### **Finally to Estimate the parameters(** 𝜃 **), we do the following: Fix  and maximise over (** 𝜆 𝜃 **)**
 
-- (xi - 𝜇k )2<br>n k 𝜋k . 1 e 2𝜎k2<br>i 2𝜋𝜎k<br>max𝜃 i ∑  = 1 k∑= 1 𝜆k . log 𝜆ki<br>
+- (xi - 𝜇k )2
+n k 𝜋k . 1 e 2𝜎k2
+i 2𝜋𝜎k
+max𝜃 i ∑  = 1 k∑= 1 𝜆k . log 𝜆ki
 
 **Take derivative w.r.t to (** 𝜇 **) to get**
 

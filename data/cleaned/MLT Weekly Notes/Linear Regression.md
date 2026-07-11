@@ -60,9 +60,21 @@ Setting the gradient equation to zero 𝛻 f(w) = 0 , we obtain:
 
 for example, for any data matrix X of shape d = 2 , n = 3
 
-f1 f2<br>x1 | | y1<br>x2 | | y2<br>x3 | | y3<br>
+f1 f2
+x1 | | y1
+x2 | | y2
+x3 | | y3
 
-y ∈ R 3<br>* * T *<br>𝛼 f1 + 𝛼 f2  = x 𝛼<br>| | 𝛼1<br>f1 f2<br>| | 𝛼2<br>f1 ∈ R3<br>3<br>f2 ∈ R<br>Space spanned by feature vector<br>
+y ∈ R 3
+* * T *
+𝛼 f1 + 𝛼 f2  = x 𝛼
+| | 𝛼1
+f1 f2
+| | 𝛼2
+f1 ∈ R3
+3
+f2 ∈ R
+Space spanned by feature vector
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 
@@ -116,7 +128,12 @@ The progress of SGD is less smooth given that we are only using an approximate v
 
 ##### **Kernel Regression**
 
-†<br>* T<br>w  =  XX (Xy)<br>w *<br>˜<br>w<br>
+†
+* T
+w  =  XX (Xy)
+w *
+˜
+w
 
 w<sup>*</sup> must lie on the span of the data-points
 

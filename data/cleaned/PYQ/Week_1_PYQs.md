@@ -34,8 +34,13 @@ we know, all pricipal components are orthogonal to each other i. e, wiTwj = 0  �
 > 1
 > ~1
 
-<!-- Start of picture text -->
-1 1<br>1 -1 1 0<br>w1 =    ; w2 =<br>0 1<br>3 3<br>-<br>1 1<br><!-- End of picture text -->
+1 1
+1 -1 1 0
+w1 =    ; w2 =
+0 1
+3 3
+-
+1 1
 
 > **[Extracted Question]**
 > Wjwz
@@ -61,8 +66,17 @@ we know, all pricipal components are orthogonal to each other i. e, wiTwj = 0  �
 > 3
 > 3
 
-<!-- Start of picture text -->
-T<br>w1 w2 = 0<br>1<br>w1Tb =  1 1 -1 0 1  × 1 11  =  13 - 13 + 0 + 0   = 0<br>3 3<br>0<br>1<br>w2Tb =   1 1 0 1 -1 × 1 1   = 1 + 0 +  + 0 = 1 2<br>1 3 3 3<br>3 3<br>0<br><!-- End of picture text -->
+T
+w1 w2 = 0
+1
+w1Tb =  1 1 -1 0 1  × 1 11  =  13 - 13 + 0 + 0   = 0
+3 3
+0
+1
+w2Tb =   1 1 0 1 -1 × 1 1   = 1 + 0 +  + 0 = 1 2
+1 3 3 3
+3 3
+0
 
 similarly workout for option (a) , (c) , (d) T T T w1 w2 = w1 d = w2 d = 0
 
@@ -140,8 +154,19 @@ similarly workout for option (a) , (c) , (d) T T T w1 w2 = w1 d = w2 d = 0
 > 1-[1 1 1] X
 > 1 , (1
 
-<!-- Start of picture text -->
-Given,<br>1 1 2<br>1 1<br>w1 =  1   ; w2 =  -1   ; x = 1<br>3 1 2 0 -1<br>2<br>1 2 1 1<br>⟹ a = w1Tx =  1 1 1 ×  1  =   + -  = 1.15<br>3 -1 3 3 3<br>2<br>1 2 1<br>⟹ b = w2Tx =  1 -1 0  ×  1  =  -  + 0  = 0.70<br>2 -1 2 2<br><!-- End of picture text -->
+Given,
+1 1 2
+1 1
+w1 =  1   ; w2 =  -1   ; x = 1
+3 1 2 0 -1
+2
+1 2 1 1
+⟹ a = w1Tx =  1 1 1 ×  1  =   + -  = 1.15
+3 -1 3 3 3
+2
+1 2 1
+⟹ b = w2Tx =  1 -1 0  ×  1  =  -  + 0  = 0.70
+2 -1 2 2
 
 > **[Extracted Question]**
 > Question 2
@@ -535,5 +560,18 @@ Option 5 : 𝐶 is of the form kI, where 𝑘 > 0 False, The eigenvalues may not
 > 2
 > XTw) w
 
-<!-- Start of picture text -->
--<br>1<br>T<br>- x w w 3 - 1 7 2<br>⟹ Error vector =  x   =   =<br>wTw 4 2 7 1<br>2<br>-<br>1<br>2 2<br>-<br>1 1<br>⟹ norm of error vector = ||  2  || =   + = 0.25 + 0.25 =  0.5 ≈ 0.71<br>1 2 2<br>2<br><!-- End of picture text -->
+-
+1
+T
+- x w w 3 - 1 7 2
+⟹ Error vector =  x   =   =
+wTw 4 2 7 1
+2
+-
+1
+2 2
+-
+1 1
+⟹ norm of error vector = ||  2  || =   + = 0.25 + 0.25 =  0.5 ≈ 0.71
+1 2 2
+2

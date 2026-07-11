@@ -10,7 +10,20 @@ is .
 
 ### Timestamp: 01:33
 
-Now, I want to write this covariance matrix in terms of this matrix that I have defined here<br>and that is possible, not too hard to see. So, if you look at  , now, which means that means<br>that you are taking a d x n matrix and then multiplying it with an n xd matrix which is the<br>transpose of the data points where the data points are all rows now.<br>Now, this is exactly  . So, this is perhaps you are already seen why this is the k’s,<br>if not try to show this. So, try to show this exercise. All I am saying is that your covariance<br>matrix which is  , this summation can actually be expressed succinctly in matrix<br>notation as   transpose. That just implies that our covariance matrix is just  .<br>So, say any d check,   is d x n,  is n xd,  is d x d which is also the dimension of our<br>covariance matrix. Of course, we are dividing it by n that is needed I mean standard<br>definition needs you to either divide by n or (n -1) does not really matter, we will stick to n at<br>least in this course. So, now, what does PCA do? PCA tries to find the Eigen vectors and<br>Eigen values of the covariance matrix or find the best-fit line which happen to be Eigen<br>vectors and Eigen values of the covariance matrix.<br>
+Now, I want to write this covariance matrix in terms of this matrix that I have defined here
+and that is possible, not too hard to see. So, if you look at  , now, which means that means
+that you are taking a d x n matrix and then multiplying it with an n xd matrix which is the
+transpose of the data points where the data points are all rows now.
+Now, this is exactly  . So, this is perhaps you are already seen why this is the k’s,
+if not try to show this. So, try to show this exercise. All I am saying is that your covariance
+matrix which is  , this summation can actually be expressed succinctly in matrix
+notation as   transpose. That just implies that our covariance matrix is just  .
+So, say any d check,   is d x n,  is n xd,  is d x d which is also the dimension of our
+covariance matrix. Of course, we are dividing it by n that is needed I mean standard
+definition needs you to either divide by n or (n -1) does not really matter, we will stick to n at
+least in this course. So, now, what does PCA do? PCA tries to find the Eigen vectors and
+Eigen values of the covariance matrix or find the best-fit line which happen to be Eigen
+vectors and Eigen values of the covariance matrix.
 
 Now, I want to write this covariance matrix in terms of this matrix that I have defined here and that is possible, not too hard to see. So, if you look at , now, which means that means that you are taking a d x n matrix and then multiplying it with an n xd matrix which is the transpose of the data points where the data points are all rows now.
 
@@ -20,7 +33,20 @@ So, say any d check, is d x n, is n xd, is d x d which is also the dimension of 
 
 ### Timestamp: 03:24
 
-So, let us say   be the Eigen vector corresponding to the k’th largest Eigen value of C and<br>let us call this Eigenvalue  . Now, you have a matrix C and then I am saying that you take<br>the Eigen values of this matrix, arrange them in decreasing order,  is the highest  is the<br>second highest and so on. And   corresponds to the Eigenvector associated with  .<br>Now, what is the equation that an Eigenvector satisfies and Eigenvector is a special direction<br>for a matrix where if the matrix acts on this vector it just scales this vector by some amount.<br>It does not change the direction. So, the direction is either scaling, it could reverse the<br>direction. So, scaling could be negative that is still okay but it does not change the direction.<br>So, which means in equations, it means that  . So, that is the definition of Eigen<br>vector and Eigen value. Now, what we want to understand is, we want to find these Eigen<br>directions which are   to  . Now, what can we say about these  ’s? Where do these<br>live? Where do these Eigen directions live?<br>Of course, they are all d dimensional vectors but can we say something more about where<br>these Eigenvectors live? That is what we are attempting to find now, Now, for that what we<br>
+So, let us say   be the Eigen vector corresponding to the k’th largest Eigen value of C and
+let us call this Eigenvalue  . Now, you have a matrix C and then I am saying that you take
+the Eigen values of this matrix, arrange them in decreasing order,  is the highest  is the
+second highest and so on. And   corresponds to the Eigenvector associated with  .
+Now, what is the equation that an Eigenvector satisfies and Eigenvector is a special direction
+for a matrix where if the matrix acts on this vector it just scales this vector by some amount.
+It does not change the direction. So, the direction is either scaling, it could reverse the
+direction. So, scaling could be negative that is still okay but it does not change the direction.
+So, which means in equations, it means that  . So, that is the definition of Eigen
+vector and Eigen value. Now, what we want to understand is, we want to find these Eigen
+directions which are   to  . Now, what can we say about these  ’s? Where do these
+live? Where do these Eigen directions live?
+Of course, they are all d dimensional vectors but can we say something more about where
+these Eigenvectors live? That is what we are attempting to find now, Now, for that what we
 
 So, let us say be the Eigen vector corresponding to the k’th largest Eigen value of C and let us call this Eigenvalue . Now, you have a matrix C and then I am saying that you take the Eigen values of this matrix, arrange them in decreasing order, is the highest is the second highest and so on. And corresponds to the Eigenvector associated with .
 
@@ -32,7 +58,19 @@ Of course, they are all d dimensional vectors but can we say something more abou
 
 ### Timestamp: 05:50
 
-Now, what I want to do is this is basically algebra, I will retain this   on the left-hand side,<br>bring the   to the other side and combine this   and   together. I can bring, essentially,<br>bringing that this   inside, it does not depend on i so, it can go inside. So, this whole thing<br>becomes  .<br>If you are not immediately seeing why these two equations mean the same thing, pause this<br>video, just work it out it is. I mean you should be able to convince yourself that these two<br>things are exactly the same. It is just one-step of algebra. Now, mean if you stare at this<br>equation for a while, something interesting becomes clear. So, this is kind of seeing.<br>Now, let me, actually, even I can put this in   inside. So, it does not really matter. So, I will<br>tell you why I do this, yeah. So, both are exactly the same. It is a constant. I mean  it does not<br>depend on I, you can pull it inside. Now, what is this saying? This is telling me that if I want<br>the k’th Eigen direction, so, Eigen direction corresponding to the k’th largest Eigenvalue.<br>Now, I can express that as a summation of some constant times   which means I take the<br>
+Now, what I want to do is this is basically algebra, I will retain this   on the left-hand side,
+bring the   to the other side and combine this   and   together. I can bring, essentially,
+bringing that this   inside, it does not depend on i so, it can go inside. So, this whole thing
+becomes  .
+If you are not immediately seeing why these two equations mean the same thing, pause this
+video, just work it out it is. I mean you should be able to convince yourself that these two
+things are exactly the same. It is just one-step of algebra. Now, mean if you stare at this
+equation for a while, something interesting becomes clear. So, this is kind of seeing.
+Now, let me, actually, even I can put this in   inside. So, it does not really matter. So, I will
+tell you why I do this, yeah. So, both are exactly the same. It is a constant. I mean  it does not
+depend on I, you can pull it inside. Now, what is this saying? This is telling me that if I want
+the k’th Eigen direction, so, Eigen direction corresponding to the k’th largest Eigenvalue.
+Now, I can express that as a summation of some constant times   which means I take the
 
 Now, what I want to do is this is basically algebra, I will retain this on the left-hand side, bring the to the other side and combine this and together. I can bring, essentially, bringing that this inside, it does not depend on i so, it can go inside. So, this whole thing becomes .
 
@@ -48,7 +86,20 @@ Because once I have the Eigen vectors then I know how to get a compressed repres
 
 ### Timestamp: 09:16
 
-That means that we can say our   equals our matrix  , which is remember the matrix of the<br>data point stacked in columns multiplied by some   for some   in R n . Now, what does this<br>mean? This simply means that remember, our data point is like this. So,   to, sorry, there<br>matrix   is like this   to  .<br>Now, I am saying there is some   which is in R n  which means that it gives some weight to<br>each of this data point. The k says that it corresponds, these weights corresponds to the<br>Eigenvector  . So,   to  . Now, if I multiply this, this is just  .<br>Of course, we know what this   is. So, this equation tells us that these weights are exactly<br>. But then to get these weights from this equation, it appears that you already need to<br>know  . So, this is  , you need to know  to find w. That is a chicken and egg<br>problem. We cannot use this equation to directly find these weights because this equation<br>needs what we are trying to find in the first place which is  .<br>So, let us leave this equation out. We are saying here that is there a different way that we can<br>somehow find this  ’s. We first recognize that there are these  ’s which exactly is this but<br>
+That means that we can say our   equals our matrix  , which is remember the matrix of the
+data point stacked in columns multiplied by some   for some   in R n . Now, what does this
+mean? This simply means that remember, our data point is like this. So,   to, sorry, there
+matrix   is like this   to  .
+Now, I am saying there is some   which is in R n  which means that it gives some weight to
+each of this data point. The k says that it corresponds, these weights corresponds to the
+Eigenvector  . So,   to  . Now, if I multiply this, this is just  .
+Of course, we know what this   is. So, this equation tells us that these weights are exactly
+. But then to get these weights from this equation, it appears that you already need to
+know  . So, this is  , you need to know  to find w. That is a chicken and egg
+problem. We cannot use this equation to directly find these weights because this equation
+needs what we are trying to find in the first place which is  .
+So, let us leave this equation out. We are saying here that is there a different way that we can
+somehow find this  ’s. We first recognize that there are these  ’s which exactly is this but
 
 That means that we can say our equals our matrix , which is remember the matrix of the data point stacked in columns multiplied by some for some in R<sup>n</sup> . Now, what does this mean? This simply means that remember, our data point is like this. So, to, sorry, there matrix is like this to .
 
@@ -72,7 +123,15 @@ So, we have . We know that. We do not know what is but we know that there will e
 
 ### Timestamp: 13:16
 
-Let me bring the n to the other side and write this as  . Now, what I<br>would do is at this step is pre-multiply this equation by  . In other words, I am saying, I will<br>do   times whatever was there equals   time whatever was there. And what is there was<br> and we will see why this is useful in a minute,  .<br>Now, if I rearrange terms, this is I can do this, I mean I cannot, matrix multiplication is not<br>commutative always, so, I cannot swap terms but I can change the brackets. So, it is<br>associative. So, I can change the brackets however I wish. In other words, I can do it<br>. Basically, I am combining these two guys and these two guys into   equals<br>is a constant that can come outside. This   multiplies this  ,  .<br>
+Let me bring the n to the other side and write this as  . Now, what I
+would do is at this step is pre-multiply this equation by  . In other words, I am saying, I will
+do   times whatever was there equals   time whatever was there. And what is there was
+ and we will see why this is useful in a minute,  .
+Now, if I rearrange terms, this is I can do this, I mean I cannot, matrix multiplication is not
+commutative always, so, I cannot swap terms but I can change the brackets. So, it is
+associative. So, I can change the brackets however I wish. In other words, I can do it
+. Basically, I am combining these two guys and these two guys into   equals
+is a constant that can come outside. This   multiplies this  ,  .
 
 Let me bring the n to the other side and write this as . Now, what I would do is at this step is pre-multiply this equation by . In other words, I am saying, I will do times whatever was there equals time whatever was there. And what is there was and we will see why this is useful in a minute, .
 
@@ -80,11 +139,13 @@ Now, if I rearrange terms, this is I can do this, I mean I cannot, matrix multip
 
 ### Timestamp: 14:39
 
-Now, this is a matrix. Now, remember  was in R d x n. So,   is in, this is  n xd, x is d<br>x n, so, this is n x n. So, that is just to remember. Now, call   let us just give it a name, let<br>us call it K. Then this equation is  . So, we want the   somehow and we are<br>saying whichever   that is that you need to use to combine these data points to get   should<br>satisfy the equation  .<br>
+Now, this is a matrix. Now, remember  was in R d x n. So,   is in, this is  n xd, x is d
+x n, so, this is n x n. So, that is just to remember. Now, call   let us just give it a name, let
+us call it K. Then this equation is  . So, we want the   somehow and we are
+saying whichever   that is that you need to use to combine these data points to get   should
+satisfy the equation  .
 
 ### Timestamp: 15:37
-
-<br>
 
 Now, this is a matrix. Now, remember was in R d x n. So, is in, this is n xd, x is d x n, so, this is n x n. So, that is just to remember. Now, call let us just give it a name, let us call it K. Then this equation is . So, we want the somehow and we are saying whichever that is that you need to use to combine these data points to get should satisfy the equation .
 
@@ -116,7 +177,23 @@ So, essentially before I state this fact, so, let me say why we need this fact. 
 
 So, now, is there a relation between the Eigen values of and ? So, because if we solve the Eigen equation for K that will give you a set of Eigen vectors and Eigen values, how are these Eigen values related to the Eigen values that you would have gotten had you solved the Eigen equation for . That is the question we are asking.
 
-how are these Eigen values related to the Eigen values that you would have gotten had you<br>solved the Eigen equation for  . That is the question we are asking.<br>And the answer is this linear algebra fact. The non-zero Eigenvalues of   and   are<br>exactly the same. So, now, to make it precise, so,   e is a vector, it is a matrix in d xd,<br>is a matrix in n xn. But because both of these come from the underlying x which is d x n their<br>Eigen values are related.<br>In fact, if you are aware of the singular value decomposition of matrices then you can simply<br>use that to prove this in two steps. I would not do that. Feel free to try this. But what I am<br>saying is that the non-zero Eigenvalues, there might be 0 Eigen values because this is d x d,<br>this is n x n, so, the maximum number of non-zero Eigen values of these matrices will be the<br>minimum of d and n. That is again a linear algebra fact.<br>So, there is going to be a lot of zero Eigen values if d is large. But which there would not be<br>corresponding Eigen values in n. So, if n is smaller than d then and if your matrix has full<br>length, so, then your number of non-zero Eigen values will be n and they will match with the<br>top n Eigen values of   which is a d x d matrix. So, what does this essentially tell us? So,<br>what is all of this telling us now? It is telling us the following. And this is the most important<br>thing.<br>
+how are these Eigen values related to the Eigen values that you would have gotten had you
+solved the Eigen equation for  . That is the question we are asking.
+And the answer is this linear algebra fact. The non-zero Eigenvalues of   and   are
+exactly the same. So, now, to make it precise, so,   e is a vector, it is a matrix in d xd,
+is a matrix in n xn. But because both of these come from the underlying x which is d x n their
+Eigen values are related.
+In fact, if you are aware of the singular value decomposition of matrices then you can simply
+use that to prove this in two steps. I would not do that. Feel free to try this. But what I am
+saying is that the non-zero Eigenvalues, there might be 0 Eigen values because this is d x d,
+this is n x n, so, the maximum number of non-zero Eigen values of these matrices will be the
+minimum of d and n. That is again a linear algebra fact.
+So, there is going to be a lot of zero Eigen values if d is large. But which there would not be
+corresponding Eigen values in n. So, if n is smaller than d then and if your matrix has full
+length, so, then your number of non-zero Eigen values will be n and they will match with the
+top n Eigen values of   which is a d x d matrix. So, what does this essentially tell us? So,
+what is all of this telling us now? It is telling us the following. And this is the most important
+thing.
 
 And the answer is this linear algebra fact. The non-zero Eigenvalues of and are exactly the same. So, now, to make it precise, so, e is a vector, it is a matrix in d xd, is a matrix in n xn. But because both of these come from the underlying x which is d x n their Eigen values are related.
 
@@ -170,7 +247,17 @@ cheaper, in general. So, we do Eigen decomposition of K and we get Eigen vectors
 
 ### Timestamp: 31:44
 
-Once you have done this, so, this is an order of n 3  computation. So, once this is done this then<br>we are almost done. So, step 3. We know that these ’s are not exactly  ’s but then you<br>have the Eigen values also with. So, what you can do is set   for all k equals 1 to l.<br>That is it.<br>So, once you have this then you can get back your w's if you want. So,  . So,<br>essentially, what we have done is we have gone in a different row root to find our<br>Instead of directly solving the Eigen decomposition, we are solving a different matrix, a<br>related matrix, the Eigen decomposition of which is cheaper.<br>And then we are getting the Eigenvectors and then converting that into the weights that you<br>need to combine the data points to get the Eigen directions of the covariance matrix. Now,<br>this is pretty much solving problem number 1, issue number 1. Because we are not working<br>
+Once you have done this, so, this is an order of n 3  computation. So, once this is done this then
+we are almost done. So, step 3. We know that these ’s are not exactly  ’s but then you
+have the Eigen values also with. So, what you can do is set   for all k equals 1 to l.
+That is it.
+So, once you have this then you can get back your w's if you want. So,  . So,
+essentially, what we have done is we have gone in a different row root to find our
+Instead of directly solving the Eigen decomposition, we are solving a different matrix, a
+related matrix, the Eigen decomposition of which is cheaper.
+And then we are getting the Eigenvectors and then converting that into the weights that you
+need to combine the data points to get the Eigen directions of the covariance matrix. Now,
+this is pretty much solving problem number 1, issue number 1. Because we are not working
 
 Once you have done this, so, this is an order of n<sup>3</sup> computation. So, once this is done this then we are almost done. So, step 3. We know that these ’s are not exactly ’s but then you have the Eigen values also with. So, what you can do is set for all k equals 1 to l. That is it.
 
@@ -184,7 +271,25 @@ Now, note that you cannot, I mean you cannot get away with the Eigen decompositi
 
 Now, we want to talk about issue 2 in the next video. But before going there, I would want to make one observation which I will again make in the next video but then I want to hint it at this point and then we will come back and connect it to the next video. Now, what are we saying here, we are given this data set, the first step was to compute Kas . So, what is in that case?
 
-this point and then we will come back and connect it to the next video. Now, what are we<br>saying here, we are given this data set, the first step was to compute Kas  . So, what is<br>in that case?<br>is  . You can verify that this is what  j would be, so, for all i ,j. In some sense, this is<br>capturing the similarity between   and  , in the dot product sense. More importantly, this<br>also tells us that to solve the PCA problem, you only need these pairwise dot products<br>between the data points. If you have that you have all the information that you need to<br>compute the PCA things.<br>So, whatever you want in PCA. We will make this more precise next time and then we will<br>see that this important observation of the fact that you only need this kind of a similarity<br>between these data points and not necessarily the data points themselves always plays a very<br>important role in trying to use the solution of issue 1 to actually solve for issue 2 which is a<br>totally different question. It says that what if the data points are not linearly related. It needs<br>some creative thought to take this solution and then solve issue 2 and that is, in fact, one of<br>the very important ideas in classical machine learning and we will talk about that in the next<br>video.<br>For now, I would want to summarize saying that all we have seen today is this set of videos is<br>to see how we have identified some issues with PCA and then how you can solve the issue of<br>time complexity by converting your original problem into a simpler problem in a<br>
+this point and then we will come back and connect it to the next video. Now, what are we
+saying here, we are given this data set, the first step was to compute Kas  . So, what is
+in that case?
+is  . You can verify that this is what  j would be, so, for all i ,j. In some sense, this is
+capturing the similarity between   and  , in the dot product sense. More importantly, this
+also tells us that to solve the PCA problem, you only need these pairwise dot products
+between the data points. If you have that you have all the information that you need to
+compute the PCA things.
+So, whatever you want in PCA. We will make this more precise next time and then we will
+see that this important observation of the fact that you only need this kind of a similarity
+between these data points and not necessarily the data points themselves always plays a very
+important role in trying to use the solution of issue 1 to actually solve for issue 2 which is a
+totally different question. It says that what if the data points are not linearly related. It needs
+some creative thought to take this solution and then solve issue 2 and that is, in fact, one of
+the very important ideas in classical machine learning and we will talk about that in the next
+video.
+For now, I would want to summarize saying that all we have seen today is this set of videos is
+to see how we have identified some issues with PCA and then how you can solve the issue of
+time complexity by converting your original problem into a simpler problem in a
 
 is . You can verify that this is what j would be, so, for all i ,j. In some sense, this is capturing the similarity between and , in the dot product sense. More importantly, this also tells us that to solve the PCA problem, you only need these pairwise dot products between the data points. If you have that you have all the information that you need to compute the PCA things.
 

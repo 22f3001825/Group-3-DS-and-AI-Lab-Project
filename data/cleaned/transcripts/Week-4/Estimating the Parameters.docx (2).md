@@ -4,7 +4,7 @@
 
 So, let’s let’s try that. So, let’s go back to our maximum likelihood function that we had written earlier. Let me recall that, recall this was I noted down this a star earlier. So, the 𝑛 𝐾 likelihood function looked like this, the log likelihood function looks like this, ∑ log( ∑ πk 𝑖=1 𝑘=1
 
-e -(xi - μk )2 / 2σ𝑘2. 1 / 2π σk. This was a complicated looking log likelihood function.<br>
+e -(xi - μk )2 / 2σ𝑘2. 1 / 2π σk. This was a complicated looking log likelihood function.
 
 And the problem that we had was that there is a summation sitting inside the logarithm. Now, what we can do is, well, I want to think of this as a sum of a bunch of things. Now, Jensen's is telling us that well, it is not just a sum of a bunch of things, it is sum of a combination of a bunch of things that can be written in a form where you can remove the sum outside, pull the sum outside and then you will get an inequality.
 
@@ -82,7 +82,9 @@ So, now what does it mean to say? We will fix λ and maximize over θ? Let us fi
 
 ### Timestamp: 13:08
 
-𝑛 𝐾<br>So, what does that help? How does that help us? Well, this guy is same as max θ ∑ ∑ λ i k log<br>𝑖=1 𝑘=1<br>
+𝑛 𝐾
+So, what does that help? How does that help us? Well, this guy is same as max θ ∑ ∑ λ i k log
+𝑖=1 𝑘=1
 
 , Now, I can think of this as there is a product sitting inside the log.
 

@@ -95,10 +95,10 @@ The goal of this milestone is to ensure the knowledge base is:
 
 The chunking pipeline utilized LangChain's `RecursiveCharacterTextSplitter` (384 tokens, 15% overlap) paired with `MarkdownHeaderTextSplitter` to generate granular, metadata-rich context pieces. The distribution was explicitly split by week to prevent data leakage between train and test distributions:
 
-- **Train Set (Weeks 1-8)**: 4,304 chunks
+- **Train Set (Weeks 1-8)**: 4,270 chunks
 - **Validation Set (Weeks 9-10)**: 216 chunks
 - **Test Set (Weeks 11-12)**: 192 chunks
-- **Total RAG Chunks**: 4,712 chunks
+- **Total RAG Chunks**: 4,678 chunks
 
 ### 3.3 Feature/Field Schema (post-ingestion)
 
@@ -328,4 +328,4 @@ end
 
 We have successfully identified, verified, and extracted CS2007's official weekly resources (Transcripts, Notes, PYQ, AQ/PQ, External Notes, FAQ) into a unified dataset comprising **94 pristine Markdown documents** (1.25 MB total). The FAQ and external notes were meticulously scraped from the student resource site (**https://mlt.pulki.in/**). The preprocessing pipeline aggressively scrubbed boilerplate while preserving 211 critical timestamp markers as Markdown headers. 
 
-Through LangChain orchestration, the dataset was robustly sliced into **4,712 JSON-L chunks** (384 token limit). The chunks were partitioned into Train, Validation, and Test splits strictly by chronological week boundaries to ensure a leakage-free foundation for the RAG-based learning assistant. The pipeline is fully reproducible and feeds directly into the Qdrant hybrid retrieval system for Milestone 3.
+Through LangChain orchestration, the dataset was robustly sliced into **4,678 JSON-L chunks** (384 token limit). The chunks were partitioned into Train, Validation, and Test splits strictly by chronological week boundaries to ensure a leakage-free foundation for the RAG-based learning assistant. The pipeline is fully reproducible and feeds directly into the Qdrant hybrid retrieval system for Milestone 3.

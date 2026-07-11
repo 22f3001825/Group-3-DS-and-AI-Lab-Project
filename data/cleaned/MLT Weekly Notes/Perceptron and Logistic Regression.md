@@ -44,7 +44,9 @@ This update rule effectively adjusts the decision boundary in the direction of c
 
 ∀i ∈ D ‖x ‖i 2 ⩽ R for some R > 0
 
-x : wTx = 𝛾<br>x : wTx = 0<br>x : wTx = - 𝛾<br>
+x : wTx = 𝛾
+x : wTx = 0
+x : wTx = - 𝛾
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 
@@ -52,7 +54,12 @@ x : wTx = 𝛾<br>x : wTx = 0<br>x : wTx = - 𝛾<br>
 
 Without Loss of Generality, we assume ‖w*‖ = 1
 
-T<br>w* 𝛾<br>x =<br>‖w*‖ ‖w*‖<br>*' T '<br>w x = 𝛾<br>
+T
+w* 𝛾
+x =
+‖w*‖ ‖w*‖
+*' T '
+w x = 𝛾
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 

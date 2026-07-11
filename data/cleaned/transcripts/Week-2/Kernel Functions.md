@@ -2,7 +2,17 @@
 
 (Refer Slide Time: 0:13)
 
-So, this is. So, this is a major issue. So, what is the issue. The issue is the following. So, then<br>the issue is   in R D  may be too hard to compute. When you say hard it is perhaps not in<br>the hardness sense but then the number of features might be prohibitively large that you do<br>not necessarily want to compute  .<br>So, the question then is well unless I compute   it does not look like I am going to be able<br>to apply my PCA. So, I know of course I can apply my PCA when d is much much large by<br>looking at the matrix  but then even if you cannot compute  then does it mean<br>that everything is doomed or is there a way out.<br>Now, here let us notice the fact that the Eigen directions that we are going to compute in PCA<br>is only of that of   this is the matrix for which we will compute the Eigen<br>directions. So, essentially what you really need is  . So, meaning you need a matrix<br>
+So, this is. So, this is a major issue. So, what is the issue. The issue is the following. So, then
+the issue is   in R D  may be too hard to compute. When you say hard it is perhaps not in
+the hardness sense but then the number of features might be prohibitively large that you do
+not necessarily want to compute  .
+So, the question then is well unless I compute   it does not look like I am going to be able
+to apply my PCA. So, I know of course I can apply my PCA when d is much much large by
+looking at the matrix  but then even if you cannot compute  then does it mean
+that everything is doomed or is there a way out.
+Now, here let us notice the fact that the Eigen directions that we are going to compute in PCA
+is only of that of   this is the matrix for which we will compute the Eigen
+directions. So, essentially what you really need is  . So, meaning you need a matrix
 
 So, this is. So, this is a major issue. So, what is the issue. The issue is the following. So, then the issue is in R<sup>D</sup> may be too hard to compute. When you say hard it is perhaps not in the hardness sense but then the number of features might be prohibitively large that you do not necessarily want to compute . So, the question then is well unless I compute it does not look like I am going to be able to apply my PCA. So, I know of course I can apply my PCA when d is much much large by looking at the matrix but then even if you cannot compute then does it mean that everything is doomed or is there a way out.
 
@@ -32,7 +42,18 @@ here let us say this is 1 vector and now I am dotting this with another vector w
 
 # (Refer Slide Time: 5:53)
 
-Now, you can see you can verify that this dot product is exactly the same as<br>wherever x is   and x prime is  . Now, interestingly what we have managed to do<br>is that these two vectors are of the same functional form. So, with respect to f and g in other<br>words. So, if I give a general  and  then you take the first component square it second<br>component square it then put a 1 then put a square root 2   and so on you get this<br>mapping.<br>If you do the same thing for   you get this mapping. So, basically I can think of this as<br>phi of x transpose phi of x prime where phi of x equals phi of basically x  is some<br>a,b some vector a,b is just the vector  [  of course if a and b are<br>and   I get this vector if a and b are   and   then I get this vector and then I dot that I get<br>what I want. So, basically what we are able to do. Now, is what we have been able to do is<br>the following.<br>
+Now, you can see you can verify that this dot product is exactly the same as
+wherever x is   and x prime is  . Now, interestingly what we have managed to do
+is that these two vectors are of the same functional form. So, with respect to f and g in other
+words. So, if I give a general  and  then you take the first component square it second
+component square it then put a 1 then put a square root 2   and so on you get this
+mapping.
+If you do the same thing for   you get this mapping. So, basically I can think of this as
+phi of x transpose phi of x prime where phi of x equals phi of basically x  is some
+a,b some vector a,b is just the vector  [  of course if a and b are
+and   I get this vector if a and b are   and   then I get this vector and then I dot that I get
+what I want. So, basically what we are able to do. Now, is what we have been able to do is
+the following.
 
 Now, you can see you can verify that this dot product is exactly the same as wherever x is and x prime is . Now, interestingly what we have managed to do is that these two vectors are of the same functional form. So, with respect to f and g in other words. So, if I give a general and then you take the first component square it second component square it then put a 1 then put a square root 2 and so on you get this mapping.
 
@@ -80,7 +101,19 @@ greater than 0. So, this should remind you of Gaussian pdf in fact sometimes thi
 
 ### Timestamp: 15:06
 
-This is the Radial Basis Function two important points about this. So, the first thing is that<br>can be shown that this is also a valid function to be a valid map again. Valid in the sense that<br>you can exhibit a   where this this is exactly computing the dot products in the higher<br>dimensional space but what is this higher dimension that is actually even more interesting.<br>So, interestingly if you think about this, you might actually be able to kind of see why this<br>makes sense   in this case maps x to 1 infinite dimensional space.<br>So, the higher dimension that we are talking about here is actually infinite dimension. So,<br>infinite dimensional space. So, earlier we said that the dimension where it gets mapped to<br>increases, increases in certain fashion d to the p and so on in fact in this case you can think of<br>I mean you can argue that the   actually maps every data point on infinite dimensional space.<br>So, well whenever there is infinity involved there are a lot of technicalities but you know<br>technicalities aside we do not want to you know dig deeper right now into the technicalities<br>of what does it mean to say space is infinite dimension and so on. Technicalities aside what<br>
+This is the Radial Basis Function two important points about this. So, the first thing is that
+can be shown that this is also a valid function to be a valid map again. Valid in the sense that
+you can exhibit a   where this this is exactly computing the dot products in the higher
+dimensional space but what is this higher dimension that is actually even more interesting.
+So, interestingly if you think about this, you might actually be able to kind of see why this
+makes sense   in this case maps x to 1 infinite dimensional space.
+So, the higher dimension that we are talking about here is actually infinite dimension. So,
+infinite dimensional space. So, earlier we said that the dimension where it gets mapped to
+increases, increases in certain fashion d to the p and so on in fact in this case you can think of
+I mean you can argue that the   actually maps every data point on infinite dimensional space.
+So, well whenever there is infinity involved there are a lot of technicalities but you know
+technicalities aside we do not want to you know dig deeper right now into the technicalities
+of what does it mean to say space is infinite dimension and so on. Technicalities aside what
 
 This is the Radial Basis Function two important points about this. So, the first thing is that can be shown that this is also a valid function to be a valid map again. Valid in the sense that you can exhibit a where this this is exactly computing the dot products in the higher dimensional space but what is this higher dimension that is actually even more interesting. So, interestingly if you think about this, you might actually be able to kind of see why this makes sense in this case maps x to 1 infinite dimensional space.
 
@@ -116,7 +149,21 @@ So, so what is k ( x) if k(x, happens to be which is what we saw earlier. So, th
 
 ### Timestamp: 21:45
 
-So, in general we want to ask the question given a function. So, let us say I give you a<br>function k which takes in 2d dimensional vectors as input and then computes a number. Now,<br>how can we say it is a valid Kernel? So, if I give you a function and I ask you well hey is I<br>claim that this is a valid Kernel.<br>Now, how would you be convinced that this is in fact a valid Kernel well we have seen one<br>method already to convince ourselves that. So, that is method 1 which is the standard method<br>where you are going to say that hey you think this is a Kernel well which means there must<br>be some mapping file. So, if I can exhibit such a mapping exhibit a map  explicitly like how<br>we did for the Quadratic Kernel.<br>So, the power 2 Kernel we exhibited that  explicitly and said that   is actually a<br>dot product if you think of it as this map. So, in the mapped space. So, that is one way to, one<br>way to argue this. So, but sometimes this might be hard. So, might be hard sometimes to<br>come up with this explicit mapping might be harder or rather hard sometimes.<br>So, if this is not always possible is there an alternate way we can convince ourselves that a<br>function given function is Kernel because not all functions are Kernels. So, is there a<br>
+So, in general we want to ask the question given a function. So, let us say I give you a
+function k which takes in 2d dimensional vectors as input and then computes a number. Now,
+how can we say it is a valid Kernel? So, if I give you a function and I ask you well hey is I
+claim that this is a valid Kernel.
+Now, how would you be convinced that this is in fact a valid Kernel well we have seen one
+method already to convince ourselves that. So, that is method 1 which is the standard method
+where you are going to say that hey you think this is a Kernel well which means there must
+be some mapping file. So, if I can exhibit such a mapping exhibit a map  explicitly like how
+we did for the Quadratic Kernel.
+So, the power 2 Kernel we exhibited that  explicitly and said that   is actually a
+dot product if you think of it as this map. So, in the mapped space. So, that is one way to, one
+way to argue this. So, but sometimes this might be hard. So, might be hard sometimes to
+come up with this explicit mapping might be harder or rather hard sometimes.
+So, if this is not always possible is there an alternate way we can convince ourselves that a
+function given function is Kernel because not all functions are Kernels. So, is there a
 
 So, in general we want to ask the question given a function. So, let us say I give you a function k which takes in 2d dimensional vectors as input and then computes a number. Now, how can we say it is a valid Kernel? So, if I give you a function and I ask you well hey is I claim that this is a valid Kernel.
 
@@ -130,7 +177,21 @@ So, if this is not always possible is there an alternate way we can convince our
 
 ### Timestamp: 23:48
 
-So, so that we get the essential understanding of this theorem I would not state it in full<br>rigorous mathematical detail but then we will give enough mathematics. So, that we know in<br>practice what it means k which is R d  x R d  to R. I have given a function k and then I am asked<br>if this is a valid Kernel Function is a valid Kernel, Mercer’s theorem says it is a valid Kernel<br>if and only if which is a very powerful theorem. So, that is why it is a powerful theorem<br>because it characterizes validity of a Kernel if and only if two things happen a k is symmetric<br>what does that mean that means that k(x,k(x,  should be same as k(k( , that is this.<br>Now, why should a Kernel be symmetric, well we know that the Kernel is going to compute<br>dot products in some high dimensional space which means  k(x,  has to be   for<br>some  . Now, because dot product is a symmetric operation. So, k(x,k(x,  should also be same<br>as   but then   equals k(k( , . So, it necessarily has to be symmetric.<br>So, if it is not symmetric if I give you a function which is not symmetric in other words if you<br>can find x and   where k(x,k(x,  is not same as k(k( ,  then you can immediately dismiss my<br>claim that k is a Kernel but let us say if it is a symmetric function then that does not<br>immediately mean it is a Kernel already you will have to check one more condition and that<br>
+So, so that we get the essential understanding of this theorem I would not state it in full
+rigorous mathematical detail but then we will give enough mathematics. So, that we know in
+practice what it means k which is R d  x R d  to R. I have given a function k and then I am asked
+if this is a valid Kernel Function is a valid Kernel, Mercer’s theorem says it is a valid Kernel
+if and only if which is a very powerful theorem. So, that is why it is a powerful theorem
+because it characterizes validity of a Kernel if and only if two things happen a k is symmetric
+what does that mean that means that k(x,k(x,  should be same as k(k( , that is this.
+Now, why should a Kernel be symmetric, well we know that the Kernel is going to compute
+dot products in some high dimensional space which means  k(x,  has to be   for
+some  . Now, because dot product is a symmetric operation. So, k(x,k(x,  should also be same
+as   but then   equals k(k( , . So, it necessarily has to be symmetric.
+So, if it is not symmetric if I give you a function which is not symmetric in other words if you
+can find x and   where k(x,k(x,  is not same as k(k( ,  then you can immediately dismiss my
+claim that k is a Kernel but let us say if it is a symmetric function then that does not
+immediately mean it is a Kernel already you will have to check one more condition and that
 
 So, so that we get the essential understanding of this theorem I would not state it in full rigorous mathematical detail but then we will give enough mathematics. So, that we know in practice what it means k which is R<sup>d</sup> x R<sup>d</sup> to R. I have given a function k and then I am asked if this is a valid Kernel Function is a valid Kernel, Mercer’s theorem says it is a valid Kernel if and only if which is a very powerful theorem. So, that is why it is a powerful theorem because it characterizes validity of a Kernel if and only if two things happen a k is symmetric what does that mean that means that k(x,k(x, should be same as k(k( , that is this. Now, why should a Kernel be symmetric, well we know that the Kernel is going to compute dot products in some high dimensional space which means k(x, has to be for some . Now, because dot product is a symmetric operation. So, k(x,k(x, should also be same as but then equals k(k( , . So, it necessarily has to be symmetric.
 

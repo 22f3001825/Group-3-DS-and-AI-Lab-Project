@@ -84,4 +84,4 @@ Is there a more principled way to say two thirds is a better guess than let us s
 
 So, otherwise, these three fourths seems to be arbitrary. So, it is intuitive that you should guess the chances, the number of heads in your data fraction of heads in your data. But it is not at very principled. So, the question is, is there a principled way to get estimates from data?
 
-data?<br>
+data?

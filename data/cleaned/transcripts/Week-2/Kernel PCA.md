@@ -6,7 +6,21 @@ So, now putting all these things together, let us actually try to come up with t
 
 (Refer Slide Time: 0:36)
 
-And that will make things clearer. So, this algorithm is what we are going to call as kernel<br>PCA. So, what is the input, the input to this algorithm is as usual the data set { …. } where<br>all  ’s are in R d . Now in addition to this, we also have a kernel function given to you some<br>kernel K, which is which takes any two d dimensional data points and then maps it to a real<br>number. So, that is, we know that it is a valid kernel.<br>Let us say, we have tested Mercer’s theorem and then argued that it’s a valid kernel. So, that<br>is given to us as input. Now, what is the step one? Well, step one, you will do the following.<br>So, compute K. So, K in n x n, where Kij equals your kernel evaluated at the point   , , so<br>ij. So, once we compute the kernel, then what is the next step? Well, we compute the Eigen<br>vectors and Eigen values of this kernel matrix.<br>So, compute, L=let us call them   to  ,   or   does not matter. And nn  to nn  as Eigen<br>vectors and Eigen values of k. Once you have that, now, you can also normalize because we<br>saw this last time, you need a normalization factor for  s because the length of  s is not same<br>as one, which is what the length of   is. So, you need a normalization, you can normalize to<br>get   is  .<br>
+And that will make things clearer. So, this algorithm is what we are going to call as kernel
+PCA. So, what is the input, the input to this algorithm is as usual the data set { …. } where
+all  ’s are in R d . Now in addition to this, we also have a kernel function given to you some
+kernel K, which is which takes any two d dimensional data points and then maps it to a real
+number. So, that is, we know that it is a valid kernel.
+Let us say, we have tested Mercer’s theorem and then argued that it’s a valid kernel. So, that
+is given to us as input. Now, what is the step one? Well, step one, you will do the following.
+So, compute K. So, K in n x n, where Kij equals your kernel evaluated at the point   , , so
+ij. So, once we compute the kernel, then what is the next step? Well, we compute the Eigen
+vectors and Eigen values of this kernel matrix.
+So, compute, L=let us call them   to  ,   or   does not matter. And nn  to nn  as Eigen
+vectors and Eigen values of k. Once you have that, now, you can also normalize because we
+saw this last time, you need a normalization factor for  s because the length of  s is not same
+as one, which is what the length of   is. So, you need a normalization, you can normalize to
+get   is  .
 
 And that will make things clearer. So, this algorithm is what we are going to call as kernel PCA. So, what is the input, the input to this algorithm is as usual the data set { …. } where all ’s are in R<sup>d</sup> . Now in addition to this, we also have a kernel function given to you some kernel K, which is which takes any two d dimensional data points and then maps it to a real number. So, that is, we know that it is a valid kernel.
 
@@ -32,7 +46,23 @@ Well, how would we actually do the compression? So, if you go back to where we s
 
 This is the number that I would like to store as the kth most important number corresponding to this data point xi. But I cannot compute . But do I have to is the question, so let us see,
 
-to this data point xi. But I cannot compute  . But do I have to is the question, so let us see,<br>this is just  we know is just some combination of the data points<br>appropriately weighed by alpha k. So, alpha kj this whole thing then is just<br>, I am just bringing the   inside.<br>Now, this just becomes  . Essentially, this is k of kij. Well, that we already know<br>because now, the dot product of the map data points on to the Eigen direction depends only<br>on the dot products among the data points themselves, which I know already how to compute<br>using my kernel function, I can compute this, this is a good. So, because we cannot of course,<br>reconstruct the Eigen vector explicitly.<br>But we can compute the dot products or the projections onto this Eigen vectors in the high<br>dimensional space. So, now, typically, the reason why you do kind PCA in general is that,<br>you get these projections and then you map you throw away the original data points and only<br>retain these projections along each of these data points.<br>That is where the dimensionality reduction happens. Original data point was 100 dimension<br>but then you only care about the top 5. So, you only you map the 100 dimensional data into a<br>5 dimensional projection onto these 5 most important directions. So, that becomes a 5<br>dimensional representation of your 100 dimensional data.<br>
+to this data point xi. But I cannot compute  . But do I have to is the question, so let us see,
+this is just  we know is just some combination of the data points
+appropriately weighed by alpha k. So, alpha kj this whole thing then is just
+, I am just bringing the   inside.
+Now, this just becomes  . Essentially, this is k of kij. Well, that we already know
+because now, the dot product of the map data points on to the Eigen direction depends only
+on the dot products among the data points themselves, which I know already how to compute
+using my kernel function, I can compute this, this is a good. So, because we cannot of course,
+reconstruct the Eigen vector explicitly.
+But we can compute the dot products or the projections onto this Eigen vectors in the high
+dimensional space. So, now, typically, the reason why you do kind PCA in general is that,
+you get these projections and then you map you throw away the original data points and only
+retain these projections along each of these data points.
+That is where the dimensionality reduction happens. Original data point was 100 dimension
+but then you only care about the top 5. So, you only you map the 100 dimensional data into a
+5 dimensional projection onto these 5 most important directions. So, that becomes a 5
+dimensional representation of your 100 dimensional data.
 
 this is just we know is just some combination of the data points appropriately weighed by alpha k. So, alpha kj this whole thing then is just , I am just bringing the inside.
 
@@ -70,7 +100,22 @@ So, this is the general idea of kernel PCA, there is one small important detail 
 
 Now, here what we are seeing is that we are given a kernel, if the origin of the data is set to centered fine, we apply the kernel which means it is mapping it to a higher dimensional space using some mapping . But now, if you think of this data set ,
 
-using some mapping  . But now, if you think of this data set  ,<br> till   that may or may not be centered. So, that depends on your mapping kernel<br>mapping.<br>It is a valid kernel, which means there is a  , but then there is nothing that we are seeing that<br>is that will make sure that the   that we have which result in a map data, which is also<br>centered, but then we need the center data only then our directions really make sense. So, we<br>need to center the kernel. So, there is an extra step that is needed here, which is center we<br>need to center the kernel.<br>So, which means we only have kernel cannot compute  . So, is there a way to compute<br>slightly different kernel, which will do the same mapping  , but then after mapping<br>it will also center the data. So, is there a function that we can create which will so I give you<br>a kernel, now that kernel will correspond to a   map.<br>So, you want to apply that   map, so you use the kernel, but then you also want to do the<br>centering after you apply the phi map which means, can we mimic these two steps of going to<br>a higher dimension and then doing the centering using just a single function kernel function,<br>which is called as centering the kernel, so that that becomes important.<br>
+using some mapping  . But now, if you think of this data set  ,
+ till   that may or may not be centered. So, that depends on your mapping kernel
+mapping.
+It is a valid kernel, which means there is a  , but then there is nothing that we are seeing that
+is that will make sure that the   that we have which result in a map data, which is also
+centered, but then we need the center data only then our directions really make sense. So, we
+need to center the kernel. So, there is an extra step that is needed here, which is center we
+need to center the kernel.
+So, which means we only have kernel cannot compute  . So, is there a way to compute
+slightly different kernel, which will do the same mapping  , but then after mapping
+it will also center the data. So, is there a function that we can create which will so I give you
+a kernel, now that kernel will correspond to a   map.
+So, you want to apply that   map, so you use the kernel, but then you also want to do the
+centering after you apply the phi map which means, can we mimic these two steps of going to
+a higher dimension and then doing the centering using just a single function kernel function,
+which is called as centering the kernel, so that that becomes important.
 
 till that may or may not be centered. So, that depends on your mapping kernel mapping.
 
@@ -82,7 +127,19 @@ So, you want to apply that map, so you use the kernel, but then you also want to
 
 ### Timestamp: 14:04
 
-So, I will just give the details but then these are just details. But, I mean, for the sake of<br>completeness, I am going to give this that you can indeed center the kernels. So, these are<br>details, so how to centering the kernel? The good news is that you can center a kernel without<br>explicitly computing  . So, that is the most important news perhaps.<br>So, given kernel matrix K, which is an n x n, so give you a kernel function from which you<br>create a kernel matrix K for the data set that you have. So, you have n points in your data set.<br>So, kernel matrix is an n x n matrix, where kij is just your kernel evaluated at xi and xj for all<br>ij. Now create a new kernel.<br>So, you want to create a new kernel let us call this Kc, c for centered where Kcij is some<br>function of K but then it does not use the explicit mapping  . It can be done, we would not<br>do the algebra here, but it’s just for sake of completeness, I am saying this that this can be<br>done. And it is good to know how this looks like, though it’s not so important.<br>You take Kij, and then you do the following. I will write it down and then make a<br>
+So, I will just give the details but then these are just details. But, I mean, for the sake of
+completeness, I am going to give this that you can indeed center the kernels. So, these are
+details, so how to centering the kernel? The good news is that you can center a kernel without
+explicitly computing  . So, that is the most important news perhaps.
+So, given kernel matrix K, which is an n x n, so give you a kernel function from which you
+create a kernel matrix K for the data set that you have. So, you have n points in your data set.
+So, kernel matrix is an n x n matrix, where kij is just your kernel evaluated at xi and xj for all
+ij. Now create a new kernel.
+So, you want to create a new kernel let us call this Kc, c for centered where Kcij is some
+function of K but then it does not use the explicit mapping  . It can be done, we would not
+do the algebra here, but it’s just for sake of completeness, I am saying this that this can be
+done. And it is good to know how this looks like, though it’s not so important.
+You take Kij, and then you do the following. I will write it down and then make a
 
 So, I will just give the details but then these are just details. But, I mean, for the sake of completeness, I am going to give this that you can indeed center the kernels. So, these are details, so how to centering the kernel? The good news is that you can center a kernel without explicitly computing . So, that is the most important news perhaps.
 
@@ -102,7 +159,21 @@ Now, if you take the dot product of any two data point here, well, that is going
 
 ### Timestamp: 18:37
 
-And again, just to summarize, what we are doing now is that kernel PCA would be like this,<br>you are given a kernel, compute the kernel and then you center the kernel, then get the Eigen<br>vectors and Eigen values corresponding to the centered kernel, normalize it, get the  s and<br>once you have the  s, do not construct the Eigen vectors instead, map it to these projections<br>onto these Eigen vectors for each of the data points.<br>So, for every data point at the end, you have the top K projections and that projections, the set<br>of projections is the representation for these data points as per kernel PCA. So, this is a very<br>interesting technique. So, we have kind of used a lot of linear algebra here. But end of the<br>day, all of this works out and we have been able to solve two important issues that we<br>thought about for PCA, one is high dimensionality and the second is non linearity.<br>Surprisingly, the trick that solves both of them is the kernel matrix. You can map to higher<br>dimension and then you can achieve nonlinear relationships as well. So, this kind of matrix is<br>nothing specific to PCA you will encounter this object again and again, in this course,<br>especially unsupervised learning as well, where the idea would be typically solve the problem<br>for linear, when the data is linear has a linear relationship, which is easier problem solve. And<br>
+And again, just to summarize, what we are doing now is that kernel PCA would be like this,
+you are given a kernel, compute the kernel and then you center the kernel, then get the Eigen
+vectors and Eigen values corresponding to the centered kernel, normalize it, get the  s and
+once you have the  s, do not construct the Eigen vectors instead, map it to these projections
+onto these Eigen vectors for each of the data points.
+So, for every data point at the end, you have the top K projections and that projections, the set
+of projections is the representation for these data points as per kernel PCA. So, this is a very
+interesting technique. So, we have kind of used a lot of linear algebra here. But end of the
+day, all of this works out and we have been able to solve two important issues that we
+thought about for PCA, one is high dimensionality and the second is non linearity.
+Surprisingly, the trick that solves both of them is the kernel matrix. You can map to higher
+dimension and then you can achieve nonlinear relationships as well. So, this kind of matrix is
+nothing specific to PCA you will encounter this object again and again, in this course,
+especially unsupervised learning as well, where the idea would be typically solve the problem
+for linear, when the data is linear has a linear relationship, which is easier problem solve. And
 
 And again, just to summarize, what we are doing now is that kernel PCA would be like this, you are given a kernel, compute the kernel and then you center the kernel, then get the Eigen vectors and Eigen values corresponding to the centered kernel, normalize it, get the s and once you have the s, do not construct the Eigen vectors instead, map it to these projections onto these Eigen vectors for each of the data points.
 
@@ -116,4 +187,5 @@ If they do, then it is it suffices to kernelize this algorithm. Here in PCA, we 
 
 But that is for later. For now, to summarize, we have a powerful unsupervised learning algorithm for representation learning and that is PCA and its kernel version, which is kernel PCA. Next time we will look at other types of unsupervised learning algorithms, including clustering and some kinds of estimation techniques. Thank you.
 
-PCA. Next time we will look at other types of unsupervised learning algorithms, including<br>clustering and some kinds of estimation techniques. Thank you.<br>
+PCA. Next time we will look at other types of unsupervised learning algorithms, including
+clustering and some kinds of estimation techniques. Thank you.

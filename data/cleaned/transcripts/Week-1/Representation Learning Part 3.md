@@ -12,7 +12,25 @@ here, here, here and so on here. Now imagine that all these vectors were along a
 
 Now that is the critical structure that we have in this dataset, the question is we able to, in some sense extract that structure, is our compression trying to extract the structure or not? Well, what is our compression method trying to do? It is trying to find the best line on which you can project the data point such that you lose the least. For this particular data set, well, if we run our algorithm we are going to get a line.
 
-you can project the data point such that you lose the least. For this particular data set, well, if<br>we run our algorithm we are going to get a line.<br>So that line might be something like this; maybe this is the line. So this line will be<br>necessarily on the plane, I mean, you can think about why it has to be on the plane, because if<br>it is not on the plane, if it is outside the plane then it will cost more to project on something<br>outside the plane. So you can avoid that cost. So necessarily the best line is going to be on the<br>plane because all the data points are on the plane.<br>But where these proxies are going to be, well, these proxies are going to be along this line. So<br>I am going to think of all the data points which were originally on the plane using their<br>proxies along this line. Now the question is, are we satisfied with this? So is this a good<br>compression? Well, it is a compression,  if you want to compress this definitely this is a good<br>way to do it, but then does it capture the necessary structure in the data?<br>In other words what I am saying is the following, our hypothesis is that there is a line that<br>best represents this data, everything else that is the part that we think of as error, well, the<br>part that we leave out while reconstruction is something that we are going to think of as error,<br>but now if the data points lied along a plane, then this part which we are imagining as error<br>may not necessarily be error, that might also contain some information.<br>So because necessary information, the structure is in a plane not on a line, so the bits that we<br>lose necessarily in this particular case will also contain some information and we might want<br>
+you can project the data point such that you lose the least. For this particular data set, well, if
+we run our algorithm we are going to get a line.
+So that line might be something like this; maybe this is the line. So this line will be
+necessarily on the plane, I mean, you can think about why it has to be on the plane, because if
+it is not on the plane, if it is outside the plane then it will cost more to project on something
+outside the plane. So you can avoid that cost. So necessarily the best line is going to be on the
+plane because all the data points are on the plane.
+But where these proxies are going to be, well, these proxies are going to be along this line. So
+I am going to think of all the data points which were originally on the plane using their
+proxies along this line. Now the question is, are we satisfied with this? So is this a good
+compression? Well, it is a compression,  if you want to compress this definitely this is a good
+way to do it, but then does it capture the necessary structure in the data?
+In other words what I am saying is the following, our hypothesis is that there is a line that
+best represents this data, everything else that is the part that we think of as error, well, the
+part that we leave out while reconstruction is something that we are going to think of as error,
+but now if the data points lied along a plane, then this part which we are imagining as error
+may not necessarily be error, that might also contain some information.
+So because necessary information, the structure is in a plane not on a line, so the bits that we
+lose necessarily in this particular case will also contain some information and we might want
 
 So that line might be something like this; maybe this is the line. So this line will be necessarily on the plane, I mean, you can think about why it has to be on the plane, because if it is not on the plane, if it is outside the plane then it will cost more to project on something outside the plane. So you can avoid that cost. So necessarily the best line is going to be on the plane because all the data points are on the plane.
 
@@ -32,7 +50,21 @@ is just the origin in this case, because point was already on the line. This cou
 
 (Refer Slide Time 06:33)
 
-One procedure that you could follow is the following. Now what we have done so far is we<br>have a data point  , which is a   dimensional data point and what we are seeing is that we<br>will find some   for the data set and once the   is found we are going to represent this data<br>point as its proxy, which is .<br>This is the representative   and  is the coefficient corresponding to this data point. But<br>now the error or the residue or what we might, we have been calling as error that is just the<br>remaining piece. So that is just . Now what we are saying is that this might not be<br>error, but might have information, so but has information.<br>Well, for one if all of this were error they would not necessarily line up along the same<br>direction. So if it is error, the error for each data point has to be kind of in all over the place,<br>so that is the high level idea. So now how can we work with this well we could do the<br>following, so here is a possible algorithm and then we will kind of build this algorithm as we<br>go along. A possible algorithm could be the following.<br>You start with your original data set which is your input{ , …. }, where each   is in R d<br>The first step is whatever we have been doing so far find the best line   by minimizing the<br>
+One procedure that you could follow is the following. Now what we have done so far is we
+have a data point  , which is a   dimensional data point and what we are seeing is that we
+will find some   for the data set and once the   is found we are going to represent this data
+point as its proxy, which is .
+This is the representative   and  is the coefficient corresponding to this data point. But
+now the error or the residue or what we might, we have been calling as error that is just the
+remaining piece. So that is just . Now what we are saying is that this might not be
+error, but might have information, so but has information.
+Well, for one if all of this were error they would not necessarily line up along the same
+direction. So if it is error, the error for each data point has to be kind of in all over the place,
+so that is the high level idea. So now how can we work with this well we could do the
+following, so here is a possible algorithm and then we will kind of build this algorithm as we
+go along. A possible algorithm could be the following.
+You start with your original data set which is your input{ , …. }, where each   is in R d
+The first step is whatever we have been doing so far find the best line   by minimizing the
 
 One procedure that you could follow is the following. Now what we have done so far is we have a data point , which is a dimensional data point and what we are seeing is that we will find some for the data set and once the is found we are going to represent this data point as its proxy, which is .
 
@@ -54,7 +86,21 @@ What does it mean to say that we have compressed here? So how do we reconstruct?
 
 (Refer Slide Time 10:54)
 
-Another question that might arise is that the data itself may look something like this. So you<br>might have data which is like this even for one dimension, so even for two dimensional data<br>you might have data like this. Now remember, we are only finding lines that pass through the<br>origin, because our notion of compression is representative and a coefficient multiplied by<br>this representative, which means if the coefficient is 0, then the origin should be part of the<br>line that we are considering.<br>So what might happen is that our data may not necessarily be around the origin, which means<br>though the data is along the direction pointed by the purple line here, but if you really try to<br>find proxies like the way we did, by looking at proxies like this, the errors might be much<br>more than just projecting all the data points along the y-axis.<br>So if you find proxies along the y-axis, so it might so happen that well the y-axis is, sorry the<br>x-axis, the x-axis in this case might be a better line in terms of the reconstruction than your<br>actual line which you really want to get, which is capturing the direction in which the data is<br>dispersed. So what can we do here? Well, one thing we can do is to recognize the issue first,<br>the issue is that data may not be centered.<br>
+Another question that might arise is that the data itself may look something like this. So you
+might have data which is like this even for one dimension, so even for two dimensional data
+you might have data like this. Now remember, we are only finding lines that pass through the
+origin, because our notion of compression is representative and a coefficient multiplied by
+this representative, which means if the coefficient is 0, then the origin should be part of the
+line that we are considering.
+So what might happen is that our data may not necessarily be around the origin, which means
+though the data is along the direction pointed by the purple line here, but if you really try to
+find proxies like the way we did, by looking at proxies like this, the errors might be much
+more than just projecting all the data points along the y-axis.
+So if you find proxies along the y-axis, so it might so happen that well the y-axis is, sorry the
+x-axis, the x-axis in this case might be a better line in terms of the reconstruction than your
+actual line which you really want to get, which is capturing the direction in which the data is
+dispersed. So what can we do here? Well, one thing we can do is to recognize the issue first,
+the issue is that data may not be centered.
 
 Another question that might arise is that the data itself may look something like this. So you might have data which is like this even for one dimension, so even for two dimensional data you might have data like this. Now remember, we are only finding lines that pass through the origin, because our notion of compression is representative and a coefficient multiplied by this representative, which means if the coefficient is 0, then the origin should be part of the line that we are considering.
 
@@ -80,7 +126,19 @@ Earlier it was clear that we were finding one single line, we were finding proxi
 
 Now we have multiple lines, perhaps multiple coefficients, so the question is what are the representations that we are really learning using this. So these are some questions that we need to answer to understand our procedure better and we will see that all of this will tie together nicely to whatever you may have learned in your linear algebra classes already in a Machine Learning Foundations’ course. If not you this might give you still a different way of thinking about some of the algorithms that you may have already seen.
 
-representations that we are really learning using this. So these are some questions that we<br>need to answer to understand our procedure better and we will see that all of this will tie<br>together nicely to whatever you may have learned in your linear algebra classes already in a<br>Machine Learning Foundations’ course. If not you this might give you still a different way of<br>thinking about some of the algorithms that you may have already seen.<br>So if you answer all these four questions carefully then that will lead us to a very, very solid<br>algorithm in data science, which will be our first algorithm for this course, which is a<br>Representation Learning Algorithm for Unsupervised Learning. We will talk about what this<br>algorithm is once we answer all these four questions.<br>And think about these four questions to see if you already have some ideas about what are the<br>answers for these. So I will leave you with these questions for this point and we will come<br>back and answer all these questions and develop the algorithm that we set out to in the next<br>video. Thank you.<br>
+representations that we are really learning using this. So these are some questions that we
+need to answer to understand our procedure better and we will see that all of this will tie
+together nicely to whatever you may have learned in your linear algebra classes already in a
+Machine Learning Foundations’ course. If not you this might give you still a different way of
+thinking about some of the algorithms that you may have already seen.
+So if you answer all these four questions carefully then that will lead us to a very, very solid
+algorithm in data science, which will be our first algorithm for this course, which is a
+Representation Learning Algorithm for Unsupervised Learning. We will talk about what this
+algorithm is once we answer all these four questions.
+And think about these four questions to see if you already have some ideas about what are the
+answers for these. So I will leave you with these questions for this point and we will come
+back and answer all these questions and develop the algorithm that we set out to in the next
+video. Thank you.
 
 So if you answer all these four questions carefully then that will lead us to a very, very solid algorithm in data science, which will be our first algorithm for this course, which is a Representation Learning Algorithm for Unsupervised Learning. We will talk about what this algorithm is once we answer all these four questions.
 

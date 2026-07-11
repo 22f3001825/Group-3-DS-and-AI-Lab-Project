@@ -6,9 +6,13 @@ Support Vector Machine - Hard Margin
 
 Radius Margin Bound
 
-number of mistakes  ⩽ R 2<br>2<br>𝛾<br>
+number of mistakes  ⩽ R 2
+2
+𝛾
 
-•  ‖ xi ‖2 ⩽ R2<br>* T<br>•  w xi yi ⩾ 𝛾 ; 𝛾 > 0<br>
+•  ‖ xi ‖2 ⩽ R2
+* T
+•  w xi yi ⩾ 𝛾 ; 𝛾 > 0
 
 Classifiers with a larger margin generalize better. That is, they perform better on test data-points compared to classifiers that have a small margin.
 
@@ -34,7 +38,8 @@ Geometric Margin =<sup>1</sup> ‖w‖
 
 ## What is Width ?
 
-z<br>x<br>
+z
+x
 
 2 width(w) = 2 ‖w‖
 
@@ -72,7 +77,10 @@ Plugging XY𝛼 back into the dual objective, we get the following form
 
 The dual optimization problem therefore becomes:
 
-1<br>T T T T<br>max 𝛼 1 - 𝛼 Y X XY𝛼<br>𝛼⩾0 2<br>
+1
+T T T T
+max 𝛼 1 - 𝛼 Y X XY𝛼
+𝛼⩾0 2
 
 - Dual variable dimension in R<sup>n</sup> while primal problem dimension is R<sup>d</sup>
 

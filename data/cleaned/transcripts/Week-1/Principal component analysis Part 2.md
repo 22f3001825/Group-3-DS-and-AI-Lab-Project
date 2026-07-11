@@ -2,7 +2,16 @@
 
 ### Timestamp: 00:14
 
-So this is one way to understand this algorithm. Here is another way. So we will look at some<br>linear algebra. So let us say, enter linear algebra now, for those who are familiar with linear<br>algebra, we are already seeing these connections. Nevertheless, I will try to explain it now.<br>So, now, we did talk about this briefly last time, but let us make this more precise now.<br> So, this is the problem that we are trying to solve, where C is   and this C is<br>called the covariance matrix with some caveats with covariance matrix in general, and when<br>you have a matrix like this, the solution to this problem is nothing but the Eigen vector<br>corresponding to the largest Eigen value of this matrix.<br>So, the solution to this problem turns out to be   which is the Eigen vector corresponding to<br>the largest eigenvalue of C. So, this comes from a general theorem, which is called the<br>
+So this is one way to understand this algorithm. Here is another way. So we will look at some
+linear algebra. So let us say, enter linear algebra now, for those who are familiar with linear
+algebra, we are already seeing these connections. Nevertheless, I will try to explain it now.
+So, now, we did talk about this briefly last time, but let us make this more precise now.
+ So, this is the problem that we are trying to solve, where C is   and this C is
+called the covariance matrix with some caveats with covariance matrix in general, and when
+you have a matrix like this, the solution to this problem is nothing but the Eigen vector
+corresponding to the largest Eigen value of this matrix.
+So, the solution to this problem turns out to be   which is the Eigen vector corresponding to
+the largest eigenvalue of C. So, this comes from a general theorem, which is called the
 
 So this is one way to understand this algorithm. Here is another way. So we will look at some linear algebra. So let us say, enter linear algebra now, for those who are familiar with linear algebra, we are already seeing these connections. Nevertheless, I will try to explain it now. So, now, we did talk about this briefly last time, but let us make this more precise now.
 
@@ -34,7 +43,24 @@ mean whatever we did last time, I mean before can also be interpreted like this.
 
 And now you have of the covariance matrix. And if you plot that, that those guys are going to fall down. So, our of C is the kth largest Eigen value of C because this is exactly the, you know the term that we used earlier too. So now the rule of thumb, so, rule of thumb for how many dimensions, for number of dimensionslast time, like how we just said like a few minutes back would be to look at the following quantities , if this ratio is greater than or equal to 0.95. Usually, in practice, this is a thumb rule, usually in practice, then we are saying that while we are retaining some 95% of the information in this dataset, so, that is the general idea.
 
-minutes back would be to look at the following quantities  , if this ratio is greater than<br>or equal to 0.95. Usually, in practice, this is a thumb rule, usually in practice, then we are<br>saying that while we are retaining some 95% of the information in this dataset, so, that is the<br>general idea.<br>Now, for this quantity to make sense, so, summing up the top k, top l and then dividing it by<br>the entire thing to be greater than 0.95, all of these have to be,  positive values, or at least non<br>negative values,? But then that is true, because of the fact that you know, your  in general,<br> will be  e. So this will be just the average of a bunch of squared terms. So<br>all of this will be positive.<br>So in fact, this covariance matrix, this kind of tells us that the covariance matrix has non<br>negative Eigen values, which means the covariance matrix is for people who have seen this is<br>a positive semi definite matrix, So this is also a proof of that. Anyway, so the main point is<br>that this quantity makes sense. So because these are positive numbers, so you can look at the<br>ratio and see when it crosses 0.95, and then use that as a as a value that you want.<br>So what we are basically doing is that we are saying that we are maximizing the quantity that<br>we are maximizing is actually the Eigen value of the dataset that we saw of the covariance<br>matrix of the dataset. But that still does not tell us what this quantity is. So it just explains us<br>the quantity equation in terms of Eigen values.<br>
+minutes back would be to look at the following quantities  , if this ratio is greater than
+or equal to 0.95. Usually, in practice, this is a thumb rule, usually in practice, then we are
+saying that while we are retaining some 95% of the information in this dataset, so, that is the
+general idea.
+Now, for this quantity to make sense, so, summing up the top k, top l and then dividing it by
+the entire thing to be greater than 0.95, all of these have to be,  positive values, or at least non
+negative values,? But then that is true, because of the fact that you know, your  in general,
+ will be  e. So this will be just the average of a bunch of squared terms. So
+all of this will be positive.
+So in fact, this covariance matrix, this kind of tells us that the covariance matrix has non
+negative Eigen values, which means the covariance matrix is for people who have seen this is
+a positive semi definite matrix, So this is also a proof of that. Anyway, so the main point is
+that this quantity makes sense. So because these are positive numbers, so you can look at the
+ratio and see when it crosses 0.95, and then use that as a as a value that you want.
+So what we are basically doing is that we are saying that we are maximizing the quantity that
+we are maximizing is actually the Eigen value of the dataset that we saw of the covariance
+matrix of the dataset. But that still does not tell us what this quantity is. So it just explains us
+the quantity equation in terms of Eigen values.
 
 Now, for this quantity to make sense, so, summing up the top k, top l and then dividing it by the entire thing to be greater than 0.95, all of these have to be,  positive values, or at least non negative values,? But then that is true, because of the fact that you know, your in general, will be e. So this will be just the average of a bunch of squared terms. So all of this will be positive.
 
@@ -48,7 +74,18 @@ So can we say anything about this term?
 
 ### Timestamp: 09:26
 
-So now, let us say we take, again, a bunch of data points on the line. So maybe there is an<br>and then this point becomes , so on, maybe there is an  becomes  , and so<br>on. Now, let us say we fix   we collect these values  ,  ………… .<br>Let us say we collect these values. So these are like the, in some sense the, if you square this,<br>they will be the length squared of the projection, the proxy for each of these data points on<br>the line  . So I am not saying the line   is the best line or anything, it could be any line. And<br>then we are collecting this bunch of data points.<br>Now, the first question is, what is the average of these values? Average? What would this be<br>. I am not saying anything about   being the best line or anything, pick some<br>arbitrary line and then project onto that line, compute these  values and then compute<br>their averages. So what is this value going to be? So you may want to pause and think about<br>this  before  I  tell  you  the  answer  now.<br>
+So now, let us say we take, again, a bunch of data points on the line. So maybe there is an
+and then this point becomes , so on, maybe there is an  becomes  , and so
+on. Now, let us say we fix   we collect these values  ,  ………… .
+Let us say we collect these values. So these are like the, in some sense the, if you square this,
+they will be the length squared of the projection, the proxy for each of these data points on
+the line  . So I am not saying the line   is the best line or anything, it could be any line. And
+then we are collecting this bunch of data points.
+Now, the first question is, what is the average of these values? Average? What would this be
+. I am not saying anything about   being the best line or anything, pick some
+arbitrary line and then project onto that line, compute these  values and then compute
+their averages. So what is this value going to be? So you may want to pause and think about
+this  before  I  tell  you  the  answer  now.
 
 So now, let us say we take, again, a bunch of data points on the line. So maybe there is an , and then this point becomes , so on, maybe there is an becomes , and so on. Now, let us say we fix we collect these values , ………… .
 
@@ -60,7 +97,20 @@ Now, the first question is, what is the average of these values? Average? What w
 
 ### Timestamp: 11:00
 
-So this value is just . Now this value for a centre data set, this value is just the<br>mean, but then the mean is 0 for a centred data set. So, we are assuming that the data set is<br>centred. So this is a centred data set. Now, what does that mean? That means that the average<br>is actually 0 for a centre data set. So this is it is a number, it is 0. So now, what can we say<br>about the same set of values?<br>But then let us look at the variance. So, how much spread? Is there in this bunch of values?<br>Now, how would we compute the variance? Well, we can do the<br>where the mean or the average is the average of this bunch of numbers. But we know that the<br>mean is 0.<br>That is what we just looked at. So, which means this value is just going to be<br>So what is this telling us, this is telling us that you pick an arbitrary   and then project all<br>your centre data points on to this   and then just compute the variance of the projected<br>values. Now that variance is exactly the term that we were using earlier. So it is exactly this<br>term that we are trying to maximize.<br>
+So this value is just . Now this value for a centre data set, this value is just the
+mean, but then the mean is 0 for a centred data set. So, we are assuming that the data set is
+centred. So this is a centred data set. Now, what does that mean? That means that the average
+is actually 0 for a centre data set. So this is it is a number, it is 0. So now, what can we say
+about the same set of values?
+But then let us look at the variance. So, how much spread? Is there in this bunch of values?
+Now, how would we compute the variance? Well, we can do the
+where the mean or the average is the average of this bunch of numbers. But we know that the
+mean is 0.
+That is what we just looked at. So, which means this value is just going to be
+So what is this telling us, this is telling us that you pick an arbitrary   and then project all
+your centre data points on to this   and then just compute the variance of the projected
+values. Now that variance is exactly the term that we were using earlier. So it is exactly this
+term that we are trying to maximize.
 
 So this value is just . Now this value for a centre data set, this value is just the
 
@@ -76,7 +126,19 @@ So if you find the line where the error is minimum, then it also means that it i
 
 ### Timestamp: 14:02
 
-So to see why this has to happen geometrically. Of course, algebraically. We have seen this<br>but then geometrically, also, you can kind of convince yourself that maybe you have a bunch<br>of points, like this. And maybe the green line is the best line, maybe there is also this, maybe<br>there is also this blue line. Now you can project it onto either of these lines. If we projected<br>onto the green line. I am going to get the proxies as follows.<br>The green dots are my proxies. Whereas if I project it onto the blue line, the blue dots are the<br>proxies with the red points. Now, if you focus on the green points, you can see that they are<br>kind of spread out then the blue points which are clouding, So now the problem is if data<br>points all crowded up, in fact, if they go to the same point, then there is no way you can<br>distinguish this one data point from the other.<br>Whereas, if they are spread out, then this distinguishing capability is still present in this data<br>points. You do want compression, but you also want to be able to distinguish one data point<br>from another because in downstream, you are going to use this compressed representation for<br>
+So to see why this has to happen geometrically. Of course, algebraically. We have seen this
+but then geometrically, also, you can kind of convince yourself that maybe you have a bunch
+of points, like this. And maybe the green line is the best line, maybe there is also this, maybe
+there is also this blue line. Now you can project it onto either of these lines. If we projected
+onto the green line. I am going to get the proxies as follows.
+The green dots are my proxies. Whereas if I project it onto the blue line, the blue dots are the
+proxies with the red points. Now, if you focus on the green points, you can see that they are
+kind of spread out then the blue points which are clouding, So now the problem is if data
+points all crowded up, in fact, if they go to the same point, then there is no way you can
+distinguish this one data point from the other.
+Whereas, if they are spread out, then this distinguishing capability is still present in this data
+points. You do want compression, but you also want to be able to distinguish one data point
+from another because in downstream, you are going to use this compressed representation for
 
 So to see why this has to happen geometrically. Of course, algebraically. We have seen this but then geometrically, also, you can kind of convince yourself that maybe you have a bunch of points, like this. And maybe the green line is the best line, maybe there is also this, maybe there is also this blue line. Now you can project it onto either of these lines. If we projected onto the green line. I am going to get the proxies as follows.
 
@@ -94,7 +156,21 @@ In other words, the information retained is as high as possible. So that is one 
 
 ### Timestamp: 17:33
 
-Here is one way to understand what is happening. Let us say we are given, again, a bunch of<br>data points centred, and so on. And let us say this is the height, and this is the weight, they are<br>centred. So that is why you see negative values. So let me put it centred, centred, and so on.<br>Now, if the main thing that we are observing is that height gives some information about<br>weight, so if I tell you what the height is, if the height increases, the weight also tends to<br>increase.<br>So that is the main observation here. And that is why we started with fitting lines and so on.<br>But the more importantly, height and weight are not completely, loosely saying, independent<br>of each other. So I should be careful when I use the word independent. But let us say<br>intuitively, height and weight are not independent of each other, because height gives me<br>some information about the weight.<br>So if I choose to represent these data points as height and weight as 2 numbers, height and<br>weight, then 1 number gives me some information about the other number. Now, if I did this<br>algorithm, where do we find these lines? So let us say we found this line, which is the best<br>line and this line,   is going to be [1 1].<br>
+Here is one way to understand what is happening. Let us say we are given, again, a bunch of
+data points centred, and so on. And let us say this is the height, and this is the weight, they are
+centred. So that is why you see negative values. So let me put it centred, centred, and so on.
+Now, if the main thing that we are observing is that height gives some information about
+weight, so if I tell you what the height is, if the height increases, the weight also tends to
+increase.
+So that is the main observation here. And that is why we started with fitting lines and so on.
+But the more importantly, height and weight are not completely, loosely saying, independent
+of each other. So I should be careful when I use the word independent. But let us say
+intuitively, height and weight are not independent of each other, because height gives me
+some information about the weight.
+So if I choose to represent these data points as height and weight as 2 numbers, height and
+weight, then 1 number gives me some information about the other number. Now, if I did this
+algorithm, where do we find these lines? So let us say we found this line, which is the best
+line and this line,   is going to be [1 1].
 
 Here is one way to understand what is happening. Let us say we are given, again, a bunch of data points centred, and so on. And let us say this is the height, and this is the weight, they are centred. So that is why you see negative values. So let me put it centred, centred, and so on. Now, if the main thing that we are observing is that height gives some information about weight, so if I tell you what the height is, if the height increases, the weight also tends to increase.
 
@@ -106,7 +182,25 @@ Well, of course, it cannot be [1 1], because it has to be of length 1, let us sa
 
 Now this direction is , which means that what I would actually be storing is the value height x + weight x which is (height+weight)/ . Now, for whatever reasons, if I went ahead and found the second line, so which is, which would fit the error vectors, it would be along the perpendicular direction,we know that and that vector would simply be . Now that axis, so that value projection along that value would be (-height+weight)/ . Also, if I think of that vectors, you know, , - does not really matter. So it can, it can be either.
 
-if I think of that vectors, you know,  , - does not really matter. So it can, it can be either.<br>So if I, now thought of plotting the same data set, but then by thinking of these 2 axis values,<br>so instead of height and weight, I am going to compute 2 numbers (height + weight)/ , and<br>(weight- height)/ , and then plot the same data set, how do you think that dataset would<br>look like? This is a good place to pause and think, let me tell you how the data set would look<br>like. The data set would look something like this.<br>So basically, what has happened is, you can think of it as if this high axis gotten transformed,<br>rotated, in this case by 45 degrees to get this(height + weight)/ , because there is a scaling<br>happening, which I am not indicating here. But yes, you can think you can imagine that it is<br>on the weight axis has gotten rotated this way to become (weight- height)/ . Now, if I think<br>of looking at the same data set in this direction, well, that would exactly look like this. If we<br>plot now what is the point here.<br>So, what is the point of plotting this well, this is telling us that well, now if I told you the x<br>axis value, which is (height + weight)/  value, there is nothing that you can really say about<br>height (weight- height)/ , if (height + weight)/  increases along this direction, there is<br>nothing really happening for (weight- height)/ , it can either be above the axis or below the<br>axis, but then there is no real pattern there.<br>Whereas in the previous case, as height increase the weight tend to increase and height<br>decrease the weight also tend to decrease here nothing happened, like that is happening. So in<br>
+if I think of that vectors, you know,  , - does not really matter. So it can, it can be either.
+So if I, now thought of plotting the same data set, but then by thinking of these 2 axis values,
+so instead of height and weight, I am going to compute 2 numbers (height + weight)/ , and
+(weight- height)/ , and then plot the same data set, how do you think that dataset would
+look like? This is a good place to pause and think, let me tell you how the data set would look
+like. The data set would look something like this.
+So basically, what has happened is, you can think of it as if this high axis gotten transformed,
+rotated, in this case by 45 degrees to get this(height + weight)/ , because there is a scaling
+happening, which I am not indicating here. But yes, you can think you can imagine that it is
+on the weight axis has gotten rotated this way to become (weight- height)/ . Now, if I think
+of looking at the same data set in this direction, well, that would exactly look like this. If we
+plot now what is the point here.
+So, what is the point of plotting this well, this is telling us that well, now if I told you the x
+axis value, which is (height + weight)/  value, there is nothing that you can really say about
+height (weight- height)/ , if (height + weight)/  increases along this direction, there is
+nothing really happening for (weight- height)/ , it can either be above the axis or below the
+axis, but then there is no real pattern there.
+Whereas in the previous case, as height increase the weight tend to increase and height
+decrease the weight also tend to decrease here nothing happened, like that is happening. So in
 
 So if I, now thought of plotting the same data set, but then by thinking of these 2 axis values, so instead of height and weight, I am going to compute 2 numbers (height + weight)/ , and (weight- height)/ , and then plot the same data set, how do you think that dataset would look like? This is a good place to pause and think, let me tell you how the data set would look like. The data set would look something like this.
 
@@ -122,7 +216,18 @@ directions are not giving you, you are trying to find those directions. So that 
 
 ### Timestamp: 23:06
 
-And this algorithm well is called the principal component algorithm. You might have come<br>across this algorithm already, if you are taken MLF course. Nevertheless, we thought it<br>would be good to start with this algorithm, because some of the ideas that we will see now,<br>which you may not have seen, the MLF of course, would lead us to something more<br>fundamental in machine learning.<br>And the   to   that we have managed to find these vectors are called as the<br>principalcomponents. And what our example, now say is that these principal directions are in<br>fact, you know, de-correlated. So, the projections along these directions kind of for de-<br>correlated.<br>So, essentially, the algorithm is given the data set, find the covariance matrix, find the top k<br>Eigen vector and Eigen values, project your data set along the Eigen vector directions, and<br>then that would give you compressed representation, because we are going from R d  to R k<br>
+And this algorithm well is called the principal component algorithm. You might have come
+across this algorithm already, if you are taken MLF course. Nevertheless, we thought it
+would be good to start with this algorithm, because some of the ideas that we will see now,
+which you may not have seen, the MLF of course, would lead us to something more
+fundamental in machine learning.
+And the   to   that we have managed to find these vectors are called as the
+principalcomponents. And what our example, now say is that these principal directions are in
+fact, you know, de-correlated. So, the projections along these directions kind of for de-
+correlated.
+So, essentially, the algorithm is given the data set, find the covariance matrix, find the top k
+Eigen vector and Eigen values, project your data set along the Eigen vector directions, and
+then that would give you compressed representation, because we are going from R d  to R k
 
 And this algorithm well is called the principal component algorithm. You might have come across this algorithm already, if you are taken MLF course. Nevertheless, we thought it would be good to start with this algorithm, because some of the ideas that we will see now, which you may not have seen, the MLF of course, would lead us to something more fundamental in machine learning.
 
@@ -136,7 +241,20 @@ amount of variance explained by the top k Eigen vectors. So, so we should think 
 
 And what PCA does, essentially is now finding new axis, so finding PCA finds a combination of features. So by when I say , it means that you are weighing these features in using the weights given by these Eigen vectors. So it finds a combination of features that are de-correlated loosely speaking, independent of each other.
 
-So, this is a very fundamental algorithm in data science in dimensionality reduction and so<br>on. And one of the basic algorithms that we will start with for representation learning. So,<br>next time what we will see is one simple example where this algorithm can be applied. And<br>this is this example is called as the Eigen faces example.<br>So, a face recognition type of a system that you can build using the principal component<br>analysis algorithm will demonstrate that, at least show you some pictures. That is the first<br>thing. And then what we will do is we will identify some potential issues with PCA, and<br>places where it may not necessarily work that well.<br>And once we have identified those, we will try to fix them and as a matter of fixing them, that<br>will reveal to us some interesting insights about how to look at a dataset, what is important in<br>a data set and so on, which will lead us to more foundational ideas in machine learning. So,<br>all that will come in the next few lectures. For now, we have seen PCA and I hope you are<br>able to appreciate the foundational fundamental nature of this idea and this algorithm. Thank<br>you.<br>
+So, this is a very fundamental algorithm in data science in dimensionality reduction and so
+on. And one of the basic algorithms that we will start with for representation learning. So,
+next time what we will see is one simple example where this algorithm can be applied. And
+this is this example is called as the Eigen faces example.
+So, a face recognition type of a system that you can build using the principal component
+analysis algorithm will demonstrate that, at least show you some pictures. That is the first
+thing. And then what we will do is we will identify some potential issues with PCA, and
+places where it may not necessarily work that well.
+And once we have identified those, we will try to fix them and as a matter of fixing them, that
+will reveal to us some interesting insights about how to look at a dataset, what is important in
+a data set and so on, which will lead us to more foundational ideas in machine learning. So,
+all that will come in the next few lectures. For now, we have seen PCA and I hope you are
+able to appreciate the foundational fundamental nature of this idea and this algorithm. Thank
+you.
 
 So, this is a very fundamental algorithm in data science in dimensionality reduction and so on. And one of the basic algorithms that we will start with for representation learning. So, next time what we will see is one simple example where this algorithm can be applied. And this is this example is called as the Eigen faces example.
 

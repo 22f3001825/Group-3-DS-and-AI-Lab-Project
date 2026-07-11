@@ -32,16 +32,26 @@ Example: Spam Classification Mail: "how are you"
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 
-|spam (y|= 1|p<br>)<br>n|on -|spam (y = 0)|
+|spam (y|= 1|p
+)
+n|on -|spam (y = 0)|
 |---|---|---|---|---|
-|0|0|0<br>0|0|0|
-|0|0|1<br>0|0|1|
-|0|1|0<br>0|1|0|
-|0|1|1<br>0|1|1|
-|1|0|0<br>1|0|0|
-|1|0|1<br>1|0|1|
-|1|1|0<br>1|1|0|
-|1|1|1<br>1|1|1|
+|0|0|0
+0|0|0|
+|0|0|1
+0|0|1|
+|0|1|0
+0|1|0|
+|0|1|1
+0|1|1|
+|1|0|0
+1|0|0|
+|1|0|1
+1|0|1|
+|1|1|0
+1|1|0|
+|1|1|1
+1|1|1|
 
 Number of parameters in the model if class conditional independence is not assumed
 
@@ -51,7 +61,10 @@ Too Many parameters !
 
 ### Alternative Generative Model
 
-p<br>spam (y = 1) non - spam (y = 0)<br>w1 w2 w3 w1 w2 w3<br>p1 1 p2 1 p3 1 p1 0 p2 0 p3 0<br>
+p
+spam (y = 1) non - spam (y = 0)
+w1 w2 w3 w1 w2 w3
+p1 1 p2 1 p3 1 p1 0 p2 0 p3 0
 
 #### Number of parameters in the model if class conditional independence is assumed
 
@@ -105,11 +118,16 @@ In brief, Laplace smoothing is a technique employed to address the zero-frequenc
 
 ### Decision Function of Naive Bayes
 
-✉<br>
+✉
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 
-predict 1<br>w<br>T<br>predict 0 w x + b = 0<br>T<br>w x = 0<br>
+predict 1
+w
+T
+predict 0 w x + b = 0
+T
+w x = 0
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 
@@ -119,7 +137,8 @@ Gaussian Naive Bayes, also known as Gaussian Discriminant Analysis (GDA) represe
 
 #### Generative Story
 
-p<br>spam (y = 1) non - spam (y = 0)<br>
+p
+spam (y = 1) non - spam (y = 0)
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 

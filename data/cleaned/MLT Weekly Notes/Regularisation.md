@@ -24,17 +24,26 @@ The MSE is given by:
 
 Interestingly, the MSE can be expressed as:
 
-†<br>E ‖wml - w‖22  = 𝜎2 × trace XXT implies how features are related<br>noise from<br>covariance among features<br>variance y of the data contained in X<br>
+†
+E ‖wml - w‖22  = 𝜎2 × trace XXT implies how features are related
+noise from
+covariance among features
+variance y of the data contained in X
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 
 ## **Cross Validation for Minimizing MSE**
 
-†<br>trace XXT<br>
+†
+trace XXT
 
 For any Matrix Ad × d ,
 
-d d<br>trace  (A)  =  ∑ ai =  ∑ 𝜆i Eigenvalues of A<br>i = 1 i = 1<br>diagonal entries<br>of A<br>
+d d
+trace  (A)  =  ∑ ai =  ∑ 𝜆i Eigenvalues of A
+i = 1 i = 1
+diagonal entries
+of A
 
 Let, Eigen Values of XXT be {𝜆1 , 𝜆2 , . . . . , 𝜆d<sup>}</sup>
 
@@ -60,7 +69,7 @@ According to the Existence Theorem, there exists a value of  such that 𝜆 wnew
 
 training set and check for error in validation set. Among various  values, the one that yields the lowest error is selected. 𝜆
 
-Training Set Validation Set<br>
+Training Set Validation Set
 
 But what is the right way to split into 80:20? we might split it random but we might get unlucky and the 20% in validation set might not be the good represntetative of what we are learning from the 80% training set, so the error might not be true error. To avoid this, we use K-Fold cross validation
 
@@ -92,7 +101,8 @@ where 𝛾2I is a matrix of shape d x d
 
 As Ususal,
 
-P(w / {(x1 , y1 )  . . . . (xn , yn )}) ∝ P({(x1 , y1 )  . . . . (xn , yn )} / w) . P(w)<br>Posterior Likelihood Prior<br>
+P(w / {(x1 , y1 )  . . . . (xn , yn )}) ∝ P({(x1 , y1 )  . . . . (xn , yn )} / w) . P(w)
+Posterior Likelihood Prior
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 
@@ -118,7 +128,10 @@ Conclusion, MAP Estimator for linear regression with a Gaussian prior N 0 , 𝛾
 
 Here, the value of  depends on  For every choice of 𝜃 𝜆 𝜆 > 0 , ∃ 𝜃 s.t. optimal solution of (1 ) and 2( ) Coincide
 
-wml<br>2<br>w : ‖ w ‖ ⩽ 𝜃<br>w12 + w22 ⩽ 𝜃<br>
+wml
+2
+w : ‖ w ‖ ⩽ 𝜃
+w12 + w22 ⩽ 𝜃
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 
@@ -132,7 +145,10 @@ On Simplification
 
 T The Value of  depends on c, c<sup>,</sup> XX , wml and not on w If XXT = I
 
-wR wml<br>(w - wml) T XXT (w - wml)<br>w : ‖ w ‖2 ⩽ 𝜃<br>w12 + w22 ⩽ 𝜃<br>
+wR wml
+(w - wml) T XXT (w - wml)
+w : ‖ w ‖2 ⩽ 𝜃
+w12 + w22 ⩽ 𝜃
 
 Conclusion : Ridge Regression pushes weight towards 0, but doesn't necessarily make it 0
 
@@ -146,7 +162,10 @@ Lasso (Least Absolute Shrinkage and Selection Operator) regression is a linear r
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 
-wml<br>wL<br>(w - wml) T XXT (w - wml)<br>w : ‖ w ‖12 ⩽ 𝜃<br>
+wml
+wL
+(w - wml) T XXT (w - wml)
+w : ‖ w ‖12 ⩽ 𝜃
 
 - LASSO doesn't have closed form solution
 

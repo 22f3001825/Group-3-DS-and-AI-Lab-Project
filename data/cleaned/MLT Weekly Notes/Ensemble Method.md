@@ -98,7 +98,11 @@ We train a model on each bag. Typically, this is a high-variance model, such as 
 
 ✉ 23f1001171@ds.study.iitm.ac.in (Piush Das)
 
-n<br>1<br>- -<br> 1  1<br>n<br>
+n
+1
+- -
+ 1  1
+n
 
 1 For a very large dataset, this is about 1 - ≈ 63%  Therefore, about 63% of the data-points in a bag is unique. e
 

@@ -117,8 +117,9 @@ Decide labels = 5 - 1 = 4 Estimate each features under each label = 2 - 1 = 1 Es
 > 01   0 1   0
 > y =4
 
-<!-- Start of picture text -->
-y = 0 y = 4<br>f1 f2 f3 f1 f2 f3<br>1 0 1 0 1 0 1 0 1 0 1 0<br><!-- End of picture text -->
+y = 0 y = 4
+f1 f2 f3 f1 f2 f3
+1 0 1 0 1 0 1 0 1 0 1 0
 
 May 2024 Term - Quiz 2
 
@@ -148,13 +149,47 @@ May 2024 Term - Quiz 2
 
 ## Solution
 
-||=<br>=  =<br>pml<br>y<br>n<br>∑<sup>n</sup><br>i= 1<br>i<br>4<br>8<br>1<br>2|
+||=
+=  =
+pml
+y
+n
+∑<sup>n</sup>
+i= 1
+i
+4
+8
+1
+2|
 |---|---|
-||=<br>p<br>y<br>j<br>1 f= 1 ,y=y<br>1 y=y<br>∑<sup>n</sup><br>i= 1<br>i<br>j<br>i<br>∑<sup>n</sup><br>i= 1 <sup>( i</sup><br>)|
-|i|y= 0<br>y= 1|
-|1|1<br>4<br>3<br>4|
-|2|3<br>4<br>2<br>4|
-|3|2<br>4<br>3<br>4|
+||=
+p
+y
+j
+1 f= 1 ,y=y
+1 y=y
+∑<sup>n</sup>
+i= 1
+i
+j
+i
+∑<sup>n</sup>
+i= 1 <sup>( i</sup>
+)|
+|i|y= 0
+y= 1|
+|1|1
+4
+3
+4|
+|2|3
+4
+2
+4|
+|3|2
+4
+3
+4|
 
 > **[Extracted Question]**
 > Question 25

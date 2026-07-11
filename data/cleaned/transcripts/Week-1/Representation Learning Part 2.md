@@ -2,7 +2,17 @@
 
 (Refer Slide Time: 0:13)
 
-Here we are seeing if we know that, well, four points are on a line. And the fifth point is not<br>on the line, then how can we find the proxy for the fifth point along the line that has the four<br>points. But in practice, nobody is going to come and tell us that, hey, these points are on the<br>line, these points are not on the line. So, now you can find the proxies for the points not on<br>the line along the line, nobody tells us that.<br>We are just given a dataset, which has a bunch of points. So, which means that we need to<br>find that line on to which you need to project these data points as well. So, that is also<br>something that we need to find. So, now there are multiple lines. So, we need to somehow<br>find that line, right. So, that is what we are going to do next, we are going to use the fact that<br>given a line, we know how to find the proxy for a data point on this line, to actually find that<br>line itself. Let us see how we can do that.<br>
+Here we are seeing if we know that, well, four points are on a line. And the fifth point is not
+on the line, then how can we find the proxy for the fifth point along the line that has the four
+points. But in practice, nobody is going to come and tell us that, hey, these points are on the
+line, these points are not on the line. So, now you can find the proxies for the points not on
+the line along the line, nobody tells us that.
+We are just given a dataset, which has a bunch of points. So, which means that we need to
+find that line on to which you need to project these data points as well. So, that is also
+something that we need to find. So, now there are multiple lines. So, we need to somehow
+find that line, right. So, that is what we are going to do next, we are going to use the fact that
+given a line, we know how to find the proxy for a data point on this line, to actually find that
+line itself. Let us see how we can do that.
 
 Here we are seeing if we know that, well, four points are on a line. And the fifth point is not on the line, then how can we find the proxy for the fifth point along the line that has the four points. But in practice, nobody is going to come and tell us that, hey, these points are on the line, these points are not on the line. So, now you can find the proxies for the points not on the line along the line, nobody tells us that.
 
@@ -10,7 +20,20 @@ We are just given a dataset, which has a bunch of points. So, which means that w
 
 (Refer Slide Time: 1:15)
 
-So, now just to make this goal a little bit more precise. So, this is our goal now. So, we want<br>to develop a way to find of course, a compressed representation of data, when data points do<br>not necessarily fall along the line. So, we are not going to assume that all the data points are<br>along the line, just that one or two points are not on the line.<br>So, this is not an exception. So, this is almost a rule. So, it is never going to be the case that<br>we are going to find almost all points on a line, but then just one or two points not on the line,<br>is more like a rule not really an exception. What do I mean by that? Let us say if I if there<br>was a class of 100 people, and then I measured the height and weight and try to plot them, we<br>might get some values like this. So, of course, as the height increases, the weight increases.<br>Now, we may want to represent this dataset using this line, but as you can see, I mean, only<br>one or two points actually perhaps fall on this line, maybe none of the points fall on this line,<br>yet we want to represent this data points using this line. So, which means that the fact that<br>there is an exact linear relationship between the features is a myth. So, that is never going to<br>happen. That is, very, very rare.<br>
+So, now just to make this goal a little bit more precise. So, this is our goal now. So, we want
+to develop a way to find of course, a compressed representation of data, when data points do
+not necessarily fall along the line. So, we are not going to assume that all the data points are
+along the line, just that one or two points are not on the line.
+So, this is not an exception. So, this is almost a rule. So, it is never going to be the case that
+we are going to find almost all points on a line, but then just one or two points not on the line,
+is more like a rule not really an exception. What do I mean by that? Let us say if I if there
+was a class of 100 people, and then I measured the height and weight and try to plot them, we
+might get some values like this. So, of course, as the height increases, the weight increases.
+Now, we may want to represent this dataset using this line, but as you can see, I mean, only
+one or two points actually perhaps fall on this line, maybe none of the points fall on this line,
+yet we want to represent this data points using this line. So, which means that the fact that
+there is an exact linear relationship between the features is a myth. So, that is never going to
+happen. That is, very, very rare.
 
 So, now just to make this goal a little bit more precise. So, this is our goal now. So, we want to develop a way to find of course, a compressed representation of data, when data points do not necessarily fall along the line. So, we are not going to assume that all the data points are along the line, just that one or two points are not on the line.
 
@@ -36,7 +59,20 @@ writing that again, find the line that has the least reconstruction error. This 
 
 (Refer Slide Time: 5:40)
 
-So, Let us do this. Now, Let us say you have a data set. As usual, we have unsupervised data<br>set, which is{ , …. }. Where  . Now, how do I define the error for a given line<br>with respect to the data set? Well, basically, what you need to do, you need to kind of sum up<br>the errors for each of the data points. So, your data set has a bunch of N data points.<br>So, you  sum up the error incurred by each of these data points  along the line. So, this is for a<br>given line, if I give you a line, you can measure the performance of the line as the error that<br>the dataset incurs on this line. So, by counting, by summing up the error for each of the data<br>points, but what is the error of a particular data point on a line?<br>Well, that is just the length squared of this line, which we are going to think of as being<br>represented by some  , which is just we know . Now, remember, when I say line,<br>I am going to represent using, this line is going to be represented using   such that the length<br>of   is 1, So,   or   is 1.<br>That is how we are going to think of lines, so among all possible lines represented by vectors<br>in the unit circle, I want to find the best line so, given a line, which means I give you a<br>
+So, Let us do this. Now, Let us say you have a data set. As usual, we have unsupervised data
+set, which is{ , …. }. Where  . Now, how do I define the error for a given line
+with respect to the data set? Well, basically, what you need to do, you need to kind of sum up
+the errors for each of the data points. So, your data set has a bunch of N data points.
+So, you  sum up the error incurred by each of these data points  along the line. So, this is for a
+given line, if I give you a line, you can measure the performance of the line as the error that
+the dataset incurs on this line. So, by counting, by summing up the error for each of the data
+points, but what is the error of a particular data point on a line?
+Well, that is just the length squared of this line, which we are going to think of as being
+represented by some  , which is just we know . Now, remember, when I say line,
+I am going to represent using, this line is going to be represented using   such that the length
+of   is 1, So,   or   is 1.
+That is how we are going to think of lines, so among all possible lines represented by vectors
+in the unit circle, I want to find the best line so, given a line, which means I give you a
 
 So, Let us do this. Now, Let us say you have a data set. As usual, we have unsupervised data set, which is{ , …. }. Where . Now, how do I define the error for a given line with respect to the data set? Well, basically, what you need to do, you need to kind of sum up the errors for each of the data points. So, your data set has a bunch of N data points.
 
@@ -102,6 +138,15 @@ are trying to find is that we want to find a direction which maximizes this bili
 
 Again, for those who have done linear algebra course, already, you would immediately recognize that the solution to this problem is is the Eigen vector corresponding to the maximum Eigen value of C, the covariance matrix. Basically, your line which best represents the data in terms of error minimization of reconstruction is same as the line which maximizes the as C is the covariance matrix and this line is given by the Eigen vector corresponding to the maximum
 
-the data in terms of error minimization of reconstruction is same as the line which maximizes<br>the  as C is the covariance matrix and this line is given by the Eigen vector<br>corresponding to the maximum<br>Eigen value of the covariance matrix. We will talk about this covariance matrix in a little bit<br>more detail a little later. For now, imagine that, well, this is not a hard problem to solve. So,<br>that is the main takeaway at this point. We will understand this covariance matrix and what<br>does it mean to say, where did the covariance come into picture while we are doing error<br>minimization and all that a little later, but for now, assume that well, this problem has a well-<br>known, well understood solution in terms of the Eigen vectors of a certain matrices<br>associated with the dataset.<br>
+the data in terms of error minimization of reconstruction is same as the line which maximizes
+the  as C is the covariance matrix and this line is given by the Eigen vector
+corresponding to the maximum
+Eigen value of the covariance matrix. We will talk about this covariance matrix in a little bit
+more detail a little later. For now, imagine that, well, this is not a hard problem to solve. So,
+that is the main takeaway at this point. We will understand this covariance matrix and what
+does it mean to say, where did the covariance come into picture while we are doing error
+minimization and all that a little later, but for now, assume that well, this problem has a well-
+known, well understood solution in terms of the Eigen vectors of a certain matrices
+associated with the dataset.
 
 Eigen value of the covariance matrix. We will talk about this covariance matrix in a little bit more detail a little later. For now, imagine that, well, this is not a hard problem to solve. So, that is the main takeaway at this point. We will understand this covariance matrix and what does it mean to say, where did the covariance come into picture while we are doing error minimization and all that a little later, but for now, assume that well, this problem has a wellknown, well understood solution in terms of the Eigen vectors of a certain matrices associated with the dataset.

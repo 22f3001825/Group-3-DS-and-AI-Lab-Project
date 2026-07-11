@@ -11,10 +11,19 @@ def clean_markdown_content(text: str) -> tuple[str, dict]:
     }
     
     # 1. OCR Post-processing
-    # Merge hyphenated words across lines (e.g., classi- \n fication -> classification)
-    hyphen_pattern = re.compile(r'([a-zA-Z]+)-\s*\n\s*([a-zA-Z]+)')
-    stats['hyphens_merged'] = len(hyphen_pattern.findall(text))
-    text = hyphen_pattern.sub(r'\1\2', text)
+    # Fix OCR hyphenation splitting words across lines (e.g., classi- \n fication)
+    # Only applies to alphabetical characters to prevent breaking math equations like "x - \n y"
+    text = re.sub(r'([a-zA-Z])-\s*\n\s*([a-zA-Z])', r'\1\2', text)
+    
+    # Remove PyMuPDF picture text HTML comments
+    text = re.sub(r'<!--\s*Start of picture text\s*-->', '', text)
+    text = re.sub(r'<!--\s*End of picture text\s*-->', '', text)
+    
+    # Convert <br> tags to actual newlines for math matrices
+    text = re.sub(r'<br\s*/?>', '\n', text)
+    
+    # Normalize excessive newlines (collapse 3+ into 2)
+    text = re.sub(r'\n{3,}', '\n\n', text)
     
     # Fix specific OCR unicode artifacts
     if 'we?Tll' in text:

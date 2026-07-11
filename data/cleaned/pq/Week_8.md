@@ -88,8 +88,8 @@ is the estimate for
 > 2"(fi = 1,y = 1)
 > Eiky = 1)
 
-<!-- Start of picture text -->
-𝟙<br>𝟙<br><!-- End of picture text -->
+𝟙
+𝟙
 
 Here, the first two examples belong to label  and the first feature value for both examples is , therefore
 
@@ -214,7 +214,8 @@ The decision boundary is given by
 
 Consider the gaussian naive Bayes algorithm was run on the following dataset:
 
-|**feature 1**|**feature 2**<br>**Label**|
+|**feature 1**|**feature 2**
+**Label**|
 |---|---|
 
 > **[Extracted Question]**
@@ -286,5 +287,5 @@ What will be the value of ?
 > 1(yi
 > 1)
 
-<!-- Start of picture text -->
-𝟙<br>𝟙<br><!-- End of picture text -->
+𝟙
+𝟙

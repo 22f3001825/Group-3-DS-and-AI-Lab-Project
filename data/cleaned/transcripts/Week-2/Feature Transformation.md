@@ -12,7 +12,26 @@ data points all lie on the circle, on the, on the circumference of a circle, let
 
 Now, let us ask the question, what would PCA give? So, if I run the standard PCA algorithm on this data set. What should I expect to see? In other words, what are the most interesting or important directions with respect to, the variance maximization or error minimization that PCA will uncover? What will be the most important direction? So, if you are already seeing it fine. Otherwise, I encourage you to pause and think about this question. I will answer this question now.
 
-important directions with respect to, the variance maximization or error minimization that PCA<br>will uncover? What will be the most important direction? So, if you are already seeing it fine.<br>Otherwise, I encourage you to pause and think about this question. I will answer this question<br>now.<br>So, what would PCA do? PCA would first center this data set, which means that the center will<br>move from a,b to 0, 0, so the origin will be 0, 0. And then what it would do is it would try to find<br>that direction where if you project this data points, the length of the errors is as small as possible,<br>or the variance is as high as possible. Now, because the points are all around the circle, no<br>direction is more important than other direction.<br>So, I can project my data along this direction, or this direction, or this direction, or this direction.<br>And they would result in more or less the same variance, I say more or less, because depending<br>on the exact data points and how they are spread around the circle, one direction might be<br>slightly better than the other.<br>But in general, all directions are equally important. So, which means the PCA is going to pick<br>one direction that would be based on how exactly these points are around the circle. But let us<br>say PCA picked this direction as  , the most important direction. Now, what would be<br>Well,   we know has to be perpendicular to this  . Well, it would be this direction, let us say,<br>of course, I am assuming a instead of a,b, this is origin centered here.<br>So, now, if we had to do a dimensionality reduction for this problem, using PCA, then what<br>would happen is the following. So, we would compute the Eigen values, which is simply the<br>
+important directions with respect to, the variance maximization or error minimization that PCA
+will uncover? What will be the most important direction? So, if you are already seeing it fine.
+Otherwise, I encourage you to pause and think about this question. I will answer this question
+now.
+So, what would PCA do? PCA would first center this data set, which means that the center will
+move from a,b to 0, 0, so the origin will be 0, 0. And then what it would do is it would try to find
+that direction where if you project this data points, the length of the errors is as small as possible,
+or the variance is as high as possible. Now, because the points are all around the circle, no
+direction is more important than other direction.
+So, I can project my data along this direction, or this direction, or this direction, or this direction.
+And they would result in more or less the same variance, I say more or less, because depending
+on the exact data points and how they are spread around the circle, one direction might be
+slightly better than the other.
+But in general, all directions are equally important. So, which means the PCA is going to pick
+one direction that would be based on how exactly these points are around the circle. But let us
+say PCA picked this direction as  , the most important direction. Now, what would be
+Well,   we know has to be perpendicular to this  . Well, it would be this direction, let us say,
+of course, I am assuming a instead of a,b, this is origin centered here.
+So, now, if we had to do a dimensionality reduction for this problem, using PCA, then what
+would happen is the following. So, we would compute the Eigen values, which is simply the
 
 So, what would PCA do? PCA would first center this data set, which means that the center will move from a,b to 0, 0, so the origin will be 0, 0. And then what it would do is it would try to find that direction where if you project this data points, the length of the errors is as small as possible, or the variance is as high as possible. Now, because the points are all around the circle, no direction is more important than other direction.
 
@@ -66,7 +85,24 @@ So, but how can we convert this into an idea? Well, here is the idea. The idea i
 
 So, the important directions corresponding to this low dimensional linear subspace, that is what our PCA anyway does. So now, because you are doing this mapping, you are increasing the dimension. So, which means your d could be really large. But now, we already know how to handle the case when d is much larger.
 
-So, we already know how to handle case when d is much, much larger than n. How do we do<br>that? Well, we know that we have to look at the covariance matrix, but we can look at this matrix<br>which is the other way around. So instead of  , you we will look  in the usual PCA.<br>But now, because the data points are no longer x, they are . So, what you do is you look at<br>. So instead of  , when you say  , it means that I am applying the phi<br>function to every vector in my in my data set. So that is, that is, I mean, a slight abuse of<br>notation. But that is what I mean when I say   apply to matrix it applies column wise.<br>So, so this seems like a great idea. It is in the sense that we know how to solve issue one, which<br>is when d is much much larger, we know how to you know, solve that problem. Now, we are<br>saying that in the case of nonlinear relationships, you map your data points to higher dimensional<br>space, where these nonlinear relationships are captured better. Now, where is the non-linearity<br>coming from? Now, the non-linearity is basically, absorbed into this   map. It is a   map has all<br>possible nonlinear relationships captured.<br>Once you do that, then yes, so in the high dimensional space, you can find a linear relationship<br>using your PCA because B is much much larger than n, you can still run your PCA. So, it seems<br>like a reasonable idea to start with. And it is. So, that is what we are going to see how to convert<br>this into a like a solid idea. But then we will hit a lot of bottlenecks, we will hit a lot of issues,<br>and then we will have to handle them.<br>
+So, we already know how to handle case when d is much, much larger than n. How do we do
+that? Well, we know that we have to look at the covariance matrix, but we can look at this matrix
+which is the other way around. So instead of  , you we will look  in the usual PCA.
+But now, because the data points are no longer x, they are . So, what you do is you look at
+. So instead of  , when you say  , it means that I am applying the phi
+function to every vector in my in my data set. So that is, that is, I mean, a slight abuse of
+notation. But that is what I mean when I say   apply to matrix it applies column wise.
+So, so this seems like a great idea. It is in the sense that we know how to solve issue one, which
+is when d is much much larger, we know how to you know, solve that problem. Now, we are
+saying that in the case of nonlinear relationships, you map your data points to higher dimensional
+space, where these nonlinear relationships are captured better. Now, where is the non-linearity
+coming from? Now, the non-linearity is basically, absorbed into this   map. It is a   map has all
+possible nonlinear relationships captured.
+Once you do that, then yes, so in the high dimensional space, you can find a linear relationship
+using your PCA because B is much much larger than n, you can still run your PCA. So, it seems
+like a reasonable idea to start with. And it is. So, that is what we are going to see how to convert
+this into a like a solid idea. But then we will hit a lot of bottlenecks, we will hit a lot of issues,
+and then we will have to handle them.
 
 So, we already know how to handle case when d is much, much larger than n. How do we do that? Well, we know that we have to look at the covariance matrix, but we can look at this matrix which is the other way around. So instead of , you we will look in the usual PCA.
 
@@ -78,7 +114,20 @@ Once you do that, then yes, so in the high dimensional space, you can find a lin
 
 ### Timestamp: 15:15
 
-The first issue, the most important issue perhaps is the following. Let us say you had four<br>features, and you wanted to capture cubic relations. Think of these four features as height,<br>weight, a gender, let us say. So, when you say cubic relationships, it means that I should be able<br>to capture relationships such as height x weight x gender, or height x weight 2  x age, sorry, not<br>that that would be fourth power, but let us say heightxweight 2 , or weight 2 xh, it is all possible<br>combinations where if you sum up the power of the combinations, there will be 3. So, in this<br>case, so the number of, so basically, if I do the mapping,  , which captures all cubic<br>relationships in remember, there is a different final from the   that we used earlier.<br>Now, this   will have all possible cubic relationships. Now, this is going to be a constant f1, f2,<br>f3, f4, well, these are the relationships which are to the power 1. To the power 2 would have f1,<br>f2, f1, f3, and so on, till f3f4. And then there will be  4 C2 , so this is2 , so this is , so this is 4 C0, this is 0, this is , this is  4 C1, the 4 is the 1, the 4 is the , the 4 is the<br>number of features that you have case,  4 Ck , where k is the number of the power that you are k , where k is the number of the power that you are  , where k is the number of the power that you are<br>talking about.<br>This will be  4 C2, and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will 2, and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will , and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will  4 C3 of these guys. 3 of these guys.  of these guys.<br>
+The first issue, the most important issue perhaps is the following. Let us say you had four
+features, and you wanted to capture cubic relations. Think of these four features as height,
+weight, a gender, let us say. So, when you say cubic relationships, it means that I should be able
+to capture relationships such as height x weight x gender, or height x weight 2  x age, sorry, not
+that that would be fourth power, but let us say heightxweight 2 , or weight 2 xh, it is all possible
+combinations where if you sum up the power of the combinations, there will be 3. So, in this
+case, so the number of, so basically, if I do the mapping,  , which captures all cubic
+relationships in remember, there is a different final from the   that we used earlier.
+Now, this   will have all possible cubic relationships. Now, this is going to be a constant f1, f2,
+f3, f4, well, these are the relationships which are to the power 1. To the power 2 would have f1,
+f2, f1, f3, and so on, till f3f4. And then there will be  4 C2 , so this is2 , so this is , so this is 4 C0, this is 0, this is , this is  4 C1, the 4 is the 1, the 4 is the , the 4 is the
+number of features that you have case,  4 Ck , where k is the number of the power that you are k , where k is the number of the power that you are  , where k is the number of the power that you are
+talking about.
+This will be  4 C2, and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will 2, and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will , and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will  4 C3 of these guys. 3 of these guys.  of these guys.
 
 The first issue, the most important issue perhaps is the following. Let us say you had four features, and you wanted to capture cubic relations. Think of these four features as height, weight, a gender, let us say. So, when you say cubic relationships, it means that I should be able to capture relationships such as height x weight x gender, or height x weight<sup>2</sup> x age, sorry, not that that would be fourth power, but let us say heightxweight<sup>2</sup> , or weight<sup>2</sup> xh, it is all possible combinations where if you sum up the power of the combinations, there will be 3. So, in this case, so the number of, so basically, if I do the mapping, , which captures all cubic relationships in remember, there is a different final from the that we used earlier.
 

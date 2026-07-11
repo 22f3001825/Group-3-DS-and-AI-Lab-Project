@@ -1,26 +1,44 @@
 # Week-12
 
-Karthik Thiagarajan<br>
+Karthik Thiagarajan
 
-|Loss functions for Classifcation<br>1.|
+|Loss functions for Classifcation
+1.|
 |---|
-|Loss<br>1.1.0-1|
-|Convex Surrogates<br>1.2.|
-|Squared Loss<br>1.2.1.|
-|Hinge Loss<br>1.2.2.|
-|Logistic Loss<br>1.2.3.|
-|Perceptron Loss<br>1.2.4.|
-|Neural Network<br>2.|
-|Network Architecture<br>2.1.|
-|Activation functions<br>2.2.|
-|ReLU: Rectifed Linear Unit<br>2.2.1.|
-|Sigmoid<br>2.2.2.|
-|Computation at a neuron<br>2.3.|
-|Forward Pass<br>2.4.|
-|Regression<br>2.4.1.|
-|Binary Classifcation<br>2.4.2.|
-|Backward Pass<br>2.5.|
-|Flow of information<br>2.6.|
+|Loss
+1.1.0-1|
+|Convex Surrogates
+1.2.|
+|Squared Loss
+1.2.1.|
+|Hinge Loss
+1.2.2.|
+|Logistic Loss
+1.2.3.|
+|Perceptron Loss
+1.2.4.|
+|Neural Network
+2.|
+|Network Architecture
+2.1.|
+|Activation functions
+2.2.|
+|ReLU: Rectifed Linear Unit
+2.2.1.|
+|Sigmoid
+2.2.2.|
+|Computation at a neuron
+2.3.|
+|Forward Pass
+2.4.|
+|Regression
+2.4.1.|
+|Binary Classifcation
+2.4.2.|
+|Backward Pass
+2.5.|
+|Flow of information
+2.6.|
 
 ## 1. Loss functions for Classification
 
@@ -40,7 +58,15 @@ Even though the set Hlinear is simple enough, solving the above optimization pro
 
 For a single training data-point (x, y), the 0 - 1 loss can be given as:
 
-T<br>I w x y < 0<br>Visually:<br>2<br>1<br>-5 -4 -3 -2 -1 0 1 2 3 4 5<br>T<br>w x y<br>-1<br>
+T
+I w x y < 0
+Visually:
+2
+1
+-5 -4 -3 -2 -1 0 1 2 3 4 5
+T
+w x y
+-1
 
 ### 1.2. Convex Surrogates
 
@@ -50,7 +76,10 @@ We will look at various convex approximations to the 0 - 1 loss. Each such loss 
 
 We can therefore express this as:
 
-3<br>2<br>1<br>-4 -3 -2 -1 0 1 2 3 4 5 6<br>
+3
+2
+1
+-4 -3 -2 -1 0 1 2 3 4 5 6
 
 This loss is associated with a least squares classifier (inspired by regression). The loss is convex, but a poor approximation for the 0 - 1 loss. It heavily penalizes even points that are correctly classified.
 
@@ -62,7 +91,10 @@ max - u (0, 1 )
 
 #### Plotting it:
 
-3<br>2<br>1<br>-4 -3 -2 -1 0 1 2 3 4 5 6<br>
+3
+2
+1
+-4 -3 -2 -1 0 1 2 3 4 5 6
 
 The hinge loss is used in SVM. Notice that the loss penalizes points that are also correctly classified but violating the margin.
 
@@ -80,7 +112,10 @@ In terms of our notation:
 
 ### ln 1 + e-u
 
-3<br>2<br>1<br>-4 -3 -2 -1 0 1 2 3 4 5 6<br>
+3
+2
+1
+-4 -3 -2 -1 0 1 2 3 4 5 6
 
 This is the logistic loss and is associated with the logistic regression model.
 
@@ -96,7 +131,10 @@ This can be viewed as SGD with a step size of one and a batch-size of one with t
 
 ### max -u (0, )
 
-3<br>2<br>1<br>-4 -3 -2 -1 0 1 2 3 4 5 6<br>
+3
+2
+1
+-4 -3 -2 -1 0 1 2 3 4 5 6
 
 ## 2. Neural Network
 
@@ -104,7 +142,12 @@ between inputs and outputs. They are capable of modeling almost any dataset and 
 
 ### 2.1. Network Architecture
 
-Output<br>Input<br>layer<br>layer<br>Hidden Hidden<br>layer-1 layer-2<br>
+Output
+Input
+layer
+layer
+Hidden Hidden
+layer-1 layer-2
 
 There are several layers in a network:
 
@@ -124,19 +167,34 @@ Some non-linear computation happens at each neuron in a network. This is achieve
 
 #### 2.2.1. ReLU: Rectified Linear Unit
 
-x, x ⩾ 0<br>x = max  x =<br>g( ) (0, )<br>0, x < 0<br>3<br>2<br>1<br>-4 -3 -2 -1 0 1 2 3 4 5 6<br>
+x, x ⩾ 0
+x = max  x =
+g( ) (0, )
+0, x < 0
+3
+2
+1
+-4 -3 -2 -1 0 1 2 3 4 5 6
 
 #### 2.2.2. Sigmoid
 
 1 g(x) = -x 1 + e
 
-1<br>0.5<br>-2 -1.5 -1 -0.5 0 0.5 1 1.5 2 2.5<br>
+1
+0.5
+-2 -1.5 -1 -0.5 0 0.5 1 1.5 2 2.5
 
 ### 2.3. Computation at a neuron
 
 Consider a single neuron at some layer:
 
-x1<br>w1<br>b<br>w2 ⋮<br>x2<br>w3<br>x3<br>
+x1
+w1
+b
+w2 ⋮
+x2
+w3
+x3
 
 The computation is composed of two steps:
 

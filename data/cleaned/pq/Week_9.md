@@ -289,17 +289,14 @@ Consider the following three data sets, where a white circle represents a negati
 > **[Extracted Question]**
 > 0
 
-<!-- Start of picture text -->
-1.<br><!-- End of picture text -->
+1.
 
 > **[Extracted Question]**
 > 2
 
-<!-- Start of picture text -->
-2.<br><!-- End of picture text -->
+2.
 
-<!-- Start of picture text -->
-3.<br><!-- End of picture text -->
+3.
 
 Which of these data sets will the Perceptron Algorithm be able to correctly classify?
 

@@ -22,7 +22,15 @@ This is the average number of errors in prediction by the classifier
 
 Linear Classifier
 
-n<br>min 1(h(xi) ≠ yi )<br>h ∈ Hlinear ∑<br>i = 1<br>T<br>Hlinear =  hw : h(x) = sign w x<br>1, if z > 0<br>sign(z) =<br>0 , otherwise<br>
+n
+min 1(h(xi) ≠ yi )
+h ∈ Hlinear ∑
+i = 1
+T
+Hlinear =  hw : h(x) = sign w x
+1, if z > 0
+sign(z) =
+0 , otherwise
 
 The optimization problem given below is NP hard
 
@@ -70,7 +78,9 @@ Decision trees are widely used in machine learning for classification and regres
 
 ### Output
 
-Parent / Root Node<br>Internal Node<br>Prediction/Leaf Node<br>
+Parent / Root Node
+Internal Node
+Prediction/Leaf Node
 
 ### Prediction
 
@@ -96,7 +106,8 @@ Information Gain is then utilized to measure the quality of a split in the decis
 
 Information gain is a commonly used criterion in decision tree algorithms that quantifies the reduction in entropy or impurity of a dataset after splitting based on a given feature. High information gain signifies features that effectively differentiate between the different classes of data and lead to accurate predictions. Information gain is calculated as
 
-D<br>Dyes Dno<br>
+D
+Dyes Dno
 
 ## Decision Tree Algorithm
 

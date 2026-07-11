@@ -24,7 +24,19 @@ So, this would be the new matrix. So, now you have two lines, so, the first line
 
 ### Timestamp: 04:06
 
-Now, a natural question arises, we have two lines now, can we say anything about the relation<br>between these two lines?  So, natural question is the following. What can we say about   and<br>? So, in particular, is there any specific relationship that exists between these two  directions?<br>So, let us let us look at it geometrically.<br>So, we have a bunch of data points. As usual, the data set let us say centered and now let us say<br>this was our erase this point, it can fall on the line does not matter. But let us say to show it<br>clearly, so let us say this was the best line  . So,   is somewhere here. To remember, so<br>unit length. So, it would be the direction that would point (along the) in the unit circle. Now,<br>what are the error vectors?<br>If this is  , this is our error vector, this point is  , which means this error vector, which<br>is actually somewhere pointing this is the remaining piece, which is . So, it is<br>pointing in this direction. Let us take one more error vector, which is perhaps this error vector,<br>which is this vector, maybe this point is  this point is . So, this error vector is here.<br>
+Now, a natural question arises, we have two lines now, can we say anything about the relation
+between these two lines?  So, natural question is the following. What can we say about   and
+? So, in particular, is there any specific relationship that exists between these two  directions?
+So, let us let us look at it geometrically.
+So, we have a bunch of data points. As usual, the data set let us say centered and now let us say
+this was our erase this point, it can fall on the line does not matter. But let us say to show it
+clearly, so let us say this was the best line  . So,   is somewhere here. To remember, so
+unit length. So, it would be the direction that would point (along the) in the unit circle. Now,
+what are the error vectors?
+If this is  , this is our error vector, this point is  , which means this error vector, which
+is actually somewhere pointing this is the remaining piece, which is . So, it is
+pointing in this direction. Let us take one more error vector, which is perhaps this error vector,
+which is this vector, maybe this point is  this point is . So, this error vector is here.
 
 Now, a natural question arises, we have two lines now, can we say anything about the relation between these two lines?  So, natural question is the following. What can we say about and ? So, in particular, is there any specific relationship that exists between these two  directions? So, let us let us look at it geometrically.
 
@@ -64,7 +76,20 @@ that is good.
 
 ### Timestamp: 12:13
 
-Now, we have two  's. Now, let us say we go ahead and compute the residues after round 2, just<br>to see what is happening. So, it is maybe some of you are already seeing it. But let us try to<br>compute this explicitly. Now, what would be the residues after round 2? From round 1 data set,<br>which was this dataset, we compute a  .<br>And then we take the residue of each of this data point with respect to  , which means that we<br>have to take this data point subtract it out from its dot product with respect to  . So, which<br>means the first data point would be, this was the data point, which was  , now, this<br>was my original data point, I subtract out its dot product with  , the same vector transpose<br>this is the scaling factor with respect to  .<br>So, this is what I subtract out and then I do this for every vector, let us focus on one point to see<br>-<br>what comes out. Now, what is this so, this is just let me try to simplify this{<br>,……..} which is exactly{ …..}The<br>first term is . , but now, we notice that because of the fact whatever we argued earlier<br>
+Now, we have two  's. Now, let us say we go ahead and compute the residues after round 2, just
+to see what is happening. So, it is maybe some of you are already seeing it. But let us try to
+compute this explicitly. Now, what would be the residues after round 2? From round 1 data set,
+which was this dataset, we compute a  .
+And then we take the residue of each of this data point with respect to  , which means that we
+have to take this data point subtract it out from its dot product with respect to  . So, which
+means the first data point would be, this was the data point, which was  , now, this
+was my original data point, I subtract out its dot product with  , the same vector transpose
+this is the scaling factor with respect to  .
+So, this is what I subtract out and then I do this for every vector, let us focus on one point to see
+-
+what comes out. Now, what is this so, this is just let me try to simplify this{
+,……..} which is exactly{ …..}The
+first term is . , but now, we notice that because of the fact whatever we argued earlier
 
 Now, we have two 's. Now, let us say we go ahead and compute the residues after round 2, just to see what is happening. So, it is maybe some of you are already seeing it. But let us try to compute this explicitly. Now, what would be the residues after round 2? From round 1 data set, which was this dataset, we compute a .
 
@@ -84,7 +109,16 @@ Now, the same thing would happen in D dimension if you run it long enough. So, w
 
 ### Timestamp: 15:50
 
-So, which means all these vectors are actually 0 vectors after d rounds so, in R d . Now, that tells<br>us that   itself is just  …… . So, basically, what we have<br>done is again, if you know  a bit of linear algebra, you can already see what is happening is that<br>we have expressed our data set, every point in the data set in a different basis in a different<br>orthonormal basis.<br>So, the { , ….. }were expressed in standard basis. Now, you are expressing the same data<br>set in the basis of   to  . So, basically, all we have done is doing a change of basis. So, all<br>these data points can be expressed in any basis  whatsoever. So, there is nothing, the question is<br>what have we gained by doing this. So, we could have had the standard basis itself. But then now<br>we are choosing to express all the data points on a different basis, which is the   to  basis.<br>
+So, which means all these vectors are actually 0 vectors after d rounds so, in R d . Now, that tells
+us that   itself is just  …… . So, basically, what we have
+done is again, if you know  a bit of linear algebra, you can already see what is happening is that
+we have expressed our data set, every point in the data set in a different basis in a different
+orthonormal basis.
+So, the { , ….. }were expressed in standard basis. Now, you are expressing the same data
+set in the basis of   to  . So, basically, all we have done is doing a change of basis. So, all
+these data points can be expressed in any basis  whatsoever. So, there is nothing, the question is
+what have we gained by doing this. So, we could have had the standard basis itself. But then now
+we are choosing to express all the data points on a different basis, which is the   to  basis.
 
 So, which means all these vectors are actually 0 vectors after d rounds so, in R<sup>d</sup> . Now, that tells us that itself is just …… . So, basically, what we have done is again, if you know  a bit of linear algebra, you can already see what is happening is that we have expressed our data set, every point in the data set in a different basis in a different orthonormal basis.
 
@@ -92,7 +126,14 @@ So, the { , ….. }were expressed in standard basis. Now, you are expressing the
 
 ### Timestamp: 17:07
 
-So, what, so the question is, what have we gained? What have we gained? The first thing we are<br>gaining is the following. So, if our data lives in a low dimensional linear space or subspace, then<br>we do not have to run d rounds. So, the residues become 0 much earlier than d rounds. So, so, we<br>keep running this algorithm iteratively and at some point, we realized that the residues have all<br>become 0, then there is no point in continuing further and finding a different line, so because that<br>is not going to add anything more to our information, because all the vectors is 0.<br>So, what is this telling us that if it so happens that your data was in low dimensional space, then<br>your algorithm would stop much earlier than running for d rounds.<br>
+So, what, so the question is, what have we gained? What have we gained? The first thing we are
+gaining is the following. So, if our data lives in a low dimensional linear space or subspace, then
+we do not have to run d rounds. So, the residues become 0 much earlier than d rounds. So, so, we
+keep running this algorithm iteratively and at some point, we realized that the residues have all
+become 0, then there is no point in continuing further and finding a different line, so because that
+is not going to add anything more to our information, because all the vectors is 0.
+So, what is this telling us that if it so happens that your data was in low dimensional space, then
+your algorithm would stop much earlier than running for d rounds.
 
 So, what, so the question is, what have we gained? What have we gained? The first thing we are gaining is the following. So, if our data lives in a low dimensional linear space or subspace, then we do not have to run d rounds. So, the residues become 0 much earlier than d rounds. So, so, we keep running this algorithm iteratively and at some point, we realized that the residues have all become 0, then there is no point in continuing further and finding a different line, so because that is not going to add anything more to our information, because all the vectors is 0.
 
@@ -100,7 +141,18 @@ So, what is this telling us that if it so happens that your data was in low dime
 
 ### Timestamp: 18:29
 
-So, why is this a useful thing now? So, this is useful, because let us take an example and see why<br>this is an useful thing. So, for example, say data set that we have such that after 3 rounds, the<br>residues become 0 so, you run 3 rounds, and then all the error vectors residues become 0. So,<br>residues become 0. Now, what does that tell us?<br>So, the data set itself initially was in some D dimensional data set that is the usual data set that<br>we have { , ….. }in data points all  are in R d . Now, what does what does it mean to say the<br>residues become 0 after 3 rounds, it means that there exists we have found  ,  ,  , such that<br>for all i   equals  . Now, where are these  ,  ,  ?<br>,  are the lines that we find for our datasets.<br>So, they are all in R 100 , , so let us say this is 100 for the moment to make it to give some<br>numbers. Let us see the dataset this is on 100 dimensional. So, all these three  ,  ,  are in<br>100 dimension. That is good.<br>
+So, why is this a useful thing now? So, this is useful, because let us take an example and see why
+this is an useful thing. So, for example, say data set that we have such that after 3 rounds, the
+residues become 0 so, you run 3 rounds, and then all the error vectors residues become 0. So,
+residues become 0. Now, what does that tell us?
+So, the data set itself initially was in some D dimensional data set that is the usual data set that
+we have { , ….. }in data points all  are in R d . Now, what does what does it mean to say the
+residues become 0 after 3 rounds, it means that there exists we have found  ,  ,  , such that
+for all i   equals  . Now, where are these  ,  ,  ?
+,  are the lines that we find for our datasets.
+So, they are all in R 100 , , so let us say this is 100 for the moment to make it to give some
+numbers. Let us see the dataset this is on 100 dimensional. So, all these three  ,  ,  are in
+100 dimension. That is good.
 
 So, why is this a useful thing now? So, this is useful, because let us take an example and see why this is an useful thing. So, for example, say data set that we have such that after 3 rounds, the residues become 0 so, you run 3 rounds, and then all the error vectors residues become 0. So, residues become 0. Now, what does that tell us?
 
@@ -110,7 +162,18 @@ So, they are all in R<sup>100</sup> , , so let us say this is 100 for the moment
 
 ### Timestamp: 20:12
 
-But what are we saying? We are saying that now if we have the representatives and the<br>coefficients, so the representatives, of course, will be  ,  ,  , which will all three lines are in<br>100 dimension, but the coefficients now, to reconstruct  , we do not need 100 numbers, so we<br>need we need only three numbers per data point.<br>So, coefficient for the ith data point, so R just  ,  ,  , it is just the dot product of the<br>data point with respect to each of these directions that we have found so, which is in R 3 , just 3<br>numbers per data point. So, initially, we had 100 dimensional data points n of them.<br>So we had to do, the naive way to store these would be to say that we would have 100 into n<br>numbers that that are needed to store. Now, because of the observation that after 3 rounds, the<br>residues all become 0, then it means that for the representative, you need 3 into 100, 3 into 100<br>for  ,  ,  plus, for each data point, you only need 3 points.<br>So, which would be just 3 . So, this is, the number of this is the total number of numbers that<br>
+But what are we saying? We are saying that now if we have the representatives and the
+coefficients, so the representatives, of course, will be  ,  ,  , which will all three lines are in
+100 dimension, but the coefficients now, to reconstruct  , we do not need 100 numbers, so we
+need we need only three numbers per data point.
+So, coefficient for the ith data point, so R just  ,  ,  , it is just the dot product of the
+data point with respect to each of these directions that we have found so, which is in R 3 , just 3
+numbers per data point. So, initially, we had 100 dimensional data points n of them.
+So we had to do, the naive way to store these would be to say that we would have 100 into n
+numbers that that are needed to store. Now, because of the observation that after 3 rounds, the
+residues all become 0, then it means that for the representative, you need 3 into 100, 3 into 100
+for  ,  ,  plus, for each data point, you only need 3 points.
+So, which would be just 3 . So, this is, the number of this is the total number of numbers that
 
 But what are we saying? We are saying that now if we have the representatives and the coefficients, so the representatives, of course, will be , , , which will all three lines are in 100 dimension, but the coefficients now, to reconstruct , we do not need 100 numbers, so we need we need only three numbers per data point.
 
@@ -164,7 +227,25 @@ So, now what we can do is do the following, so we will do the following, where w
 
 So, now, this is going to be as large as possible for , this is for round 1, because you are essentially maximizing this for round 1 and now whatever you find for round 2 is going to be lesser than so if it is greater than this, we would have found that in round 1 itself.
 
-essentially maximizing this for round 1 and now whatever you find for round 2 is going to be<br>lesser than so if it is greater than this, we would have found that in round 1 itself.<br>So, this value is going to go down, so, this is going to fall down. And let us say it falls down like<br>this so, now if it falls down like this, there might be an elbow point, which is some k, after which<br>these numbers are very, very small. So, what does that essentially tell us  at a high level, that tells<br>us that the top k,  ’s that were found are actually the signal directions.<br>So, that is where the most of the information is and we will talk about what it means to say<br>information signal and so on a little bit later but for now, we understand that, if it kind of drops<br>down and becomes really small after point, these can be thought of as errors.<br>So, error directions, so, what we can do is we can kind of use a rule of thumb to say that after a<br>particular value, if the sum of these values is divided by the total sum is greater than sum<br>quantity threshold, let us say 95%  of the total sum is kind of explained by just the top k then we<br>will pick only the top k.<br>We will revisit this in a slightly different notation later that why I am not writing this time but<br>the idea should be clear, so as the rounds progresses, we are trying to find the find the quantity<br>and then cutting it out at some point where we think enough amount of information has been<br>gained. Of course, that is just a rule of thumb.<br>So, we are not like (saying) arguing that this particular k is the best k unless we make more<br>assumptions for both the data, we cannot really do that, but the rule of thumb would be to say<br>
+essentially maximizing this for round 1 and now whatever you find for round 2 is going to be
+lesser than so if it is greater than this, we would have found that in round 1 itself.
+So, this value is going to go down, so, this is going to fall down. And let us say it falls down like
+this so, now if it falls down like this, there might be an elbow point, which is some k, after which
+these numbers are very, very small. So, what does that essentially tell us  at a high level, that tells
+us that the top k,  ’s that were found are actually the signal directions.
+So, that is where the most of the information is and we will talk about what it means to say
+information signal and so on a little bit later but for now, we understand that, if it kind of drops
+down and becomes really small after point, these can be thought of as errors.
+So, error directions, so, what we can do is we can kind of use a rule of thumb to say that after a
+particular value, if the sum of these values is divided by the total sum is greater than sum
+quantity threshold, let us say 95%  of the total sum is kind of explained by just the top k then we
+will pick only the top k.
+We will revisit this in a slightly different notation later that why I am not writing this time but
+the idea should be clear, so as the rounds progresses, we are trying to find the find the quantity
+and then cutting it out at some point where we think enough amount of information has been
+gained. Of course, that is just a rule of thumb.
+So, we are not like (saying) arguing that this particular k is the best k unless we make more
+assumptions for both the data, we cannot really do that, but the rule of thumb would be to say
 
 So, this value is going to go down, so, this is going to fall down. And let us say it falls down like this so, now if it falls down like this, there might be an elbow point, which is some k, after which these numbers are very, very small. So, what does that essentially tell us  at a high level, that tells us that the top k, ’s that were found are actually the signal directions.
 

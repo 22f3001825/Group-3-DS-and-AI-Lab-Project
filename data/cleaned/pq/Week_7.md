@@ -229,17 +229,13 @@ Consider the following training dataset for a binary classification task:
 |0|1|
 |9|0|
 
-<!-- Start of picture text -->
-y<br><!-- End of picture text -->
+y
 
-<!-- Start of picture text -->
-0<br><!-- End of picture text -->
+0
 
-<!-- Start of picture text -->
-1<br><!-- End of picture text -->
+1
 
-<!-- Start of picture text -->
-0<br><!-- End of picture text -->
+0
 
 The following decision tree cleanly separates the two classes, such that the resulting leaves are pure.
 
@@ -353,8 +349,13 @@ The structure of the data seems clear. There are four blobs of red and green poi
 > Green
 > No
 
-<!-- Start of picture text -->
-x < 2<br>Yes No<br>Red x < 4<br>Yes No<br>Green x < 6<br>Yes No<br>Red Green<br><!-- End of picture text -->
+x < 2
+Yes No
+Red x < 4
+Yes No
+Green x < 6
+Yes No
+Red Green
 
 **<u>Question-11</u>**
 
