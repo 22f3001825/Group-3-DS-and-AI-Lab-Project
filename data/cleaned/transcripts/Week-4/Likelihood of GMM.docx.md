@@ -1,5 +1,7 @@
 # **Machine Learning Techniques Professor Arun RajKumar Department of Computer Science and Engineering Indian Institute of Technology Madras Likelihood of GMM**
 
+### Timestamp: 00:14
+
 We are going to try maximum likelihood for the Gaussian mixture model which is called as GMMs, sometimes Max Gaussian Mixture model. Now, the likelihood function L is a function of a lot of things. So, it is a function of μ1 to μk, which we do not know, σ1<sup>2</sup> to σk<sup>2</sup> , which we do not know and π1 to πk, which we do not know.
 
 And of course the data x1 to xn, which we have observed. It is a function of all these things. Of course, we are going to treat it as a function of the parameters, the data will act as a constant in this function and then we will maximize only with respect to the parameters like how we have always been doing. Nevertheless, let us put this term.
@@ -28,6 +30,8 @@ So, now that is a product these 2 things have to happen together, that the point
 
 density or Gaussian density, because that is our assumption. That is the Gaussian mixture model which we know how it looks like.
 
+### Timestamp: 05:11
+
 So, just to give some intuition here, so let us say the true density looked like this. This is a the true density, which means that is some mean. Let me put some numbers, maybe - 20. Maybe the mean of the second Gaussian was 0. Maybe the mean of the third Gaussian was 15. Let us say I saw x1 as - 15 which is a point here. Now, this does not mean that immediately that x1 necessarily came from cluster 1. Not necessary.
 
 We follow 2 steps. Well, what could have happened is, of course, it cluster 1 could have been chosen and then this point came from cluster 1 according to this density value. Now, it could have very well been the case that cluster 2 was chosen when I rolled the dice.
@@ -39,6 +43,8 @@ So, it could have come from any of these, so we cannot immediately dismiss the o
 So, in which case, it is not just how much density that the Gaussian has for this point, which depends on how close you are to the mean, that determines the density of seeing this point. But it is also the chance that such a cluster was picked.
 
 All these are unknown variables at this point. So, we have to factor in all of these. And that is exactly what this equation is here. Let us go ahead now and then see what is the density and how we can do maximum likelihood here.
+
+### Timestamp: 07:48
 
 So, now, I am going to write the likelihood function. I am going to create, I mean, there are so many parameters, I am not going to keep writing all the parameters every time, let me just call it as θ. So, this is all parameters. So, μ, σs, and our π’s, it is all put together. I am just calling it as likelihood or as the parameters.
 
@@ -55,6 +61,8 @@ if there was a Gaussian, then it had a e power something. You did a log and the 
 If it was a product inside logs, we know log will factor that in the sums, but then we have sum inside logs, which is where the problem comes from. Nevertheless, we will write this
 
 term by 2π σk.
+
+### Timestamp: 10:41
 
 So, this is a complicated log likelihood expression. It is a a function of now we are going to treat this as a function of μ’s, μk’s, σk’s , πk’s and then try to maximize this. Well, what we can try is go over usual route and say that well, I will try to take the derivative of this with respect to each of the parameters of interest and then try to set it to 9 and see what happens. There are multiple problems with that.
 

@@ -81,7 +81,7 @@ The goal of this milestone is to ensure the knowledge base is:
 | PYQ (Previous Year Questions) | 8 | Markdown | OCR extracted (EasyOCR) to preserve mathematical text |
 | AQ/PQ (Practice Questions) | 12 | Markdown | OCR extracted |
 | External Notes (MLT Weekly) | 12 | Markdown | Converted from PDF |
-| FAQ | 12 | Markdown | Scraped from Discourse HTML; unique topics isolated |
+| FAQ | 12 | Markdown | Scraped from https://mlt.pulki.in/; unique topics isolated |
 
 **Global Dataset Statistics (Post-Cleaning):**
 - **Total Documents**: 94 files
@@ -326,6 +326,6 @@ end
 
 ## 9. Summary of Milestone 2
 
-We have successfully identified, verified, and extracted CS2007's official weekly resources (Transcripts, Notes, PYQ, AQ/PQ, External Notes, FAQ) into a unified dataset comprising **94 pristine Markdown documents** (1.25 MB total). The preprocessing pipeline aggressively scrubbed boilerplate while preserving 211 critical timestamp markers as Markdown headers. 
+We have successfully identified, verified, and extracted CS2007's official weekly resources (Transcripts, Notes, PYQ, AQ/PQ, External Notes, FAQ) into a unified dataset comprising **94 pristine Markdown documents** (1.25 MB total). The FAQ and external notes were meticulously scraped from the student resource site (**https://mlt.pulki.in/**). The preprocessing pipeline aggressively scrubbed boilerplate while preserving 211 critical timestamp markers as Markdown headers. 
 
 Through LangChain orchestration, the dataset was robustly sliced into **4,712 JSON-L chunks** (384 token limit). The chunks were partitioned into Train, Validation, and Test splits strictly by chronological week boundaries to ensure a leakage-free foundation for the RAG-based learning assistant. The pipeline is fully reproducible and feeds directly into the Qdrant hybrid retrieval system for Milestone 3.

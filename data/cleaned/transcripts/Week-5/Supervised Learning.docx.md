@@ -1,5 +1,7 @@
 # **Machine learning techniques Professor Arun Rajkumar Department of Computer Science and Engineering Indian Institute of Technology, Madras Supervised Learning**
 
+### Timestamp: 00:14
+
 Hello, everyone, welcome back. Today we are going to look at part 2 of this course. In part 1, we looked at unsupervised learning. And then we looked at a lot of different types of unsupervised learning, including representation learning, clustering, and estimation for unsupervised learning.
 
 Now, we are moving into a totally different paradigm of machine learning, perhaps a popular paradigm more popular paradigm of machine learning, called supervised learning. So, and from this lecture onwards, our focus is going to be primarily on supervised learning, where we learn a lot of algorithms. And we will understand why certain algorithms are better than others, and so on.
@@ -23,6 +25,8 @@ As I said, you do not necessarily have to have just 2 classes or 2 labels, you m
 So, the the image itself is your feature. And then the label is the digit that has been written in this image. Of course, people write the same digit different ways. And still, we would want to recognize this as a learning system. And so this is a multi class classification problem.
 
 In general, you do not necessarily have to have only 0 to 9, this could be 0 to some k, but then a finite set of classes. Example is a digit classification problem where you have labels 0 to 9.
+
+### Timestamp: 05:23
 
 Another popular type of supervised learning problem is when the labels can belong to all real numbers, it can be any number between -∞ to +∞. Now, when this happens, we call this problem as a regression problem. And this is perhaps one of the earliest supervised learning problem, which has a lot of statistical roots to it.
 

@@ -1,10 +1,14 @@
 # **Machine learning techniques Professor Arun Rajkumar Department of Computer Science and Engineering Indian Institute of Technology, Madras Optimizing the erroe function**
 
+### Timestamp: 00:13
+
 So, how do we solve this problem? So, that's the next question. So, we have put down the problem, how do we solve it. So, it is useful to think of this the same objective in terms of matrices, it will make our life a little bit easier to work with matrices as we will see. So, think of let us, let me call a matrix x as just the matrix where the data points are stacked in columns. In other words, x<sup>T</sup> is a matrix where the data points are stacked in rows. So, x1, x2 dot dot dot xn, we have n different data points. Now, we also have the label vector y.
 
 So, this is n x d matrix, we have a label vector y, which gives the labels for each of our data points we can call this vector y. So, this n x 1 vector, now, our parameter is a vector w1, w2 dot dot dot wt, which is a vector w, which is an d x 1. So, basically, what we are saying is that you can rewrite this objective as follows, we can rewrite this as x<sup>T</sup> w - y whose this is a vector whose norm squared we are trying to minimize.
 
 So, why because x<sup>T</sup> w would give me x1<sup>T</sup> w, x2<sup>T</sup> w and so on. So, if you just think of this, as I mean, it is easier to think of this as just a vector w and x<sup>T</sup> w is x1<sup>T</sup> w, x2<sup>T</sup> w vector containing all data points, dot product w, and then we are comparing it with y, corresponding yi and then squaring it, which can be thought of as just the L two norm squared of this vector, which is which is an n dimensional vector.
+
+### Timestamp: 02:21
 
 Which means basically, what we are seeing is that we want to minimize over w in Rd this quantity, now, the norm squared can also be written as a vector transpose itself. So, here the vector of interest is (x<sup>T</sup> w - y)<sup>T</sup> ( x<sup>T</sup> w - y).
 
@@ -17,6 +21,8 @@ Simplest way is one can start thinking about is take the derivative with respect
 So, this is the symbol for gradient which is just a vector of partial derivatives with respect to each component of w. You can think of it as I am fixing one component wi, and then, I mean, I am considering one component wi and then treating all the other components as constants and trying to take the derivative rate and then collecting all those derivatives in a vector.
 
 If you do that, and this is exercise that you should try, we get some we would get something like 2(xx<sup>T</sup> )w - 2(xy). This would be our gradient. Now we want to set the gradient to 0 if you do that, and then what you would get is you will get the following equation (xx<sup>T</sup> )w = xy . So, w* the solution satisfies the solution satisfies this equation, so the solution satisfies this equation.
+
+### Timestamp: 05:23
 
 Now, this means now our w* can be written as well, because it is a matrix times w* is x times y, you can try to write w* in close form. Now, it depends on whether this matrix here is invertible or not. If it is invertible, then you can just pre multiply by the inverse and you can that cancels out one side, if it is not invertible, what is typically used as what is called a pseudo inverse, which is which is denoted like a long cross. You can think of it as inverse for now, we can assume that this is an invertible matrix, nothing conceptually changes so much. We will talk about the pseudo inverse a little later. So, this is the pseudo inverse.
 

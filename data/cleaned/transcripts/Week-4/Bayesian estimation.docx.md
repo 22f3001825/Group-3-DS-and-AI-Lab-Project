@@ -4,6 +4,8 @@ So, this is a good estimator given data, it gives me good estimators. Is there s
 
 And to do this, let us again, go back and revisit our simple example of coin toss. So, our model is still the coin toss model. You observe data, which is 0 and 1. And you are going to make an assumption that it comes from a box with a coin with some unknown bias P, of generating heads and you press it n times, you get the coin. And you get n data points, n observations all that is the same.
 
+### Timestamp: 01:22
+
 But now, the extra thing, piece of information that you have is that somebody comes and says. So, let us put me this topic, consider the coin example. By the way, the coin tosses are called as Bernoulli trials. So, it like how Gaussian. So, the corresponding random variable in the coin are called as Bernoulli trials.
 
 So, you have a coins x1 to xn. So, this is basically all my xi’s or Bernoulli that is what means with some parameter P, this is the probability of xi = 1 for all i and it is the same setup. We have this in addition, let us say somebody came and told you the following statement, “I believe the bias p is somewhere is close to 1.” Let us say someone said this.
@@ -18,7 +20,11 @@ If there is no data, there is no other information that I have. Maximum likeliho
 
 So, this is what we are going to see next. And this will take us to what is known as a Bayesian modelling approach. Again, for people who have seen this, this might be a recap, otherwise, this can be thought of as a primer in Bayesian modelling. So, the goal is to incorporate these hunches that we have that we might have. So, how can we do that? So, that is the question.
 
+### Timestamp: 05:44
+
 So, goal incorporate hunch or belief about parameters of interest into the estimation procedure and how do we do this? The way we are going to think of this is as follows.
+
+### Timestamp: 06:26
 
 So, the approach that we will take to do this is as follows. So, we are going to think of the parameter that we are trying to estimate as a random variable. And I will tell you what that means, intuitively, but that is the, that is the approach that we are going to take. So, basically, we have this hunch. So, earlier we were thinking of the parameter as some μ or some p. So, this is what we were trying to estimate.
 
@@ -34,6 +40,8 @@ Now, what does the distribution tell me? Well, without seeing the data, it kind 
 
 So, it is around 12.5. It could be other things also, but then I believe it is more around 12.5 than anything else, if that is what I believe, then this is a way I could have encoded that hunch, before I see the data.
 
+### Timestamp: 10:09
+
 So, now, what happens is, so, what are we saying? We are saying that we have a hunch, which is what I am going to call as codified using a probability distribution over θ. Let us say θ is the parameter that I am trying to estimate. Let us not fix μ or p specific values or specific parameters. But in general, it is some parameter θ, which means that there is some p of θ. What is p of θ give me? Well, if θ is a continuous parameter, like your p or μ, then it means that it is a continuous probability distribution, where the support the values that θ can take or any values that you could have potentially guessed.
 
 For p, this could be any value between 0 and 1 and the shape of this p, the PDF determines, what is our belief about this the parameter of interest even before we see the data. So, the hunch that we have can be codified using a probability distribution over θ, which can be said as P(θ), which simply tells us that, if θ is takes value in a continuous range. For example, like the p that we were trying to estimate in case of Bernoulli random variables, then this P(θ) would actually be a PDF. So, it tells us that what do we believe about this underlying p in terms of probabilities.
@@ -48,6 +56,8 @@ Also, if, our data adheres to our belief system, then that strengthens our belie
 
 So, this idea of going from what is called as prior distribution over θ to what is called as a posterior distribution of θ, but then after observing data, is what is called as the Bayesian way of doing things. So, you have a hunch, you see data, you update your hunch. So, this is the Bayesian modeling.
 
+### Timestamp: 14:15
+
 But then what is so Bayesian about it. So, where is Bayes coming into the picture? Well, that is that precisely happens to describe how you go from p(θ) to p(θ |data). So, where is the base coming in? So, if you remember the Bayes law, or the Bayes theorem, now, we know that P (A | B) is from high school, we know that this is P(B| A) . P (A) / P(B). So, this is our standard Bayes Rule, which says that A conditioned on B the probability of a condition on B can be gotten as with using P(A), P (B) and P (B | A). So, if we know these three things, I can get P ( A | B).
 
 Now how does this help in our case? We are going to think of a as parameters, so, which is simply our θ and B as our data, so, which is x1 to xn. So, which means simply by using the Bayes law, we can do the following, we can see that p (θ | {x1,.., xn}), which is our updated
@@ -60,6 +70,8 @@ So, now, at least the numerator is something that should be familiar to you. Thi
 
 Now, the denominator is something that is independent of θ. So, this does not depend on θ. So, this is the technical term for this is called as evidence, this is the chance that you actually observe the data itself, but then notice that it does not depend on θ. So, which means that you can think of your posterior as proportional to your likelihood times your prior. So, you are re-weighing your previous belief, using the likelihood and then that will give you the posterior. So, that is what Bayesian modelling essentially is telling.
 
+### Timestamp: 17:20
+
 So, for example, I might have a hunch, like this. Example. Maybe I had a hunch somebody came and told me that be that I am trying to get data from is close to 0.9, then I could have, incorporated that hunch by using a PDF. Let me draw this carefully. So, PDF something like this. So, which peaks at 0.9, let us say. Now I see my data. And let us say my I say 10 data points, which are many of them are 0, let us say. So, eight of them are 0 and two of them are 1s. Again, all of these representative images, it is not exact numbers that I am plotting, but then just to give a feel.
 
 So, now the data is kind of the likelihood is kind of telling me suggesting me that, the p value should actually be 2 by 0.2 whereas my belief is saying it is 0.9. So, now, if I somehow combine these, what I might get is something like this. So, I might get something like this as the updated hunch. So, this is my hunch. This is my updated hunch. It might peak somewhere, perhaps at 0.27, I do not know. These are just numbers that I am making up. But you get the idea.
@@ -67,6 +79,8 @@ So, now the data is kind of the likelihood is kind of telling me suggesting me t
 So, you start with some distribution over your possible parameter values. You see the data and then you get a new distribution, which is perhaps a different distribution. Now, if I had a different set of data points, now, this is a case where the, the data does not know correspond to my hunch.
 
 On the other hand, if I had the flipped version of this data, let us say something like this, where you had nine 1s and one 0. Now, in this particular case, the same hunch might translate to an even sharper rise at 0.9. So, I am believing in 0.9, even further, strongly, so, because my data also in some sense corresponds to my hunch. So, this is the idea of Bayesian modelling.
+
+### Timestamp: 19:41
 
 Now, let us take one simple example, to talk about Bayesian modelling. And then we will move on to other types of setups. So, again, we will talk about how to encode a hunch when data is setup is data as Bernoulli, which is the coin toss example, Bernoulli of p. So, this is the basically when the assumption that we are making about the data is that it is Bernoulli of p. So, there is a box with a coin, all the things that we have discussed. So, the likelihood is Bernoulli.
 
@@ -88,6 +102,8 @@ Now, for a different choice, for example, if α = 0.5 and β = 0.5, then this pi
 
 So, now that can be encoded using the choices of α = 0.5 and β = 0.5. So, this can capture different types of intuition. Let us, say there is some intuition that we have, which can be put down using some choice of α and β.
 
+### Timestamp: 24:11
+
 So, now what do we do with this prior? Well, of course, we need to write down the posterior now. So, we need to write down the well, we need to write on p ( θ | data). And we said that well, this is proportional to p ( data | θ) p (θ). And all this prior is telling us is like is the PDF for p (θ).
 
 Now, how does the p ( θ | data) look like if your data comes from a Bernoulli likelihood, that is what we want to find out. In other words, we want to find out the PDF of p given data at
@@ -107,6 +123,8 @@ Now our posterior also, this distribution also has the same functional form. So,
 Now, the parameters are no longer α and beta. For the prior it was α and beta. But now the posteriors parameter are not α and beta. They depend on the priors parameter α and beta. But then they also depend on the data. It is a beta distribution but then the parameters have not changed. It is as if you are only updating the parameter of the distribution. And you do not have to exactly calculate the density for at all values of p. You do not have to completely calculate the entire function, so, entire density. If you know the parameter, then you get the function for free.
 
 So, interestingly, this has not happened by for all choices of priors. So, if I did not choose a beta distribution, if I had chosen some other complicated distribution between 0 and 1 that encoded my prior knowledge, it is not necessary that if I multiply it with the Bernoulli likelihood, I will get a beta posterior. That is not at all necessary. So, you will still get a posterior. It might be useful and all that, but it is need not be convenient in the sense that your prior and the posterior of the same functional form.
+
+### Timestamp: 28:35
 
 In this particular case, it happens. So, we start with the beta prior, which means we have some parameters, α and β . And now, after seeing data, the updated hunch is a beta posterior, it is also beta and the data is Bernoulli, so, Bernoulli. Now, what are the parameters of this posterior? Well we pause and think about it, I will tell you now. So, this is just α + ∑xi , β + ∑(1 - xi). Now, one way to think about ∑xi is just the number of heads and nh number of heads in my data and ∑(1 - xi) is the number of tails.
 

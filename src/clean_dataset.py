@@ -22,14 +22,15 @@ def clean_markdown_content(text: str) -> tuple[str, dict]:
         text = text.replace('we?Tll', "we'll")
         
     # 2. Transcript Cleaning (Timestamps)
-    timestamp_pattern = re.compile(r'\(Refer Slide Time: \d{2}:\d{2}\)')
+    # Convert "(Refer Slide Time: 01:01)" to "\n### Timestamp: 01:01\n"
+    timestamp_pattern = re.compile(r'\(Refer Slide Time: (\d{2}:\d{2})\)')
     stats['timestamps_removed'] = len(timestamp_pattern.findall(text))
-    text = timestamp_pattern.sub('', text)
+    text = timestamp_pattern.sub(r'\n\n### Timestamp: \1\n\n', text)
     
-    # Remove timestamps like [00:03:12] if they survived previous steps
-    bracket_timestamp_pattern = re.compile(r'\[\d{2}:\d{2}:\d{2}\]')
+    # Convert timestamps like [00:03:12] to headers
+    bracket_timestamp_pattern = re.compile(r'\[(\d{2}:\d{2}:\d{2})\]')
     stats['timestamps_removed'] += len(bracket_timestamp_pattern.findall(text))
-    text = bracket_timestamp_pattern.sub('', text)
+    text = bracket_timestamp_pattern.sub(r'\n\n### Timestamp: \1\n\n', text)
 
     # 3. Boilerplate removal
     # Remove page numbers like "Page 1 of 12"

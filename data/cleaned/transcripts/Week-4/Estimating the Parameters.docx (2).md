@@ -1,5 +1,7 @@
 # **Machine Learning Techniques Professor Arun Rajkumar Department of Computer Science and Engineering Indian Institute of Technology Madras Estimating the parameters**
 
+### Timestamp: 00:13
+
 So, let’s let’s try that. So, let’s go back to our maximum likelihood function that we had written earlier. Let me recall that, recall this was I noted down this a star earlier. So, the 𝑛 𝐾 likelihood function looked like this, the log likelihood function looks like this, ∑ log( ∑ πk 𝑖=1 𝑘=1
 
 e -(xi - μk )2 / 2σ𝑘2. 1 / 2π σk. This was a complicated looking log likelihood function.<br>
@@ -10,9 +12,13 @@ So, we need some combination of the sums, so it is just a bunch of numbers sitti
 
 So, what I am going to do is, I am going to introduce this combinations artificially and make it a problem with more parameters. I mean, it looks counterintuitive at first glance, but then we will see the power of this method.
 
+### Timestamp: 01:57
+
 Now, what we are going to do is we are going to introduce for every data point i what we are going to do is we are going to introduce some parameters. And let us call them λ<sup>i</sup> 1<sup>, to λi</sup> k<sup>. So,</sup> every data point gets K μ parameters. And what are these well, such that, what should happen is for every data point i that the λs that we are introducing should be, should have this notion
 
 𝐾 of probability. So, they have to sum to 1. So, ∑ λ<sup>i</sup> k<sup>should be 1, that is 0</sup> ≤ λ<sup>i</sup> k ≤ 1, for all k, 𝑘=1 all i and k, actually.
+
+### Timestamp: 02:53
 
 So, what is this? What does it mean to say introduce suddenly new parameters? Let us, see
 
@@ -21,6 +27,8 @@ So, what is this? What does it mean to say introduce suddenly new parameters? Le
 Now I am just multiplying it, which means that the sum that I am thinking of cannot change, so then I am looking at a different function. So, to do that, what I am going to do is let me write down what the sum was earlier. So, the sum earlier was πk. e<sup>-(xi-μk</sup> )2 / 2σ𝑘2. 1 / 2π σk, which is exactly the density of the Gaussian, but because I have multiplied it by λ<sup>i</sup> k<sup>,Iwill</sup> divided it by λ<sup>i</sup> k<sup>, now it is just multiplication and division.</sup>
 
 So, it is still exactly the same log likelihood but then I am just artificially introducing these parameters I multiplying and dividing by parameter remember, for every i and every k there is a λ<sup>i</sup> k<sup>, what does that mean? That means that for every data point, now I am saying there is a</sup> distribution over all K’s, all clusters will try to interpret these λ<sup>i</sup> k<sup>s later on for now in to think</sup> of them has some artificial parameters that I am introducing into the picture.
+
+### Timestamp: 04:32
 
 The moment I do this, now, I observed that, well this is a log of a sum of, a weighted combination of a bunch of points. So, the logarithm is evaluated at the sum of λ<sup>i</sup> k<sup>timesa</sup> bunch of things. So, which means I can write use my power of Jensen's, so now by Jensen's I can write this log L(θ), which is exactly this quantity, as greater than a different function, it is not the same function.
 
@@ -31,6 +39,8 @@ Now I am creating a new function, which is a modified log likelihood function, w
 𝐾 So, this becomes ∑ λ<sup>i</sup> k<sup>,letmeretainthecolorforλi</sup> k<sup>.So,thatweseethatthoseare</sup> 𝑘=1
 
 parameters we have introduced into the method. Now, you have log πk e<sup>-(xi - μk</sup> )2 / 2σ𝑘2. 1 / 2π σk /λ<sup>i</sup> k<sup>.</sup>
+
+### Timestamp: 06:33
 
 The equations might look complicated, but then what is exactly happening is we had a log likelihood function, which was hard to maximize, but then we observed that there is a log of sum sitting inside it. Now we are introducing these extra λ parameters and then writing it as a sum of logs. And that is just by Jensen's by noting that log is a concave function. That is all has happened so far.
 
@@ -44,9 +54,13 @@ But now if I evaluated the modified log likelihood, now it is going to give me a
 
 So, Jensen's holds no matter what your λ is, as long as λs sum to 1 λs are between 0 and 1. So, for any choice of λ, when I say λ, when I say again, just to be clear, when I say θ, it means that I mean, μ1 to μk , σ1<sup>2</sup> to σk<sup>2</sup> , π1 to πk. When I say λ, I mean λ1 to λ1k, λ2k, to λ2k,...,λn1 to λnk. And that is what I mean by saying we are introducing this extra parameter λ.
 
+### Timestamp: 09:26
+
 So, no matter so you give me a θ, which is a bunch of μ σ s and π 's. Now, I do not I mean, I do not want to evaluate the log likelihood. Instead, let me say I want to evaluate the modified log likelihood. Now I can put any value of λ, I will get a number and then give it to you. And that number will be a lower bound for the actual log likelihood at the θ that you gave me.
 
 So, I will use your θ, I will use my own λs. And then I will compute the modified log likelihood it will be a lower bound. That is simply by Jensen's but the question is what are we gaining. So, this is a lower bound. So, all that is good, but what are we really gaining? By introducing this, we need to understand that.
+
+### Timestamp: 10:10
 
 And here is the key insight why this is such a beautiful method, so the key insight is the following. And that is why it works, we will see later. Now, I originally wanted to maximize my likelihood function with respect to θ. Now I have a new method new function, which is a modified log likelihood, which is a function of 2 different parameters, one is θ, and one is the artificial introduced parameter λ.
 
@@ -58,11 +72,15 @@ Now, we are saying we are introducing another set of parameters. And now we are 
 
 So, how, how is this useful to come up with an algorithm we will see in a bit, but then let us first convince ourselves that this key insight is true. And what does it mean to say it is easy to maximize with respect to θ and λ by fixing the other thing? And then we will actually put down an algorithm.
 
+### Timestamp: 12:13
+
 So, now what does it mean to say? We will fix λ and maximize over θ? Let us first do that. So, fix λ and maximize over θ. So, what is the actual function? Well, this is maximize over θ,
 
 𝑛 𝐾 2 when I say θ, again, the set of parameters that we are looking at ∑ ∑ [λ<sup>i</sup> k<sup>log (πke-(xi - μk</sup> ) / 𝑖=1 𝑘=1
 
 > 2σ𝑘2. 1 / 2π σk) /λ<sup>i</sup> k<sup>]. Now, we are going to when you say we fix λ, we are going to treat λs as</sup> constants.
+
+### Timestamp: 13:08
 
 𝑛 𝐾<br>So, what does that help? How does that help us? Well, this guy is same as max θ ∑ ∑ λ i k log<br>𝑖=1 𝑘=1<br>
 
@@ -84,6 +102,8 @@ So, if you fix λ and try to maximize the modified likelihood function with resp
 
 similarly, σ^2 kmml , will just be ∑𝑛 λ<sup>i</sup> k<sup>.(xi -</sup> µ^ kmml )2 / ∑𝑛 λ<sup>i</sup> k<sup>.</sup> 𝑖=1 𝑖=1
 
+### Timestamp: 16:02
+
 We will talk about the π 's in a minute. But let us let us look at this and understand what this means. This means that there is some λs which I am fixing. So, I can arbitrarily fixed this λs. And then if for instance, if I had fixed λ<sup>i</sup> k<sup>.Thewaytothinkofλi</sup> k<sup>isasfollows. So, you can</sup> treat λ<sup>i</sup> k<sup>astheprobabilitythatthe,ithpointgrowsintothekthcluster,whatdoyouthinkis</sup> the probability because we are fixing it arbitrarily at this point.
 
 So, let us say I put each point into one cluster. So, I want to assume that every point comes from the same single cluster. So, which means λ<sup>i</sup> k<sup>willbe1foraparticularclusterindicator</sup> value k, and then it will be 0 every where else. If that happens, then what is this essentially ^ mml telling us is µ k , is simply the mean of the data points assigned to a particular cluster. And ^ 2 mml i the σ k is just the sample variance of data points assigned to a particular cluster if our λ k<sup>’s</sup> are 0 for all case, except 1, for which it is value is 1, but then we are not constrained to put λ<sup>i</sup> k<sup>’s like that.</sup>
@@ -100,6 +120,8 @@ Now, if you again, go back to your likelihood and see which are the terms which 
 
 term λ<sup>i</sup> k<sup>log  πk such that π 's are not free variables such that</sup> ∑ πk = 1, such that πk ≥0. 𝑘
 
+### Timestamp: 19:13
+
 Now, you see that you observe that well, there is a λ<sup>i</sup> k<sup>for each i. For every i, we are deciding</sup> on a distribution over the data points, sorry distribution over the clusters? λ<sup>i</sup> k<sup>tells me what is</sup> the chance that the ith point comes from the kth cluster? Intuitively, that is what it is meant to mean.
 
 So, now, here, this is a sum over i equals 1 to n and something which sum over K. Now, we are trying to maximize with respect to πk’s. Now what we can do is we can solve I mean of
@@ -110,6 +132,8 @@ If you have seen some constrained optimization techniques, you may be familiar w
 
 ^ 𝑛 the following quantity π kmml is going to be simply ∑ λ<sup>i</sup> k<sup>/ n.</sup> 𝑖=1
 
+### Timestamp: 20:34
+
 Now, what does this intuitively mean? Well, this intuitively means that well, remember λ<sup>i</sup> k kind of tells us what is the chance that we think ith point goes to the kth cluster? And now, we are asking what is the chance that a, some point will come from the kth cluster? Well, it is the, you are basically how to average the chance of each point going to the kth cluster.
 
 Now, if each point was hard clustered that it will only go to one cluster, which means λ<sup>i</sup> k<sup>’s</sup> ^ where we are taking values either 1 or 0. Then this simply means that π, our best estimate is just the average of the number of points or the fraction of points that went into that particular cluster. So, if  λ<sup>i</sup> k<sup>’s were 0’s or 1’s, then well, for each data point, you are counting λi</sup> k<sup>.</sup>
@@ -118,17 +142,23 @@ So, then it will be 1 only for those points which have been assigned to cluster 
 
 chance that a point belongs to a cluster K, that is what this is. So, basically, putting everything together, so, what we have is that we have the following.
 
+### Timestamp: 21:53
+
 So, fixing λ we get the following if we maximize with respect to θ, we get the following. I ^ will just summarize this as µ kmml is just the weighted mean, where the weights are given by these λs that we are assuming λ<sup>i</sup> k.<sup>σ^2k</sup> mml<sup>istheweightedsampleistheweightedsample</sup> variance.
 
 𝐾 But again, the weights are given by λ<sup>i</sup> ’s that λ<sup>i</sup> k<sup>’sthatweareassuming</sup> ∑ λ<sup>i</sup> k<sup>,andπ'sare</sup> 𝑘=1
 
 again, the weighted version of what you would standard expecting, if it is just the weighting of each points chance that belongs to cluster k and then averaged. So, this is good. So, this kind of tells us that Well, I have a problem with 2 sets of parameters θ and λ. I fixed λ. I can maximize easily with respect to θ.
 
+### Timestamp: 22:52
+
 Now, the other way should also happen easily. So, you need to fix θ and maximize with respect to λ. And let us see if that is easy also. And once both of these we convince ourselves that these are easy by looking at the actual closed form solutions, then we can put down an algorithm that can be efficiently used to solve this problem.
 
 So, how would this look like? So, now, we are fixing θ and then maximizing with respect to λ, which means again, let me recall the likelihood function every time I would have to write this, but it is worth doing that because it will reinforce what we are trying to do in a better way, ik divided by λ<sup>i</sup> k<sup>thiswasthelikelihoodfunction.Now,Iwanttomaximizethiswith</sup> respect to λ treating all the other parameters µ’s, π 's, σ ’s as constant.
 
 Now, I can, I mean, do some simplification and then only pull out the terms which are non constants. And that will look like this λ<sup>i</sup> k<sup>.AndyoucantrythisthisonestepIamskipping,</sup> but then you can try this out for yourself. So, λ<sup>i</sup> k<sup>someconstantand they will write what this</sup> constant is -λ<sup>i</sup> k<sup>logλi</sup> k<sup>, where this constant that I am thinking of is ik e power minus basically</sup> the density of Gaussian. So, 2 σk<sup>2</sup> 1 / 2π σk.
+
+### Timestamp: 25:03
 
 So, now remember, we want to maximize this with respect to λs. So, and then there are k λs for each data point i. Now, if you look at this, equation itself, it is a sum over data points, and then for each data point I have a bunch of K parameters. So, then I am adding these things up. So, because the parameter, so the function is not, does not have any cross terms, so, the λ<sup>i</sup> k and λ<sup>j</sup> k<sup>do not appear together at all in the function.</sup>
 

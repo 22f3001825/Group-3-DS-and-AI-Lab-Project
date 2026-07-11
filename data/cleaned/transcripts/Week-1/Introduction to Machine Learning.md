@@ -4,6 +4,8 @@ Hello everyone and welcome to this Machine Learning Techniques course of the onl
 
 You will have a fair enough idea of what machine learning is, what kind of problems are being solved using machine learning. Nevertheless, to keep this course a little bit self-contained what I thought was I will just go through a very high level introduction  to try and give a flavor for what is going to be covered in this course, what types of problems we will try to solve and things like that; so we will get started.
 
+### Timestamp: 01:01
+
  The first question we’ll ask is  why are you trying to take this course,
 
 what is the reason? There could be several reasons, but one
@@ -11,6 +13,8 @@ what is the reason? There could be several reasons, but one
 of the very compelling reasons is that the there are several applications of what you might see in this course. So, for example, the top ten digital transformation trends as listed by Forbes magazine a couple of years back, listed a couple of things  which are highlighted here in red, including analytics, AI and machine learning, conversational AI, autonomous drones, and so on.
 
 All of these things depend on one way or the other machine learning algorithms. As you can see, machine learning is in some sense, fundamental to several applications, practical applications; and you will see many more applications as we go along in this course. So, that is the why part.
+
+### Timestamp: 01:56
 
 So, now you can  also ask how popular is machine learning? I do not have to really answer that question, if you have been following the technical digital trends and things like that. Nevertheless, what I did was, I did today, a search for the term machine learning on Google, Google Trends. And then I also added, I am also showing you the trends for the word search for the keyword deep learning and for the keyword artificial intelligence.
 
@@ -21,6 +25,8 @@ So, of course, deep learning is a subset of machine learning, which will also be
 But, then there as machine learning kind of took over, so the broader term artificial intelligence had gained lesser and lesser popularity. But, now recently with more recent advent of several
 
 new ideas in artificial intelligence, including causality and things like that, so that also has seemed to  have picked up a lot.
+
+### Timestamp: 03:39
 
 So, now let us ask the question, where can we apply machine learning algorithms? So, for this I<br>would like to imagine a prototypical human being, and the type of activities a human being does.<br>If you really want machines to learn and mimic humans, we should first understand what are the<br>things that come naturally to humans; and see how we can make a machine mimic these.<br>So, for this, one of the main or one of the major areas of areas where machine learning is applied<br>is in vision, what is called as a computer vision, which just tries to understand  how you can<br>make a computer see. So, how can you provide the ability of vision to a computer if you will,<br>which means to understand a very very complicated organ like the eye which has evolved over<br>several millions of years.<br>The human eye, where it can take in information, process it using the brain, and then take<br>decisions based on that. So, now if you want to mimic that, so there are lot of challenges. So, for<br>example,  how does the human eye kind of look at a picture and then say, hey, this is a picture of<br>
 
@@ -55,6 +61,8 @@ a recommendation saying that if you like this product, maybe you should buy this
 So, why not recommend that product to this person? So, there is this algorithm at the back which decides, which kind of predicts, which is the product that should be shown to this person, which will perhaps maximize his chance of buying it; so that the company can make money. So, these are some applications of machine learning; there are many more.
 
 And you can think of, I mean, you can try to think of different applications not listed here, by just observing your workplace or  your areas of interest. I am sure there will be some application of machine learning, whenever there is a lot of data involved.
+
+### Timestamp: 09:27
 
 So, now let us ask the question, what is machine learning? So,  we know why we are learning<br>this topic; and we kind of know, have a high level view of where, where it is appliedbut then we<br>want to understand what it is? So, the way I want to think about this is first, let me tell you what<br>is not machine learning; and then we will try to compare and contrast with what is machine<br>learning.<br>So, what is not machine learning? Machine learning is not a procedural approach to doing things.<br>For those who have a computer science background you must be very used to an algorithmic way<br>of thinking about things. You have a problem, you write an algorithm and the algorithm solves<br>the problem right.<br>So, a simple example would be tax calculation, give the input as my salary, my savings; and then<br>there is a  set of rules that you apply; and then outcomes  the tax that you need to pay. So, there<br>is no learning happening here per se. So, this is a procedure that you follow, which takes as<br>input, does some series of steps in an algorithmic fashion, and outcomes an output. So, there is<br>nothing that is being learnt here.<br>
 
@@ -91,6 +99,8 @@ We want machine learning algorithms to generalize; so, that is the technical ter
 So, you are not like specific to the data that you have seen only which would be easy to do, which you can simply memorize; whereas, if you do not want to be specific, you must be general enough. When can you be general enough? When you actually learn. So, we want our algorithms to learn. We want our algorithms to generalize, to do well on unseen data. How do you do that? That is what this course is about. If it is not magic, what is it then?
 
 It is basically math. So, it just uses a lot of mathematical ideas and will see some of the prerequisites. Of course, if you have taken a machine learning foundation course in this in online B.Sc. course you would already know what these prerequisites are, and I mean we are going to cover them. But then these are basically mathematical ideas that we need to do well in machine learning; I mean to understand and appreciate the machine learning algorithms.
+
+### Timestamp: 15:38
 
 So, with that short introduction, let me give you some concrete examples of machine learning<br>problems. And then will quickly try to understand what are the broader paradigms of machine<br>learning; so here are some problems. One of the problems, very popular problem is to predict<br>whether a given email or let us say even an SMS is a spam email or a non-spam e-mail.<br>So, basically your spam filters  in your email inbox, most email providers have a spam filter;<br>which means that automatically you do not do anything. Automatically the email is tagged as<br>spam or not and then it automatically goes to a spam filter. Of course, it makes mistakes<br>sometimes, but most of the times it gets it right.<br>So, how does this happen? The spam filter itself is an algorithm  which has had access to a lot of<br>data; a lot of which are spam, a lot of which are not spam, from which it has learned to<br>differentiate a spam email from a non-spam email. So, that is an example. Forecasting rainfall, if<br>you have data about how much did it rain in the last 15 years, let us say.<br>And you want to forecast whether it will rain tomorrow or not. Of course, you might have a lot<br>of other features associated with this. For instance, you might know the precipitation levels, the<br>
 

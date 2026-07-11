@@ -64,6 +64,8 @@ I could have done that, so which means in this case, if there are 3 points, 10, 
 
 And you need this probabilistic way of doing this, instead of deterministic way, because you can show some kind of guarantee for this algorithm.
 
+### Timestamp: 13:45
+
 So, we I will brief as upon this guarantee, what this guarantee, what can you guarantee for this algorithm is as follows. And this to argue this guarantee, you cannot put down a deterministic algorithm, because once you put down a deterministic algorithm, you can come up with an adversarial data set where this guarantee might fake.
 
 So, you want in some sense, an average guarantee and so you make the algorithm randomized. But then you do the most natural thing where you kind of introduced probability where the deterministic choice will get the highest probability, but then still other people might also get some probability so that on an average, you can make some kind of guarantees.

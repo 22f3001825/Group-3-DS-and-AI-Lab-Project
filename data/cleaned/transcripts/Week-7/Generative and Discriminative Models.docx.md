@@ -42,6 +42,8 @@ So, there are two different ways to do this modeling. One modeling is the genera
 
 model or a discriminative model, and that will give us some insights into why people have two different types of modeling.
 
+### Timestamp: 10:12
+
 So, here is the key difference between generative model and discriminative model. So, you have a distribution over X and Y. So what does that even mean? That means that there is some probability or a density associated with every feature, and label, so there is some P(x,y). That is, if I tells you hey, this is my feature vector, and this is the corresponding label, then we should be able to associate it with the density or a probability. Density, when your features are continuous; probability, when your features are discrete.
 
 Why? Because we have discussed that. So, when you have continuous random variables, then the probabilities for any feature vector will become 0, that is useless. So, we will model the density. So, using a density. So, this is a generative model. So if you are putting, if you are making assumptions on P(x,y), how should this density look like? Then it means that we are doing a generative modeling. I will talk about why it is called generative modeling in a bit, once I described what is the discriminative model.
@@ -79,6 +81,8 @@ One is k nearest neighbor, the other is decision tree. Now in both these algorit
 So, I do not care about how the x itself is generated. I am only specifying how to make a prediction of y if x is given. So, essentially we are doing discriminative modeling and nearest neighbor. The same thing in decision tree as well. I do not model how x is generated, I do not have any distributional assumption or any assumption as to how the data features are generated. But I make the assumption that, if a feature is given, then the decision tree would be, traversing through the decision tree would give me the label.
 
 So, I am able to discriminate whether a given feature is y equals 1 or y equals -1, using the decision tree that I have built from data. So, both these that we have seen so far, our K nearest neighbors and decision tree are examples of discriminative models.
+
+### Timestamp: 20:50
 
 But then one asks the question, what is the probability in this? Where is probability coming into the picture? Because if I am going to say P(y|x), I need to make some probabilistic assumption. So, what is the probability here? This this is not really a probability, but then you can think of it as a trivial probability. So, in the sense that what would the probability corresponding to this entry would be? So, it will say probability of y equals 1 given some x, so the class that the given test given point x belongs to this class 1, this probability is 1 if you know the decision tree for x says 1.
 

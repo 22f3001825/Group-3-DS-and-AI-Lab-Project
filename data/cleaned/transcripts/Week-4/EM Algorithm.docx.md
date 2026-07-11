@@ -1,5 +1,7 @@
 **Machine Learning Techniques Professor Arun Rajkumar Department of Computer Science and Engineering Indian Institute of Technology Madras EM Algorithm**
 
+### Timestamp: 00:14
+
 And here is the Algorithm. So, the first thing you do is you initialize some value for θ naught. So, 0 here is iteration basically, it is an iterative algorithm. So, initially, you basically that means that you are initializing some means μ, μ<sup>0</sup> to μ<sup>0</sup> k, some variances, σ1<sup>2</sup> to σk<sup>2</sup> , and then some π1 to  πk.
 
 Now, the algorithm thus as follows, now, until convergence and the way we are going to think of convergence here is that well our parameters θ<sup>t+1</sup> - θt, so the norm difference is not too much. So, this is some tolerance parameter that we are allowed to tolerate. If your parameter estimates do not change too much, then you stop the algorithm.
@@ -12,11 +14,15 @@ So, the key insight is that by introducing this new parameters and using the pow
 
 the other solving for other one is easy, and you will now do this, iteratively keep going back and forth.
 
+### Timestamp: 02:55
+
 Now, this algorithm has a name. So, this is a, this is an instance of a very famous algorithm called the EM algorithm, where E stands for expectation and M stands for maximization. And basically, it has two steps. And the first step this is called as the expectation step. And this step is called as the maximization step. It is called an expectation step, because you can write this modified maximum likelihood as some kind of an expectation of quantity.
 
 And that is what eventually we end up getting as λ<sup>t+1</sup> , you can express λ<sup>t+1</sup> as some kind of an expectation. And so it is called the expectation step. We would not worry about writing the generalized version in this course, but you can solve this in general also, I will make a comment later, but there are only 2 steps and because these 2 steps do this E and M steps alternatively until convergence, this algorithm is called the EM algorithm.
 
 This was developed in the 1970s and still prevalently used I think it it was known in different avatars even before this, but then it was Dempster in his, several paper, put down this algorithm and called it the EM algorithm. And it has been, popular ever since.
+
+### Timestamp: 04:33
 
 So, all this is fine. But, and we can also argue that this algorithm will converge. So, all this is fine. But how can we understand this algorithm, what is exactly going on in this algorithm. We know the equations are easy to solve and all that, but intuitively. What is it? What is it essentially trying to do? The first thing to understand is that you can somehow try to maybe I should put this here on you so, you can try to relate this to our K-means or the Lloyd’s algorithm. You can think of EM as if it is producing soft clustering. Where as Lloyd's produces hard clustering.
 
@@ -42,11 +48,15 @@ And you if you want you can convert this into a hard clustering by assigning the
 
 And now this clusters need not necessarily be voronoi regions, so because you are calculating variances and so on, EM clusters need not be voronoi regions, so well, even if you do not have voronoi regions, especially places where clusters overlap. EM does a much better job of assigning points to clusters even if you do the hard clustering, than your perhaps your Lloyd's algorithm. So, these are some ways to understand the EM algorithm itself. So, this is one point I wanted to talk about. And we will talk about one more aspect of EM and then finish this discussion.
 
+### Timestamp: 10:06
+
 And that point is, well, all this is fine. So, we have put down this algorithm which has these nice two steps. And it resembles our K-means a Lloyd's algorithm and all that is fine. But how does this, compare to the log likelihood which we want to maximize at the first place.
 
 Because we started with a parameteric probabilistic model, which had means variances and π's, we wrote down the log likelihood, and then we use Jensen's to completely avoid the log likelihood, but then use a different function, which is a modified log likelihood. And we are trying to solve for the modified log likelihood.
 
 Now, of course, we are arguing that this algorithm will converge. We would not prove that, but then we can argue that this algorithm will converge and all that. But how does this relate to the original problem, which we wanted to solve, which was to maximize the log likelihood.
+
+### Timestamp: 11:04
 
 Now, if you think about that, the following picture, remember this? If I, loosely, I mean, try to explain this picture. So, let us say this is our parameter space, so, θ, which is the parameters over which we want to maximize the log likelihood. Now, if I drew, if it simply tried to plot the log likelihood go, it might look something like that. While for simple models, like Gaussian models, or Bernoulli, models, this likelihood would be a nice concave function, and then maximizing it would be easier.
 
@@ -75,6 +85,8 @@ So, in practice, it now kind of clearly says that how well you initialize this a
 And typically, what people do to initialize EM is that, while you are given a bunch of data points, you have a K, which is the number of mixtures, run your Lloyd's, get a hard clustering using Lloyd's, and use that hard clustering the means and the variances and the π's that you can derive from this hard clustering as your initialization for EM.
 
 How do you get that well, once you have the hard clustering, you can look at each cluster compute the sample mean sample variance that will give you the π's μ’s and the σ<sup>2</sup> for each of the cluster and then to get the π's you just look at the fraction of data points that are there in each of these clusters. So, that would be your θ<sup>0</sup> .
+
+### Timestamp: 17:18
 
 So, this θ naught usually comes from Lloyd's. So, to summarize everything, what we are saying is, we have put down, a latent variable model, where we wanted to understand slightly complicated data, which has some cluster structure where the latent variable is a cluster indicator, and maximizing the log likelihood was a hard problem.
 

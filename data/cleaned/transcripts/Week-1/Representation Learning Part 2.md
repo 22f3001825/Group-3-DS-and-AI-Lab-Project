@@ -66,6 +66,8 @@ So, now I can expand this. I am sure. I mean, anybody who has done an MLF for li
 
 . And the last term is plus , the scalars multiply themselves that is . Now the vectors will dot themselves . Well, that is , but we know that the ’s that we care about have length 1, so that is just multiplied by one. So, if you do, again, some simplification, these will cancel out. And we are just going to have .
 
+### Timestamp: 11:03
+
 Now if you think about this, we are after that that minimizes this value. So, but if you look at the first term that does not have a , so, that is a constant that you are adding to each of these terms. So,  it will not affect your , even if you remove that constant. So, equivalently,
 
 I can minimize a different function without that constant, which would simply be .
@@ -89,6 +91,8 @@ So, remember that I am just changing the brackets, the order in which the multip
 . Now, let me note this, that this, what object is this?
 
 So, if you have not, if you are not already seeing it, pause and think about what kind of an object is it? Is it a vector? Is it a scalar? Is the matrix what is it? I will tell you what it is. So, this is a x matrix. It is an average of a bunch of x matrices. 1 x matrix per data point. You take all the data points, find their average matrix. So, that is what this is. So, Let us give this matrix and name this matrix. Let us call this C.
+
+### Timestamp: 14:50
 
 So, essentially, then what we are saying is that equivalently. The problem that we can solve, to achieve our objective is the following, So, we can maximize over such that is 1, , where C is . What we are saying is that finding that line that passes through the origin which best represents the data, in terms minimum reconstruction error is same as finding that that maximizes this quantity with respect to a matrix that you can generate from your data.
 

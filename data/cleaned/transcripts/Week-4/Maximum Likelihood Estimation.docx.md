@@ -16,6 +16,8 @@ But why should this happen? In general, I mean, what is the method here is a que
 
 So, and this method was is quite old. So, it has been there since the fifties. And this was proposed by Fisher and it is called Fisher’s principle of maximum likelihood. This might be familiar for some of you this think of this as a review, for estimation, if you have seen this before, otherwise, this is still precursor to what is going to come later. This is Fisher’s principle of maximum likelihood.
 
+### Timestamp: 04:04
+
 So, what does that principle say? Well, it says that you write down what is known as a likelihood function L, which is a function of two things. One, the parameter that you are trying to estimate and it also depends on the data, x1, x2,..,xn. So, I see the data and I want think of this as a function of the parameter because for every value of P, I am going to ask what is the chance that I see this data? Now, how do I write this? I will write this as the probability of seeing x1, x2,..., xn. When I write this, it means that specific value that each of these x1 to xn takes.
 
 So in the case, it would be x1 = 1, x2 = 0, x3 = 1 and x4 = 1 and so on. So if the true value is P, so if the underlying parameter is P, this is the underlying parameter. Now, how can so this is a joint distribution. So, this is the probability that all these things happen together, that
@@ -31,6 +33,8 @@ So, basically, what does this tell me, if xi is 1, so, this term is what does it
 On the other hand, if xi = 0, this implies this is P<sup>0</sup> .(1 - P)<sup>(1-0)</sup> , which is 1 - P, which is what we want. So, which means in for example, in this particular case, if x1 = 1, x2 = 0, x3 = 1 and x4 = 1, this would be p for this x1 into 1- p into this p into this p, which is p<sup>3</sup> into 1 - p. So, essentially, the plot that I have done here is that of the curve p<sup>3</sup> into 1 - p. So, that is precisely what we have here, in general.
 
 Okay so, now what is the estimator, so this is the likelihood function. And now we want to define our estimator, which is our guess for p and that is where you put a hat on top of p to say to emphasize that it is a guess. And the guess comes from the maximum likelihood principle. And so this is called as an ML, so I am also writing this as ML is that argument of p that maximizes my likelihood function, which is, in this case, just  丌<sup>n</sup> i = 1<sup>(p)xi (1 - p)(1 - xn).</sup>
+
+### Timestamp: 08:00
 
 So, this is what I, this is the function that I want to maximize to get my guess for P. Well, this is a function which has a lot of products. Typically, it is easy to deal with sums then product. So, what you could do is you can take the logarithm of this function and in fact, you can look at arg max p, log( 丌<sup>n</sup> i = 1<sup>(p)xi (1 - p)(1 - xn) )</sup>
 
@@ -50,11 +54,15 @@ This looks like the average but then it also has a simple interpretation because
 
 So basically, here is a method which is called the principle of maximum likelihood, which seems to give us reasonable guesses. So, my guess for the true p, by looking at the data is that value of p which maximizes the chance that I observed this data. And that has led us to guessing the fraction of ones as the, which was also our intuitive guess. But remember, we have implicitly used two important facts, one is independence of the trials. The other is identically distributed nature of the trials. So, now this is one example.
 
+### Timestamp: 11:53
+
 Now, one thing to keep in mind, when we are doing this is the following. So, let us say we now have data for different form. We still have x1 to xn, but x1, xn are no longer zeros or ones, let us say xi belongs to real numbers for all i. Let us say I collect the height of a bunch of 100 people. And then I want to reason about that in a probabilistic sense.
 
 Now, the height cannot necessarily be 0 or 1. So, it can be any value. And so I cannot use the previous model. If I use the previous model the box with a coins inside that, that is not going to be useful for explaining this data, because that box can explain only data which has zeros and ones. So, I need a different box to explain this data, which means I need a different probabilistic model that I need to assume to explain this data.
 
 And the natural model, in this case, would be something like assuming the box is still have a box, you still have a box with a button. And then our data comes from it. But because our data can be any real value, in this case, we want a box that can explain real numbers, when we are going to assume the most simplest thing would be to assume that the box has a Gaussian random variable with some mean μ and some variance σ . So, that is I am assuming xi is Gaussian with mean μ and variance σ<sup>2</sup> for all i. That might be another reasonable assumption to explain this data.
+
+### Timestamp: 13:31
 
 Now, if I do that and if I now let us say we again, write the likelihood function like how we had written earlier, which is now for simplicity, let us say, we know the variance that generates the data. It is not true in general. So, if you have a bunch of data points, you would not know anything about the data. But let us make it even simpler and say that we know the variance. So, the only thing that we do not know is the mean. So, let us say mean is the parameter that we are trying to estimate. So, mean is unknown. Say variance σ<sup>2</sup> is known.
 
@@ -72,6 +80,8 @@ Now, I want to ask the probability that I see this particular value with some Ga
 
 In other words, this function, the way that it stands now as a product of probabilities, will give me 0 value for all possible choices of μ, which means this is not able to distinguish one μ from another, so it does not have the capability to distinguish one μ from another. So, it might not be useful in making good guesses. So we cannot really, there is nothing to maximize here, because every μ gets a value of 0. So, all μ’s are equally bad. So, you cannot really use this function to make a guess.
 
+### Timestamp: 17:31
+
 And the problem arises because of the fact that Gaussian is continuous and individual points get 0 probabilities. So, Fisher’s proposal was to not use the probabilities. And instead, replace the probabilities not to this and instead define the likelihood of the parameter in this case, as not the product of the probabilities, but then instead the product of or in general, the value that these parameters take these observations take is given by the PDF of the distribution that generates the data. So, you replace probabilities with PDFs.
 
 In other words, you want to replace the x probabilities with the joint PDF x1 to xn of x1… xn parameterize by μ1 , σ<sup>2</sup> . Now, PDFs behave similarly with respect to probabilities for a lot of cases. In fact, if the data points are independent PDFs will factorize.
@@ -81,6 +91,8 @@ So, this can be written as i = 1 to n, f of xi parameterize by μ and σ<sup>2</
 And in fact, what is this going to be we know what this is, so, for the Gaussian. So, this is asking if the true mean is μ and the variance σ<sup>2</sup> , what is the density at a particular value i and we know that by definition is .1/ 2Πσ e<sup>-(xi-μ)2/2σ2</sup> . So, the same μ and 2 σ<sup>2</sup> but then you are multiplying it over different xi’s. So, that is what this essentially means. So, this is our new modified likelihood function.
 
 In fact, that is why we call it to the likelihood. So, we do not call it the probability function. If it was always using probabilities, why give it a different name? You giving it a different name because it is not strictly probabilities, so of observing the data, it is the likelihood of observing the data. That is what Fisher called it. And we want to maximize this likelihood function.
+
+### Timestamp: 20:12
 
 Now you do the same drill. This is a product of a bunch of things. So, you take the log of the likelihood function of μ σ<sup>2</sup> x1 to xn. I will just do this for completion only one example. So,
 

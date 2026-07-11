@@ -1,5 +1,7 @@
 **<mark>Machine Learning Techniques</mark> Professor Arun Rajkumar Department of Computer Science and Engineering Indian Institute of Technology, Madras Issues with PCA**
 
+### Timestamp: 00:13
+
 Hello, everyone. Welcome back. So, today, what we will do is continue our discussion on PCA. And last time, we said that we will look at one example for PCA, (real time application), real world application. And we will also look at some issues with PCA. And that will lead us to something more interesting, which not only fixes the issue, but also gives us a general idea which can be used for many supervised learning algorithms that we will see later on.
 
 But before going there, let us start with very interesting, real world application of PCA which is called as the Eigen faces application. So, what is this application? So, to look at this application, let us look at this example. So, this is a real world example, which is called as the YALE FACE DATASET, the extended YALE FACE DATASET.
@@ -96,6 +98,8 @@ So, there is some underlying linear subspace where most of the information is ca
 
 And as I said, the more we try to understand these shortcomings, and then try to fix them, that will lead us to something very, very interesting, which is useful mode in, I mean, in general for machine learning applications.
 
+### Timestamp: 16:09
+
 So, the next thing that we are going to look at is issues or concerns with PCA. So, we will, point out two main issues or concerns with PCA and then try to fix both of them in the course of time, and the first issue , it is not like a problem, it is but then it is like a concern definitely is the time complexity. So, how much time does it take to run PCA?
 
 So, we have an algorithm. As computer scientists typically, you should care about how long would, it take to run this algorithm. So, what is the most time consuming step in PCA? Well PCA is just constructing a covariance matrix and then computing the Eigen directions of it. So, finding the Eigen vectors is the time consuming step of finding the Eigen vectors and Eigen
@@ -109,6 +113,8 @@ So, we care about the covariance matrix, which is a x matrix. And typically, let
 So, you can think of this as d grows , d is the dimension of the data set, , the time taken grows cubic in d. So, it would be order of d<sup>3</sup> . So, this is a problem this is an issue when d is large. So, when d is large, so, question is if d the number of features is large, for instance, in the Eigen faces applications that we saw the number of features was around 32,000 the number of data points was smaller than the number of features but only perhaps 20,000 or something like that.
 
 So, if the number of features is large, d is orders of 10s of 1000s or even millions, then d<sup>3</sup> is going to be a million cube, which is huge, perhaps huge for computing these Eigen vectors and Eigen directions. So, an example of where this can happen is face recognition. Eigen faces, so, that we saw where the number of features was 30,000 this is problem number 1. So, we would not really say at this point how to fix it. We will talk about this in a minute, but then I will point out one more issue and then revisit this. What is problem number 2?
+
+### Timestamp: 19:43
 
 Problem number 2 is an unrelated problem to problem number 1, at least at this point, we will<br>feel like that. This is issue 2. Which is -  so what is PCA trying to find PCA is trying to find<br>some linear combination of these features, which are very important. So, if there is weight, if<br>there is height, maybe weight plus height is a very important feature, or  two times weight plus<br>three times height is very important, and things like that.<br>But perhaps let us say you had weight, height and something like a body mass index or<br>something like that. Now, the body mass index might not linearly depend on weight and height,<br>maybe it is, it is something like weight over height squared, I might get the formula wrong, but<br>then there is a quadratic dependency with respect to how the body mass index is related to the<br>weight and height. So, it is not linear.<br>So, which means that, if we for instance, if you plot in 3-D, Feature 1, Feature 2, Feature 3, and<br>let us say we observed that the data points fell something like this. Now, what does, what am I<br>trying to allude to here is that it could be the case that, you have some manifold, or some curved<br>3<br>
 

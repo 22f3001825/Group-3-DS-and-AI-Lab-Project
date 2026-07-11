@@ -6,6 +6,8 @@ Now what we are going to see is a generative model based algorithm, so for to se
 
 So we will see this as prototypical example for a generative model based algorithm that will come out of it. But before we go into the algorithm and our assumptions and so on, let us ask the question what does it mean, I mean, is there a reasonable example where the features are binary? So can the features be a binary in a binary classification example? Of course, it can be binary, but then in a practical, useful setup, can you think of an example application where the features could be binary? Pause and think about this, I will tell you the answer 1 example now.
 
+### Timestamp: 01:48
+
 Here is an example. One example that we will see is the problem of spam classification. So, what is the problem of spam classification? Well, you are given a dataset where you have a bunch of let’s say emails, and some emails are tagged as spam, some emails are tagged as not spam, we can say that the spam means the class is 1 and non-spam means the class is 0, so the labels are done with it.
 
 Now emails could be written in different lengths, could have different words, all sorts of things it is an unstructured data. So now we need to somehow convert this into, as fixed size features, that is you need to convert your email into a feature vector, only then we can work with our algorithms, because in our algorithms, you are always going to assume so far, and we will continue to that our features are all d dimensional for some d, d could be large, but then it has some fixed value d. So which means that because the emails could be of different lengths, we need to somehow convert each email into a fixed length feature.
@@ -18,9 +20,13 @@ So every word in the dictionary gets one component of this feature vector. So if
 
 So this is how I can convert my email into a fixed length encoding of the dimension equal to the length of the dictionary. And by no means I am saying that this is the way to do this the only way to do I am just giving you one way to do this. So feature, you know, how to create features is depends completely on a lot of other things also in some sense, what do you think are meaningful things that might be relevant for the problem at hand becomes important, this is a usual basic thing that one can do where you can take the email and then convert it into a 0, 1 representation. There are other sophisticated ways to do this, but then for our purposes, for this algorithm, this is a simple way that is good for explaining this algorithm. And this does not do that badly in practice, as we will see later on, as well, so it is a reasonable assumption to make.
 
+### Timestamp: 06:44
+
 Okay.Now, okay so now what we have said is that here is a problem binary classification problem where the features are binary, the labels are 0 or 1. So now remember we wanted to do a generative modeling assumption, which means that we want to model we want to model P(x,y). In this case, in this context, what does that mean? That means that we want to associate probabilities with every email, label pair. For example, for this particular email, hello, how are you? Now if I tell you, this is the email, so hello, how are you oops, how are you, spam, let us say if I give this pair, then this pair should get a probability so that this pair could have been generated from the underlying process that generates the data, maybe there is a probability of 0.01 for this perhaps.
 
 So similarly, there will be a probability for Hello, how are you and non-spam, which means that for every email possible, and every label possible this pair we need to associate a probability. Now we need to associate some way, so we need to come up with some way to associate these probabilities. Now either we can see that well, there is some assumption that I am going to make on the structure of this joint distribution of features and labels, that is emails and labels or I can do the following.
+
+### Timestamp: 08:11
 
 I can I use the fact that P(x,y) can be written in 2 different ways, so one way is I can write this as P(x)into P(y|x), this is one way to write this, what is the other way? Well, we know the other way, the other way is P(y) into P(x|y). So what does this mean? this What does I mean, of course, this is just a formula that comes from probability, but in our context, what does this mean? This means that, well, if I am going this route, that I am going to say, I am going to model P(x,y) by separately modeling P(x)and P(y|x), then it means that I am saying, but I will model the structure of how the email is generated, which is to say that, will this is the probability of email and I will model what is the probability of spam or non-spam given email.
 
@@ -36,11 +42,15 @@ On the other hand, if you are going this route, well, here there is no structure
 
 So this is a more meaningful assumption in some sense, because I might have some way of understanding for every class which is the spam or the not spam class, how does the distribution of emails look like which means that I can perhaps model P(x|y) and model what is on an average how many spams are going to be there are many non-spam are going to be there. So what is the likelihood that I see your spam or non-spam which is being modeled P(y). So this is a better way to model P(x,y) and this is what we are going to do for this particular example, we are going to go the way of modeling P(y) and P(x|y). So now we will see how to do this modeling exactly now.
 
+### Timestamp: 12:49
+
 Okay. So as usual, when you are doing a generative model, what you would do is you will assume a generative story. Now what is the story, we are going to assume that generates our dataset so that is what we need to decide. So in this particular generative story, and this is one story that this example is going to this algorithm is going to make assumption on. Again, you can make your own generative story, but then this is one story we will start looking at, and we will see if it is a good story or not as we go along.
 
 So this story has 2 steps. Step 1, decide the label by tossing a coin that is we want to generate the i-th data point in the training set and I am assuming that the probability that the i-th data point corresponds to the label 1, which is let us say spam, is some P. So basically, I have a coin with probability P, I am tossing it if it falls heads, then I am going to say, well this data point i-th data point is a spam email. I have not told you what the email is set, but I have told you what the label is, what type of email I am trying to generate that is step 1.
 
 Now step 2 is to generate the email itself. Now step 2. Step 2 is basically decide the features so you have decided the label, now you have to decide features using the label in step 1 by P(xi | yi). That is, you are going to make some assumptions on P(xi | yi) and we will see what this assumption is, which means that if the coin fell heads, then I am going to draw an email from a distribution over emails, given that the email is a spam email. So we will see what this means, this distribution means now.
+
+### Timestamp: 15:17
 
 So let us make this more precise, let us look at our, the standard way of that we have been thinking about these things. Basically, in pictures, it looks like the following, you have a box, the box has a coin inside it and I am pressing this coin, this coin will tell me what the label is. So the label can be either 1, or the label can be 0, that is, it can be heads, this can be tails. Now, let us say it is heads. So if it is heads, then we need to generate a spam email, let us say. Now how, which means we need to generate features. Now how many dimensions are there in this features? There are d dimensions, d words in the dictionary, so there are d dimensions.
 
@@ -72,6 +82,8 @@ Now the question that I want to ask is, well, we have put down a model, so which
 
 case, the parameters are determined by these coins and this dice. So let us see how many parameters are there in this model?
 
+### Timestamp: 23:44
+
 So the number of parameters in the model. Can you think about how many parameters are there in this model? You are already seeing it just have to think about and make sure you get the number, pause and think about this. I will tell you the answer now. Well, the number of parameters is there is one parameter to decide whether the label is 1 not 0, spam or not spam, that is just a coin tosses bias P. So now, for this spam world there is a dice, but how many faces does this dice have? This dice has, if there is d version in my dictionary, this dice has 2<sup>d</sup> faces. If there are 3 words that I had 8 faces, if there are 4 the dice will have 16 faces, if there are 16 binary digits of length 4, if there are d words, then this dice will have 2<sup>d</sup> faces.
 
 Now, each of these face is giving the probability of that face showing up so the sum of the probabilities are going to be 1. So if I sum these guys up it will be 1, if I sum these guys up it will be 1 so that should happen. Because the dice should fall on I want at least I mean exactly 1 of these faces, so these are mutually exclusive events, each of these face showing up and then if I sum up the probability that should be 1.
@@ -83,6 +95,8 @@ corresponding color 1 for the coin 2<sup>d</sup> -1 for the blue dice, and 2<sup
 So I need to know all these numbers. So only if I know all these numbers, these many numbers, then I have the ability to generate a new x, y parameter, which means I have completely understood this generating process. If you tell me these many numbers, then I have complete control over how the data is generated, which means I can do anything. For instance if I want to make predictions, I can calculate P(y|x) for any x test data point x, so for which I need all these numbers. So which means that as an algorithm, if I am trying to understand, learn from data that means I need to learn these many numbers, so this is how
 
 many.
+
+### Timestamp: 26:39
 
 So I need 1 number to decide the label. So this is P(x|y) again, P(x|y=1), and this guy is P(x|y=0). So in total, I need, 1 + (2<sup>d</sup> -1), which is 2<sup>d+1</sup> -1 parameters. Now the question is, is this a reasonable model? We have put down some generative model as to how the data is generated, now we have to ask ourselves, is this a good thing or a bad thing? Well, if you have to learn from this data from data, and if you are positing that this is the model that is generating the data, then you need to learn 2<sup>d+1</sup> -1 parameters to understand the model itself.
 

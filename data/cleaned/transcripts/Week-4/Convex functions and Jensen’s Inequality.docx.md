@@ -18,11 +18,15 @@ Now, from this picture, we see that f((a+ b) / 2) ≤ (f(a)+ f(b)) /2. Now, if t
 
 If this happens, then it implies that this function is a convex function, it should happen for every every choice of a and b , I have just shown two choices of a and b now, try to convince yourself that for this curve that you have that I have drawn, you can take any two points, and then this property will hold.
 
+### Timestamp: 03:48
+
 If, if the other side holds, so, if the other way holds that if you have a function like this, which goes the other way, where the linear interpolation has value strictly less than the functions value, then such a function is called a concave function.
 
 So, it is our usual convex mirrors and concave mirrors, if you remember from your high school physics. So, that is the idea. So, for all a , b , what should happen in a concave function is f((a + b)/ 2) ≥ (f(a)+ f(b) / 2). If this happens, then we will call this a concave function.
 
 Now from this, an immediate question is are there functions which are both concave convex and concave? Well, if you look at the definition, it says less than or equal to and greater than or equal to, which means that if there is a function where the inequalities were actually equalities, then It means that it is both convex and concave.
+
+### Timestamp: 04:58
 
 But what does it mean to say that the inequality is equality, it means that f ((a + b)/ 2) = (f(a)+ f(b) /2) for all a,b. And what function satisfies that? Well, that means that the function is linear.
 
@@ -31,6 +35,8 @@ So, the input, you divide by 2, now the output also get added and divided by 2. 
 The next question is, are there functions which are neither concave nor convex? Well, of course, there are functions which are neither concave or convex, can you think of shape, such a function will help? Well, I am just giving you some shape here for a function, maybe a function like this.
 
 So, it is neither concave or convex, because I can choose 2 points, maybe I will choose 2 points here, where the linear interpolation is below the function value, so it can not be convex. And I will choose maybe a and b, and then I will choose a, b and c, where the linear interpolation is above the function value between b and c. So, it can not be convex also. So, it is neither concave or convex.
+
+### Timestamp: 06:43
 
 So, what we are interested in is convex or concave functions. And one way to think of this is as follows the definition that I wrote down, I am going to write it in a slightly different way, I wrote (a+ b) / 2 functions value evaluated at (a+ b) / 2, I can write it as a/2+ b/2 . So, now if it is convex, then this is at most,  f(a)/2+ f(b)/2.
 
@@ -44,6 +50,8 @@ So, every point here in this region, so every value in that region is lower than
 
 So, then this is b, if λ is 1, it is a and as you change λ, you move from a to b , and then the functions value is always strictly less, I mean less than or equal to the linear interpolation. So, of course, concavity also has a similar property, I would not write it, but then you just reverse the inequality.
 
+### Timestamp: 09:07
+
 Now, you can extend this to multiple points as well. So, this once you have this λ now, it also is true. So, if I have not just 2 points a and b, if I have a1, a2, …, ak, now I ask λ1 a1+ λ2 a2+,..., λk ak, where the λs will sum to 1, they are between 0 and 1.
 
 Now for concave functions, I mean, I am writing it for concave but it is true for convex also the other way around and that is implied. So, this will be greater than or equal to λ1 f(a1)+,
@@ -55,6 +63,8 @@ So, essentially what in a slightly compact notation for concave functions, we ar
 𝐾 𝐾 f( ∑ λk ak) ≥ ∑ λk f (ak). So, this is just a generalized definition. So, this is what is 𝑘=1 𝑘=1
 
 called as typically should be called as the Jensen's inequality, Jensen's inequality.
+
+### Timestamp: 10:39
 
 One way to think about this is that, let us say you are I mean in if the function is from real to real, this does not really add any great intuition. But then if you if you imagine a function from, let us say, from are 2 dimensional plane, and if you have a concave function, this is kind of telling you that your concave function will somehow curve like this. And if you take any 3 points, it can take any number of points.
 
@@ -71,6 +81,8 @@ Now, what we are seeing is that, well, if I try to linearize, this curve, it is 
 Now I look at the linear version of this curve, and the curve actually goes above this, this linear triangle in this case, that is what it means to say. I mean, that is what basically Jensen is saying, so it is saying that this happens, for any set of points you can look at, it is what is called as a convex hull, which is just the set of all points of the form sum over k λk, ak and then the function values about this.
 
 So, the only thing we will need, for our purposes from convexity is this inequality that I put down here. And the reason why this inequality is useful for us, what is the connection to all this to log likelihood of Gaussian mixture model if you are wondering, the connection is the following.
+
+### Timestamp: 13:31
 
 So, the connection is, logarithm which we are using in the likelihood function is a concave function. This is where the connection comes from, which means that it satisfies Jensen's so why is logarithm a concave function? So, take this as an exercise. So, we have put down the definition of concavity, function being concave.
 

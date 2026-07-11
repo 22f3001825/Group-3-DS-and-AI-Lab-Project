@@ -62,6 +62,8 @@ So, of course mapping in from 2 to 6 dimension is not that useful I mean I might
 
 Now, more examples here is another example. So, let us say we have the function some function k which takes and and then it can calculate the following x transpose . So, for some p greater than or equal to 1. Now, x can be in in general d dimension.
 
+### Timestamp: 11:38
+
 Now, the interesting thing is that and we would not really prove this but then this can be shown to be a valid map, valid function. what does it mean to say a function is valid for us. So, when will we say we are looking at valid functions well for us valid means the following. So, that means that there exists some .
 
 So, and this typically, is from d dimension to some  D dimension such that you know if I just compute k(x, which is this quantity here with same as computing it is as if I went to this high dimension using and then did a dot product if such a exists for a k that I give you then well k is a valid function because otherwise if this does not happen I cannot rely on k to compute my K and then take its Eigen vectors and so, on for PCA.
@@ -70,9 +72,13 @@ So, this function here is in fact a valid function and it is a worthy exercise t
 
 So, that there is a transformation where this function is exactly computing the dot products remember not all functions are going to compute dot products in some high dimensional space. I mean I could have given you an arbitrary function but then if you want to convince yourself then one way to do that would be to actually exhibit this file exactly like how we did for p=2 when you had just two features. So, so please do this as an exercise very I mean this will reveal some insights about how the dimension increases as you increase d and p.
 
+### Timestamp: 14:23
+
 One more example and this is perhaps another famous mapping that people typically use in machine learning is the following. So, you your k(x, in this case for some
 
 greater than 0. So, this should remind you of Gaussian pdf in fact sometimes this is also called the Gaussian map but the standard term is also called as the Radial Basis Function.
+
+### Timestamp: 15:06
 
 This is the Radial Basis Function two important points about this. So, the first thing is that<br>can be shown that this is also a valid function to be a valid map again. Valid in the sense that<br>you can exhibit a   where this this is exactly computing the dot products in the higher<br>dimensional space but what is this higher dimension that is actually even more interesting.<br>So, interestingly if you think about this, you might actually be able to kind of see why this<br>makes sense   in this case maps x to 1 infinite dimensional space.<br>So, the higher dimension that we are talking about here is actually infinite dimension. So,<br>infinite dimensional space. So, earlier we said that the dimension where it gets mapped to<br>increases, increases in certain fashion d to the p and so on in fact in this case you can think of<br>I mean you can argue that the   actually maps every data point on infinite dimensional space.<br>So, well whenever there is infinity involved there are a lot of technicalities but you know<br>technicalities aside we do not want to you know dig deeper right now into the technicalities<br>of what does it mean to say space is infinite dimension and so on. Technicalities aside what<br>
 
@@ -88,11 +94,15 @@ an output and the input can be any real number whereas it’s infinite of them a
 
 So,  if you kind of I mean loosely put all the inputs in a vector then all the outputs also become a huge infinite dimensional vector of course you cannot put down everything you cannot write down everything if it is uncountably infinite and that is why you should think of this mapping itself as mapping a point to a function but that is just technicality. Now, how do you do dot products after you map points to functions well because this is infinite dimensional your dot products is essentially a sum but instead of sum in the continuous case it becomes integrals.
 
+### Timestamp: 18:39
+
 So, that is what you do to exhibit that this is in fact I mean a valid map another way to think of why this should be a valid map is to see that your e power x itself can be written as a power series expansion where you have kind of all polynomial powers. So, of course with decreasing contributions nevertheless, you have all powers embedded into itself. So, in some sense you can think of it as you know mapping it to an infinite dimensional space where you have all powers contributing in different ways. So, that is one way to think about this as well.
 
 So, what we have done. Now, is we have kind of given you multiple examples, the host family of examples, polynomial maps and then there is this radial basis map and so on but in
 
 general can we give all these valid maps a name, yes sure we should give these valid maps a name because they will become useful and the name that is used is what is called as Kernels.
+
+### Timestamp: 19:27
 
 So, this is a Kernel Function. Kernel is a is a multiple , I mean it has multiple meanings in mathematics but for our purposes in machine learning we are going to think of Kernel functions as functions which are valid in the way that we described earlier that is they compute dot products in some high dimensional space.
 
@@ -103,6 +113,8 @@ So, so what is k ( x) if k(x, happens to be which is what we saw earlier. So, th
 . Now, this is called as a radial basis or sometimes it is also called as a Gaussian Kernel. So now, these are specific examples but I think the more pertinent question is I mean it is not necessary that these are the only Kernels which are useful or relevant for our problem. So, maybe there are different non-linear nonlinear combinations which might help us.
 
 #
+
+### Timestamp: 21:45
 
 So, in general we want to ask the question given a function. So, let us say I give you a<br>function k which takes in 2d dimensional vectors as input and then computes a number. Now,<br>how can we say it is a valid Kernel? So, if I give you a function and I ask you well hey is I<br>claim that this is a valid Kernel.<br>Now, how would you be convinced that this is in fact a valid Kernel well we have seen one<br>method already to convince ourselves that. So, that is method 1 which is the standard method<br>where you are going to say that hey you think this is a Kernel well which means there must<br>be some mapping file. So, if I can exhibit such a mapping exhibit a map  explicitly like how<br>we did for the Quadratic Kernel.<br>So, the power 2 Kernel we exhibited that  explicitly and said that   is actually a<br>dot product if you think of it as this map. So, in the mapped space. So, that is one way to, one<br>way to argue this. So, but sometimes this might be hard. So, might be hard sometimes to<br>come up with this explicit mapping might be harder or rather hard sometimes.<br>So, if this is not always possible is there an alternate way we can convince ourselves that a<br>function given function is Kernel because not all functions are Kernels. So, is there a<br>
 
@@ -115,6 +127,8 @@ So, the power 2 Kernel we exhibited that explicitly and said that is actually a 
 So, if this is not always possible is there an alternate way we can convince ourselves that a function given function is Kernel because not all functions are Kernels. So, is there a different way to argue this, yes there is and this is given by what is called as the Mercer’s theorem we will not dwell deep into this theorem in this course but then I will at least give you a informal version of this theorem.
 
 #
+
+### Timestamp: 23:48
 
 So, so that we get the essential understanding of this theorem I would not state it in full<br>rigorous mathematical detail but then we will give enough mathematics. So, that we know in<br>practice what it means k which is R d  x R d  to R. I have given a function k and then I am asked<br>if this is a valid Kernel Function is a valid Kernel, Mercer’s theorem says it is a valid Kernel<br>if and only if which is a very powerful theorem. So, that is why it is a powerful theorem<br>because it characterizes validity of a Kernel if and only if two things happen a k is symmetric<br>what does that mean that means that k(x,k(x,  should be same as k(k( , that is this.<br>Now, why should a Kernel be symmetric, well we know that the Kernel is going to compute<br>dot products in some high dimensional space which means  k(x,  has to be   for<br>some  . Now, because dot product is a symmetric operation. So, k(x,k(x,  should also be same<br>as   but then   equals k(k( , . So, it necessarily has to be symmetric.<br>So, if it is not symmetric if I give you a function which is not symmetric in other words if you<br>can find x and   where k(x,k(x,  is not same as k(k( ,  then you can immediately dismiss my<br>claim that k is a Kernel but let us say if it is a symmetric function then that does not<br>immediately mean it is a Kernel already you will have to check one more condition and that<br>
 

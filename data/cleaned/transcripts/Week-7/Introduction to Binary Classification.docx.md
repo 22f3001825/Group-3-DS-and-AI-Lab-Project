@@ -70,6 +70,8 @@ So, we cannot solve this problem, so we have to give up on this. So, we have to 
 
 So, in regression the labels could take any real value, here the labels are constrained to take 0 or 1 so it appears so that we have solved a more broader problem in the regression case, why cannot we simply use that idea to solve this problem. So, that is the question we are going to ask next and see if that will be of any use at all.
 
+### Timestamp: 12:16
+
 So, can we use let us say linear regression to solve classification problems. By which what do I mean? I mean the following, so you are given a data set (x1, y1),...,(xn, yn), you input the data set to a linear regression model and what you get is a w, so in the standard linear regression this is equivalent to the maximum likelihood and all that, we know that.
 
 So, let us say you get some w in Rd and now you use the w to get hw by thresholding w at w<sup>T</sup> x = 0, hw is from Rd to 0-1. Is this a good idea that is the question we are asking? So, now of course this is not solving the 0-1 loss, this is solving a square loss, so for now let us think of

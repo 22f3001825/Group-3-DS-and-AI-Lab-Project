@@ -1,5 +1,7 @@
 # **Machine Learning Techniques Professor Arun Raj Kumar Department of Computer Science and Engineering Indian Institute of Technology Madras Principal Component Analysis: Part 2**
 
+### Timestamp: 00:14
+
 So this is one way to understand this algorithm. Here is another way. So we will look at some<br>linear algebra. So let us say, enter linear algebra now, for those who are familiar with linear<br>algebra, we are already seeing these connections. Nevertheless, I will try to explain it now.<br>So, now, we did talk about this briefly last time, but let us make this more precise now.<br> So, this is the problem that we are trying to solve, where C is   and this C is<br>called the covariance matrix with some caveats with covariance matrix in general, and when<br>you have a matrix like this, the solution to this problem is nothing but the Eigen vector<br>corresponding to the largest Eigen value of this matrix.<br>So, the solution to this problem turns out to be   which is the Eigen vector corresponding to<br>the largest eigenvalue of C. So, this comes from a general theorem, which is called the<br>
 
 So this is one way to understand this algorithm. Here is another way. So we will look at some linear algebra. So let us say, enter linear algebra now, for those who are familiar with linear algebra, we are already seeing these connections. Nevertheless, I will try to explain it now. So, now, we did talk about this briefly last time, but let us make this more precise now.
@@ -15,6 +17,8 @@ Now, this , the kth Eigen vector or the Eigen vector corresponding to the kth la
 So, this is again a conclusion that you can derive from Hilbert min-max theorem, that if you try to maximize this same quantity, well, you want to be norm 1, but then should be orthogonal to an already existing subspace, well, then, that subspace is formed with the top k- 1 Eigen vectors, then the would be the kth Eigen vector.
 
 That is also Hilbert min-max theorem, but we can either understand it that way or we can simply say that this is the line that you get in the round k. Remember, the line that we got in round k will by definition  is orthogonal to the previous lines, because the data set that we used were all orthogonal to the to the eigenvectors, to the lines that we derived in the previous rounds by construction.
+
+### Timestamp: 04:09
 
 So, this is fine. So, we can think of this as eigenvectors and eigenvalues of the covariance matrix, but what does it even mean. So, what do the Eigen values mean? What do Eigen values of C mean? Can we say, can we interpret this slightly differently? Or we should just be happy to say that these are Eigen values of C so that that is fine, but then that does not really tell us anything more than the fact that it is a known, well studied object.
 
@@ -42,6 +46,8 @@ So but that does not really tell us what is this quantity about? So can we under
 
 So can we say anything about this term?
 
+### Timestamp: 09:26
+
 So now, let us say we take, again, a bunch of data points on the line. So maybe there is an<br>and then this point becomes , so on, maybe there is an  becomes  , and so<br>on. Now, let us say we fix   we collect these values  ,  ………… .<br>Let us say we collect these values. So these are like the, in some sense the, if you square this,<br>they will be the length squared of the projection, the proxy for each of these data points on<br>the line  . So I am not saying the line   is the best line or anything, it could be any line. And<br>then we are collecting this bunch of data points.<br>Now, the first question is, what is the average of these values? Average? What would this be<br>. I am not saying anything about   being the best line or anything, pick some<br>arbitrary line and then project onto that line, compute these  values and then compute<br>their averages. So what is this value going to be? So you may want to pause and think about<br>this  before  I  tell  you  the  answer  now.<br>
 
 So now, let us say we take, again, a bunch of data points on the line. So maybe there is an , and then this point becomes , so on, maybe there is an becomes , and so on. Now, let us say we fix we collect these values , ………… .
@@ -51,6 +57,8 @@ Let us say we collect these values. So these are like the, in some sense the, if
 Now, the first question is, what is the average of these values? Average? What would this be
 
 . I am not saying anything about being the best line or anything, pick some arbitrary line and then project onto that line, compute these values and then compute their averages. So what is this value going to be? So you may want to pause and think about this before I tell you the answer now.
+
+### Timestamp: 11:00
 
 So this value is just . Now this value for a centre data set, this value is just the<br>mean, but then the mean is 0 for a centred data set. So, we are assuming that the data set is<br>centred. So this is a centred data set. Now, what does that mean? That means that the average<br>is actually 0 for a centre data set. So this is it is a number, it is 0. So now, what can we say<br>about the same set of values?<br>But then let us look at the variance. So, how much spread? Is there in this bunch of values?<br>Now, how would we compute the variance? Well, we can do the<br>where the mean or the average is the average of this bunch of numbers. But we know that the<br>mean is 0.<br>That is what we just looked at. So, which means this value is just going to be<br>So what is this telling us, this is telling us that you pick an arbitrary   and then project all<br>your centre data points on to this   and then just compute the variance of the projected<br>values. Now that variance is exactly the term that we were using earlier. So it is exactly this<br>term that we are trying to maximize.<br>
 
@@ -65,6 +73,8 @@ That is what we just looked at. So, which means this value is just going to be .
 And it is exactly the term which is equal to the Eigen value. So now, this is interesting. So now at least we know, you know, what are we doing when we are doing this maximization. So basically, then we can conclude the following. So, error minimization, which is what we started this algorithm with, on centred data, on the centering is important because only then the equivalence that we are putting out now holds is equivalent to variance maximization.
 
 So if you find the line where the error is minimum, then it also means that it is the same line where the variance of these projected values is as high as possible.
+
+### Timestamp: 14:02
 
 So to see why this has to happen geometrically. Of course, algebraically. We have seen this<br>but then geometrically, also, you can kind of convince yourself that maybe you have a bunch<br>of points, like this. And maybe the green line is the best line, maybe there is also this, maybe<br>there is also this blue line. Now you can project it onto either of these lines. If we projected<br>onto the green line. I am going to get the proxies as follows.<br>The green dots are my proxies. Whereas if I project it onto the blue line, the blue dots are the<br>proxies with the red points. Now, if you focus on the green points, you can see that they are<br>kind of spread out then the blue points which are clouding, So now the problem is if data<br>points all crowded up, in fact, if they go to the same point, then there is no way you can<br>distinguish this one data point from the other.<br>Whereas, if they are spread out, then this distinguishing capability is still present in this data<br>points. You do want compression, but you also want to be able to distinguish one data point<br>from another because in downstream, you are going to use this compressed representation for<br>
 
@@ -81,6 +91,8 @@ points actually fell on the same line, now, if you look at the perpendicular lin
 So we want directions where projections do not crowd. So I am using this crowd up in a loose fashion. But for us, the definition of crowd up is that variance implies that this variance is not small. So we want variance to be as high as possible. And in that case, we would have found a line where the spread is as high as possible.
 
 In other words, the information retained is as high as possible. So that is one other way to think about PCA itself. So  this algorithm itself, of course so this is one way to think about it. And there is one more example that we will see, and then we will conclude this initial algorithm that we are starting to look at, probably use it this.
+
+### Timestamp: 17:33
 
 Here is one way to understand what is happening. Let us say we are given, again, a bunch of<br>data points centred, and so on. And let us say this is the height, and this is the weight, they are<br>centred. So that is why you see negative values. So let me put it centred, centred, and so on.<br>Now, if the main thing that we are observing is that height gives some information about<br>weight, so if I tell you what the height is, if the height increases, the weight also tends to<br>increase.<br>So that is the main observation here. And that is why we started with fitting lines and so on.<br>But the more importantly, height and weight are not completely, loosely saying, independent<br>of each other. So I should be careful when I use the word independent. But let us say<br>intuitively, height and weight are not independent of each other, because height gives me<br>some information about the weight.<br>So if I choose to represent these data points as height and weight as 2 numbers, height and<br>weight, then 1 number gives me some information about the other number. Now, if I did this<br>algorithm, where do we find these lines? So let us say we found this line, which is the best<br>line and this line,   is going to be [1 1].<br>
 
@@ -107,6 +119,8 @@ Whereas in the previous case, as height increase the weight tend to increase and
 So the right, or the terminology is that these directions are de-correlate for this data set. So the directions where every direction gives you some new information that the previous
 
 directions are not giving you, you are trying to find those directions. So that is what our algorithm is essentially doing.
+
+### Timestamp: 23:06
 
 And this algorithm well is called the principal component algorithm. You might have come<br>across this algorithm already, if you are taken MLF course. Nevertheless, we thought it<br>would be good to start with this algorithm, because some of the ideas that we will see now,<br>which you may not have seen, the MLF of course, would lead us to something more<br>fundamental in machine learning.<br>And the   to   that we have managed to find these vectors are called as the<br>principalcomponents. And what our example, now say is that these principal directions are in<br>fact, you know, de-correlated. So, the projections along these directions kind of for de-<br>correlated.<br>So, essentially, the algorithm is given the data set, find the covariance matrix, find the top k<br>Eigen vector and Eigen values, project your data set along the Eigen vector directions, and<br>then that would give you compressed representation, because we are going from R d  to R k<br>
 

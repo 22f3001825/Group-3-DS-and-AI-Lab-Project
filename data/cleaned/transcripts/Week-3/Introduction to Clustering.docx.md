@@ -66,6 +66,8 @@ So, what would be μ1? μ1 would be check which of the points have been assigned
 
 So, this is basically an example of whatever we are saying here. So, the goodness of this partition itself would be (x1 - μ1)<sup>2</sup> + (x2 - μ2)<sup>2</sup> because 2 is the centers partition to (x3 - μ1)<sup>2</sup> + (x4 - μ1)<sup>2</sup> +( x5 - μ2)<sup>2</sup> and so on. So that is the way we are defining partitions.
 
+### Timestamp: 14:04
+
 And so now we have put down a specific measure or a metric to measure goodness of a partition. So, what would be our precise goal, our goal is now to minimize over all possible 𝑛 partitions, the measure that we just put down, which is ∑ (xi - μzi )<sup>2</sup> . So, this is our goal. 𝑖=1
 
 So, when I want to find out this is to go over all possible partitions and then see, which one gives us the least value and we know that there are only a finite number of partitions. So, we could potentially imagine an algorithm where we will go over each partition and measure this and then pick the one that has the smallest value.

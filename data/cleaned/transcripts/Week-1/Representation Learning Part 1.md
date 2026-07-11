@@ -70,6 +70,8 @@ Now, we will talk more about this but then at this point, I want you to make a n
 
 So, if I asked you what is , but then if I give you only the representatives and coefficients, how would you reconstruct ? You would simply take the representative and multiply it by the coefficient, in this case, 2.5 times to vector [1 2], which would give me [2.5 5], which is x2. So, and you can do this for each of the data points, and you will get back the exact data set, so there is an exact reconstruction that is possible, using this way of looking at things.
 
+### Timestamp: 12:54
+
 So, now one can also think of this in a geometric fashion, I look at the same data set, but then let us say I try to plot these points, these 4 points on the plane, where would these 4 points lie, again, you should be already able to see it, if not, just pause and think about it. While I plot where these points lie. So, these points are going to lie along the line along the line where
 
 these points would be [0 0], [-7  -14], [2.5 5], and I think maybe this is [1 2], and you have [2.5 5].
@@ -91,6 +93,8 @@ So, there are 2 for a single representative plus 1 for each data point. So, that
 you were thinking about in dimension, if every other coordinate is some multiple of the first coordinate, let us say, then you just need numbers for the representative and one number for each of the data points, so it would be interesting.
 
 So, now that that is a huge compression that you might potentially achieve. But now, if you have been thinking about this, an obvious question that comes that should come to your mind is, well, it is fine that we are able to compress this if the data points all lied along this line. But now let us say that was not the case.
+
+### Timestamp: 17:37
 
 Let us say we had a situation like this. So, which is not a very nice situation for our data set here. Let us say we had this case, let us make it even easier, we have the line = where we have a bunch of data points [1  1], I do not know, [7  7], [10  10], maybe, now this can still be compressed, 50% compression is still possible for these four data points from 8, you can go to 2 + 4, 6, all that is good.
 
@@ -129,6 +133,8 @@ Now, the proxy should be chosen such that I lose the least. So, which means that
 Of course, the answer to this is projection of on to the blue line. Well, projection is just finding that point which is closest to along the blue line. So, how do we find that point? Well, of course, for people who are conversant, linear algebra might already know the answer to this. Nevertheless, just to keep it self-contained, I will go with this. So basically, this is what we want to do.
 
 #
+
+### Timestamp: 24:45
 
 So, you have a line. Let us say we have the vector , , which we think of as the representative for this line, which means this line is just the set of all vectors which are scalar multiples of , , and is both not equal to 0. And now you have a point, which is, let us say , . Now the question we are asking is, well, what is the projection of , , along the line given by , , what is this?
 

@@ -56,6 +56,8 @@ Well I connect the line between these two points, look at the perpendicular bise
 
 So this is good so this just means, what happens in two dimension? So even K equals 2, let me just make sure that, well, if this is cluster 1, well, where are cluster 2 data points, cluster 2 on this side. So, basically what has happened is that, so your K means algorithm or the Lloyd’s algorithm is going to give you clusters, if K equals 2, you just separate it by a line that is what this means. So it has to happen. This simply comes from the convergence criteria for algorithm, so that implies this.
 
+### Timestamp: 11:38
+
 So now what happens when K equals 3? That is an actual question we can ask. And we will see that and that might give us some more intuition as to how these clusters look like. In 𝐾= 3, the algorithm is going to converge with not just 1 mean, but then 3 means sorry, not just 2 means but then 3 means.
 
 Let us call these means µ , µ , and µ , let us say again, the data is just two dimensional data, I 1 2 3 mean, all of whatever we are saying works for high dimensional data also, but then it is easy to visualize the two dimensional data that is why we are doing this. So now, what is the question we are asking, where are the points which are assigned to cluster 1? That is the first thing that we like to understand.
@@ -82,9 +84,13 @@ So there are for every data point, so for every cluster, now, your region would 
 
 So it will be an intersection of half spaces. So cluster regions are intersection of half spaces. So this argument works even for high dimension with visualizing in 2d, but then it is true for high dimension as well.
 
+### Timestamp: 17:20
+
 And these type of intersection of half spaces they also have a name, this is called as Voronoi region. So basically, what that then tells us is that if you run the Lloyd’s algorithm then the clusters can be, you know, imagined as if they are falling in different Voronoi regions. Basically, your Lloyd’s algorithm is trying to find the best, in some sense, Voronoi partition that will lead to, in some sense, the best cluster, right?
 
 So you necessarily, the partition, the points assigned to each cluster should be part of a Voronoi region. That is what this argument finally says this. So this is the comment that I wanted to make about the nature of clusters.
+
+### Timestamp: 18:25
 
 Let me also, at this point, make a comment about something that we perhaps will not discuss in this course. But then it is interesting to know also. So for example, if I had data in 2 dimension like this, so let us say I had data around a circle, like this, and I had some more data points in a smaller circle.
 

@@ -1,10 +1,14 @@
 # **Machine Learning Techniques Professor Arun RajKumar Department of Computer Science and Engineering Indian Institute of Technology Madras Gaussian Mixture Models**
 
+### Timestamp: 00:15
+
 Welcome back, everybody. So, we have been looking at unsupervised learning so far in this course. One we will continue to look at unsupervised learning a little bit more. And just to recap, where we are in unsupervised learning, we looked at representation learning via the means of the PCA algorithm and also the kernel version of it, which we called as the kernel PCA. And then we also looked at clustering methods after that, which gave us the Lloyd’s algorithm or the K-means algorithm.
 
 And then, last time, we looked at estimation, as a probabilistic way of doing unsupervised learning. And in estimation, we looked at the maximum likelihood based ideas. And we also looked at a way to incorporate prior beliefs into our estimator, which is using the method of Bayesian modelling where you start with a prior and then you convert it into a posterior.
 
 So, what we want to do today is continue our discussion about estimation in general. And in estimation, we want to look at a slightly more realistic type of data, which we would like to model in an unsupervised way.
+
+### Timestamp: 01:39
 
 So, today, the goal is to look at slightly complicated data. And we look at estimation for this. So, what is this slightly complicated data that I am talking about? Again, what we will do is for illustrative purposes, we look at one dimensional data and try to understand the ideas but whatever I am going to talk today will carry forward for higher dimensions. In fact, whatever we discussed for estimation and maximum likelihood, Bayesian, everything works for high dimensional data also, but it is easiest to explain using one dimensional data.
 
@@ -28,6 +32,8 @@ So, if I try to find the probability of data coming in this region on the real l
 
 So, but if the model that we have assumed is not powerful enough to generate data of the form that we actually see, then maximum likelihood cannot do anything better. So, because it is searching in a space of Gaussians and then finding the best Gaussian. So, clearly we have seen a lot of data in these two regions, but then our explanation by via Gaussian is not very satisfactory, because these are low density regions for the Gaussian.
 
+### Timestamp: 07:29
+
 So, then how can we what do we want? Well, we want something like this. So, we do not want a Gaussian project to explain this data. But we want what kind of PDF do we want? So, if you think about this, I mean, this is a good place to pause and think, how do you think the shape of the PDF should be that explains this kind of data? What do you want? We want three different modes or three places where the density should peak.
 
 So, there are some data points here, there are some data points here and there are some here. So, your PDF itself should have three modes. So, which means you need something like this perhaps. You need a density like this. So, let me write that down.
@@ -37,6 +43,8 @@ So, we want a density like above, to explain this data, why then a density like 
 So, as you can see, there is some kind of clustering behavior in the dataset. So, that is what we will eventually get to. So, and then we want to somehow develop a probabilistic model, which can do this, which can model this kind of cluster data points. So, how can we do this? Well, each of these high dense region looks like a Gaussian in itself. But then overall, it is not a single Gaussian.
 
 So, basically, what we then want is a new model. And what we want is a new generative model to explain this data, or the generative story and the name of this new model that we are going to come up is called as a mixture of Gaussians. It is not a single Gaussian. It is a mixture of Gaussians. In this case, it is a mixture of three Gaussians in the example that we just saw. So, what is the story? So, now what is the underlying story that generates this data?
+
+### Timestamp: 10:00
 
 Whenever I say story, it means that what is the probabilistic mechanism that generates this data? So, I see the data. I need to understand. I need to put down a mechanism that generates the data. So, far in the estimation things that we have seen. The story is simple, you either sample from a Gaussian or you toss a coin into super simple. Now, such simple stories are not
 
@@ -51,6 +59,8 @@ And that something has two steps to it. And the first step is when the mixture w
 So, which mixture the data comes from? So, once you have decided the mixture, then what do you do? Then it is pretty straightforward. So, then the second point is, once you have which mixture it comes from, well, you generate data from that mixture, generate data point from that mixture. So, this is a two step process, I supposed to the single step that we have seen so far. First, decide the mixture and then generate the data point from that mixture, super simple.
 
 Now, of course, we need to make this more probabilistic. So, the way that I have just put down step 1 and step 2, there is no probabilities involved. But because it is a probabilistic model whose parameters we are trying to estimate, we need to make it more precise. And let us just do that.
+
+### Timestamp: 12:27
 
 So, let us make this precise. So, step 1, in a more precise way is going to look like this. When I say we are figuring out which mixture this point comes from? Well, the way it is going to happen is imagine that, if you want to generate from a data point from three mixtures, then assume that the model has a dice, which has three faces. And now I am going to throw this dice. So, I am going to roll this dice and then the dice falls on one of the face. So, on that face, will have a number either 1, 2 or 3.
 
@@ -69,6 +79,8 @@ To formalize, this, we will just say generate xi, the ith data point as a Gaussi
 So, this is the generative model, it has two steps. And this is how one data point is generated. To generate a single data point, you go through these two steps. First roll a dice to cut which mixture and then go to that mixture sample Gaussian from that Gaussian data point according to the mean and variance of that mixture.
 
 Now, to generate the second point, you again assume the same story. So, you again, roll the dice, it might fall on a different face, you go to that corresponding mixture and then sample and keep doing this and different times you get a dataset.
+
+### Timestamp: 17:41
 
 So, if you have to put this in the in pictorial form, like how we have been seen so far, it will look something like this. So, you have the first box, which has π sitting in it. You press this button, what you are going to get is well, one of the values which is 1 to k with different probabilities determined by π. So, once you decide which box, then you go to that particular box and then each of these 1 to k has a corresponding box, which has μ1 σ<sup>2</sup> 1, μ2 σ<sup>2</sup> 2,..., μk σ<sup>2</sup> k.
 

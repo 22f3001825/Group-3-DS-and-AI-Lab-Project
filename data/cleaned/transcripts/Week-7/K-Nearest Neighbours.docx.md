@@ -52,6 +52,8 @@ Everybody in between seems red, all this would be red except for this hole, exce
 
 So, it is sensitive to outliers and that is the issue. What is sensitive to outliers? The fact that if you use k =1 it becomes sensitive to outliers because these holes are found by these outliers. So, and if the outlier is on one end then the whole part here you are going to predict as red whereas it should have potentially been green. So, ideally it looks like the real structure is that there are two green parts and then the middle part is red, whereas we are now dividing it into four parts because there was an outlier at the end on the other side. So, k =1 is clearly a bad idea.
 
+### Timestamp: 13:49
+
 Now, what happens if let us say we again take the same data set I will quickly redraw the data set, again you have a bunch of points here, bunch of points here, and a bunch of points here green ones, and then there is a green here, and then there are a bunch of reds here. Now, let us ask the question, what happens if k =n? I think this is a question that you should think about yourself, if the number of neighbors that you are asking opinion for equals n the number of data points then how would the decision boundary look like.
 
 If for every data point, if you are asking everybody their opinion and then you are going to look at the majority. So, everybody every data point test at a point is going to be predicted simply the majority vote of your training data. So, because all everybody in the training data has gives an opinion and then you will take the majority and that is the same majority that will apply for any test data point.
@@ -62,13 +64,19 @@ one region of red. So, what would really happen is this decision boundary would 
 
 So, asking too few people leads to outliers problem asking too many people is always a bad idea. So, you should never ask too many people for opinions because they are just going to confuse you. So, and then you are simply going to always go wrong here as well. So, you have to ask the number of people, that is the that is the idea. So, there is some there is going to be some k*. So, which will give us what we want.
 
+### Timestamp: 16:14
+
 So, what is, what do we want really is you have these points like this and then you have these points of course you have outliers here, here and so on, yet you want to get this region. So, this is the region that you really want to achieve you need green on this side, you need green on this side which means the outliers on either side should not really matter, and you need red here, this is the essential structure in data. And there will be some k* for which this will happen. So, if you ask the number of neighbors then this will you will get this. But the question is, how do we find this number of neighbors? So, so on one side it is too rugged, so you have all these holes, on the other side you have too smooth. So, too smooth that is the problem with k =n but then k equals this is a good choice. So, k* is a good choice. But how do we choose this? The way to choose this is…
+
+### Timestamp: 17:25
 
 So, now how let us let us talk a bit about how to choose k, choosing k, k is a parameter that we supply to the algorithm and then we ask the algorithm to run. So, based on the k that you supply. So, you should treat k as a hyper parameter and we have discussed hyper parameter in the context of regression, the idea is exactly the same, something that it is not part of the algorithm but then it is passed into the algorithm is a hyper parameter and we note that smaller the k smaller the k complicated the decision boundary. So, we need to find a good k.
 
 So, what you would do is, you can just cross validate for k. So, solution cross validate for k, which means try out different k and see which k performs on the held out cross or validation set. So, whichever k gives you the best accuracy in the validation set, that is the k that you should look at. So, on the hope is that such a k will only capture the structure and not the outliers and you will get the boundary like this for instance for example. So, the idea is cross validation that is the most important point. So, you can cross validate for k, so that problem we can solve.
 
 So, we know how to find a good k, let us say. Now, we have put down an algorithm we have said that you can solve the problem of choosing k by cross validation. So, does it mean that we have solved the binary classification problem is k nearest neighbor the best algorithm or are there some issues with the algorithm.
+
+### Timestamp: 18:58
 
 Let us discuss, if there are any issues with k nearest neighbors, issues with K-NN. what do you think are some issues with k nearest neighbors. There are several issues with k nearest neighbors, for example issues like is how do we compute distance. So, choosing a distance
 

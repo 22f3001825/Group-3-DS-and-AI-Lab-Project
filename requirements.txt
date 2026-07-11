@@ -20,6 +20,9 @@ tqdm==4.68.4
 requests==2.34.2
 
 # Vector Database Client
-qdrant-client==1.18.0pymupdf4llm
-pytesseract
+qdrant-client==1.18.0
+
+# Preprocessing & OCR
+pymupdf4llm
+easyocr
 markdownify

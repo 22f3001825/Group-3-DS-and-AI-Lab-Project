@@ -1,5 +1,7 @@
 # **Machine Learning Techniques Professor Arun Raj Kumar Department of Computer Science and Engineering Indian Institute of Technology Madras Convergence of K-means algorithm**
 
+### Timestamp: 00:13
+
 Hello, and welcome back, we are looking at the unsupervised learning specifically the problem of clustering. And last time we put down a specific algorithm called the Lloyd's Algorithm, or the k-means algorithm for this problem. And we try to understand intuitively what this algorithm does, the algorithm, if you remember, it is a simple algorithm, you start with an potentially arbitrary partition of the data points into  clusters.
 
 And then every point looks at the distance of the point to its own mean, and compares it with the mean of other clusters. And if it finds a cluster whose mean is closer to it in terms of distance squared, then the distance squared to its own mean, then it jumps to that cluster. And this happens for every point. And that is how a reassignment of points to partition or clusters happen. And we argued that we will do this until convergence.
@@ -11,6 +13,8 @@ And finally, how do you choose 𝐾, because we are only given the data points, 
 Now, you know that there are only a set of grades S, A, B, C, D, for instance. And now you want to divide your students based on their marks in different exams into one of these buckets where you know the bucket size, or the number of grades on 𝐾, in the K-means algorithm. On the other hand, there might be cases where you do not know 𝐾, you are just given a bunch of points.
 
 And then you want to figure out if there is any pattern where we don’t know 𝐾, and then we need to come up with a way to figure out what is a good 𝐾. So, there are these four points, or these four questions that we will try to answer one by one as we go along in this course. So, the first question is the question of convergence. So, let us start with that question. Which is the question of convergence.
+
+### Timestamp: 02:57
 
 Does the Lloyd’s algorithm converge? I did say last time that the algorithm does converge but we need to argue why. And we will do that right now. So, and understanding this argument also will tell us what kind of partitions that we will end up getting. Converge. So, the answer is yes. But then it needs an argument. So, to argue this, let us do the following. So, here is the proof. So, we will start with a simple fact.
 
@@ -30,6 +34,8 @@ And that is why I am not doing it. So, I would strongly encourage you to try thi
 
 And then you want to treat this as a function of 𝑣, take the gradient with respect to 𝑣, set it to 0 and see which 𝑣 solves that, and you would see that it would be the mean, that is a useful exercise to do. For us, it is just a fact, we will hold on to this fact, we will use this later on when we need it.
 
+### Timestamp: 07:11
+
 So, now we are going to prove why the Lloyd’s algorithm actually converges in a very nice way. So, let us say we are at some iteration, let us call this some iteration t of the Lloyd's algorithm. Now, let us say our current assignment of points to clusters looks as follows. So, 𝑡 𝑡 𝑡 let us call the current assignment𝑍 , 𝑍 , …, 𝑍 , where of course the t corresponds to the 1 2 𝑛 iteration number, and the subscript corresponds to the particular data point. Remember, all of this are between 1 to k, each of these takes a value between 1 to k, because these are cluster indicators in our notation.
 
 𝑡 Now, let us also define µ as the mean of cluster k in iteration t. So, once you have a partition 𝑘 and the 𝑡-th term, there is some partition we are currently at, and each point has its own cluster indicator variable. So, you can basically the 𝑍s will tell you how the data points go 𝑡 into buckets. And each bucket you can compute the mean. And let us call that mean as µ . 𝑘
@@ -45,6 +51,8 @@ So, let us say we update our assignments to the next steps assignments. Now, the
 So, you are in some way of putting points in boxes. Now, you are moving points around. Now, after this the partition that results, is it a better partition than the previous partition? So, in some sense, that is what we are trying to understand. So, how do we argue this is a better partition?
 
 Well, we have to look at our objective function, we had an objective function which given a partition will tell you how good that partition is by assigning it a number. And then we said that we wanted the smallest value for that objective function, the partition that gives us the smallest value. So, in terms of that, what can we say?
+
+### Timestamp: 11:06
 
 So, let us take a look at this. Let us say I want to consider this particular expression,
 
@@ -121,6 +129,8 @@ have kind of argued now. So, what is the argument? So, what have we gained by th
 𝑡 𝑡 Well, this quantity here is the objective function, this is just 𝐹𝑍 , ⋯, 𝑍 . Now, this quantity ( 1 𝑛) 𝑡+1 𝑡+1 here is a 𝐹𝑍 , ⋯, 𝑍 . And we are saying using this intermediate quantity, which is the ( 1 𝑛 ) 𝑡+1 𝑡+1 same here and here. We are saying that well, 𝐹𝑍 , ⋯, 𝑍 . is less than or equal to this ( 1 𝑛 ) 𝑡 𝑡 intermediate quantity, which is strictly less than 𝐹𝑍 , ⋯, 𝑍 . ( 1 𝑛))
 
 𝑡+1 𝑡+1<br>same here and here. We are saying that well, 𝐹𝑍 , ⋯, 𝑍 . is less than or equal to this<br>( 1 𝑛 )<br>𝑡 𝑡<br>intermediate quantity, which is strictly less than 𝐹𝑍 , ⋯, 𝑍 .<br>( 1 𝑛))<br>
+
+### Timestamp: 26:36
 
 Which means what essentially then it says is that the objective function essentially what we are trying to argue is that the objective function strictly reduces after each reassignment that 𝑡+1 𝑡+1 𝑡 𝑡 is 𝐹𝑍( 1 , ⋯, 𝑍𝑛 )<sup><𝐹𝑍</sup> ( 1, ⋯, 𝑍𝑛) if reassignment happens. Okay so, but why does this mean that the algorithm should converge? All we are saying is that we are in some partition, which has some objective value and now reassignment step happens and the objective value strictly reduces.
 

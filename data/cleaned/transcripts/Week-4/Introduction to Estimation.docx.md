@@ -1,5 +1,7 @@
 # **Machine Learning Techniques Professor Arun RajKumar Department of Computer Science and Engineering Indian Institute of Technology Madras Introduction to Estimation**
 
+### Timestamp: 00:14
+
 Welcome back, everyone. So, far we have been looking at unsupervised learning. And specifically, we have been looking at two main paradigms of unsupervised learning specifically, one is representation learning and the other is cluster. So, we have looked at representation learning. And in representation learning, we have looked at PCA as one way to learn good representations, when the features have some linear relationships among them. We also looked at kernel PCA as a means to learn nonlinear relationships among data points via the use of kernel trick.
 
 So, another possible way to look at unsupervised learning is via the idea of clustering, which is also something that we have looked at and in clustering, we have looked at the Lloyds or the K-means algorithm. Now, in both these ways of looking at unsupervised learning, one thing that we have not done is that we have not assumed any model for data. By which I mean that we have not assumed any probabilistic model that generates the data. And we will see what that means as we go along.
@@ -10,6 +12,8 @@ are going to look at something called estimation where the basic difference betw
 
 So, we will see what it means to make some probabilistic assumption about data, it is still going to be in an unsupervised fashion. So, we are still in the unsupervised world. But then we are going to move away from the deterministic methods that we have looked at so far and then look at a more flavor of probability involved when you have some probabilistic model for data.
 
+### Timestamp: 02:55
+
 So, what does it mean to say, there is a probabilistic model, basically, our hypothesis is the
 
 following. There is some probabilistic mechanism that generates the data. So, this is the assumption that we work with. Now, what else about this probabilistic mechanism that we have to look at? Is that, about this mechanism about which we do not know something, so, we do not know something. So, it is not that we are completely aware of the details of this probabilistic mechanism, there is something that we do not know and I will make it clear what this something is.
@@ -19,6 +23,8 @@ And the goal is given data, find or estimate what we do not know. I am trying to
 is a black box, let us say which you do not know what is inside it. But then there is a button on the top of this box.
 
 For the moment, we will assume that the inside the box there is a coin and this coin is not necessarily an unbiased coin. In other words, it has a head and tail on either side. But then the chance that if you flip this coin, head will occur is not necessarily 0.5. It could be 0.7, it could be 0.9, it could be some value p, which you do not know. And that is this coin inside this box.
+
+### Timestamp: 05:08
 
 And what happens is that every time you press this button. This coin gets flipped inside this bias potentially biased coin gets flipped inside. And what you observe is the outcome of this experiment. In this case, let us say its head. Now, let us say head is head means 1, maybe I press this again, I get a tail, tail mean 0 and then I press it again, I get ahead. Let us say head is 1, I press it the fourth time again, I get ahead, let us say head is 1. And I can let us say I have a bunch of such, what I am going to call as observations.
 
@@ -31,6 +37,8 @@ And remember that this assumption, this part of the picture is what is unknown t
 So, you can view this parameter as a compressed representation of the data observed data that you see. But of course, we do not know what this parameter is. And so the goal of estimation itself is the following. So, you observe some data and you assume and again, I cannot stress this enough, you assume a model, in this case, a probabilistic model that generates data. So, there is some model that generates data. And under this model, you want to estimate what you do not know about this estimate, what you do not know about this model.
 
 So, I have assumed that there is a coin. And that coin has some bias. But if you do not know what this bias is. The proxy for understanding this bias, this value P, this unknown parameter is just my data. So, I see this data, I have made this assumption about the model, I do not know what the value of P is. I want to estimate unknown parameters using data. So, this is the general idea of estimation.
+
+### Timestamp: 09:09
 
 Now, let us take a simple example, with again, with the coin toss, but then not just four data points. Let us say we have more data points. The first thing is you observe, so you observe, let us say, 12 or let me make it 12. So, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1. Let us say this is the data that you observed.
 

@@ -4,6 +4,8 @@ Welcome back, we have been looking at the principal component analysis algorithm
 
 And we try to solve that issue by saying that instead of computing the Eigen vectors for the covariance matrix, you could compute the Eigen vectors for an associated matrix, which is the matrix, where is the  data set, a matrix and you can use the Eigen vectors of the to convert it into the Eigen vectors of the covariance matrix. So, that kind of solved issue one.
 
+### Timestamp: 01:14
+
 Now, we will look at issue two, which we also mentioned in a previous video. So, the issue two, that we are going to talk about today is the issue of nonlinear relationships among features. So, we know that PCA is very good at identifying the linear relationships among features. But what, if we just had a nonlinear relationship? To motivate this, let us take a simple example, where we have again, a two-dimensional data, where, let us say the data points were like this. That is the
 
 data points all lie on the circle, on the, on the circumference of a circle, let us say centered at a and b.
@@ -28,9 +30,13 @@ Now, this would tell us then that if I use the thumb rule of 95 percent to pick 
 
 But the real question is, do we really need two directions here? In other words, do we really need two numbers here. I mean, is the relationship such that you need necessarily to, to capture two directions? Or is there a different way to capture this relationship? So, let us think about that. So, what is the real basic fundamental relationship among the, among these data points, by the virtue of the fact that they lie around a circle, the following is true. The relation between features is the following. So now, any data point I can take in this data set, and it has to satisfy , where we say, when I say f1, this is feature 1, the axis y axis is feature 2.
 
+### Timestamp: 06:15
+
 Why because this is the equation of a circle centered at a and b with radius some radius r. So, which means that every data point is on the circle, and so it satisfies this equation. Now, let us
 
 expand this equation and see what we get this implies, we get . So, this is the basic relationship that that all the data points satisfy. And as we can see, this is not a linear relationship. Why? Because this has f1 squared term, f2 squared term and so on. So, this is not a linear relationship. That is that is obvious from the picture, but also from the equations.
+
+### Timestamp: 07:04
 
 So, now let us do let us try to do the following. Let us take the feature f1, f2, this is just some data point. I mean, maybe f1 is 5, f2 is 10, some numbers, so two numbers. And now what I am going to do is for each point in my data set, I am going to map it to some other data points. So f1, f2, if f1, f2 was my data point in my data set, I am going to map it to a different point.
 
@@ -54,6 +60,8 @@ So, because this =0 is a linear equation in the higher of x space, basically, wh
 
 dimensional space. So, now the question is, well, what, what is the use of this? So why? Fine, so, this is fine.
 
+### Timestamp: 11:56
+
 So, but how can we convert this into an idea? Well, here is the idea. The idea is the following. Now, given a data transform features, from low dimension R<sup>d</sup> to high dimension R<sup>D</sup> , so, you have x which is  in R<sup>d</sup> , and now you apply some and then map it to D, where you hope that the data lives in a low dimensional subspace. Now, a big low dimensional linear subspace, so, and because the data lives in a low dimensional linear subspace in this map dimension, now, we know already how to extract this low dimensional linear subspace.
 
 So, the important directions corresponding to this low dimensional linear subspace, that is what our PCA anyway does. So now, because you are doing this mapping, you are increasing the dimension. So, which means your d could be really large. But now, we already know how to handle the case when d is much larger.
@@ -68,6 +76,8 @@ So, so this seems like a great idea. It is in the sense that we know how to solv
 
 Once you do that, then yes, so in the high dimensional space, you can find a linear relationship using your PCA because B is much much larger than n, you can still run your PCA. So, it seems like a reasonable idea to start with. And it is. So, that is what we are going to see how to convert this into a like a solid idea. But then we will hit a lot of bottlenecks, we will hit a lot of issues, and then we will have to handle them.
 
+### Timestamp: 15:15
+
 The first issue, the most important issue perhaps is the following. Let us say you had four<br>features, and you wanted to capture cubic relations. Think of these four features as height,<br>weight, a gender, let us say. So, when you say cubic relationships, it means that I should be able<br>to capture relationships such as height x weight x gender, or height x weight 2  x age, sorry, not<br>that that would be fourth power, but let us say heightxweight 2 , or weight 2 xh, it is all possible<br>combinations where if you sum up the power of the combinations, there will be 3. So, in this<br>case, so the number of, so basically, if I do the mapping,  , which captures all cubic<br>relationships in remember, there is a different final from the   that we used earlier.<br>Now, this   will have all possible cubic relationships. Now, this is going to be a constant f1, f2,<br>f3, f4, well, these are the relationships which are to the power 1. To the power 2 would have f1,<br>f2, f1, f3, and so on, till f3f4. And then there will be  4 C2 , so this is2 , so this is , so this is 4 C0, this is 0, this is , this is  4 C1, the 4 is the 1, the 4 is the , the 4 is the<br>number of features that you have case,  4 Ck , where k is the number of the power that you are k , where k is the number of the power that you are  , where k is the number of the power that you are<br>talking about.<br>This will be  4 C2, and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will 2, and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will , and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will  4 C3 of these guys. 3 of these guys.  of these guys.<br>
 
 The first issue, the most important issue perhaps is the following. Let us say you had four features, and you wanted to capture cubic relations. Think of these four features as height, weight, a gender, let us say. So, when you say cubic relationships, it means that I should be able to capture relationships such as height x weight x gender, or height x weight<sup>2</sup> x age, sorry, not that that would be fourth power, but let us say heightxweight<sup>2</sup> , or weight<sup>2</sup> xh, it is all possible combinations where if you sum up the power of the combinations, there will be 3. So, in this case, so the number of, so basically, if I do the mapping, , which captures all cubic relationships in remember, there is a different final from the that we used earlier.
@@ -77,6 +87,8 @@ Now, this will have all possible cubic relationships. Now, this is going to be a
 This will be<sup>4</sup> C2, and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will 2, and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will , and then there'll be f1 f2 f3, f1 f2 f4, and so on. So, there will<sup>4</sup> C3 of these guys. 3 of these guys.  of these guys. Then we stop at that, because we only care about cubic features, let us say. So now the total dimension of this map is 1+4+6+4. So, this is<sup>4</sup> C1 ,<sup>4</sup> C2,<sup>4</sup> C3 . Now, the question is, how does this grow? So, if I had d features, so in general, if I had d features, and if I care about the pth
 
 power, so d features and want model pth power relationship, up to pth power. Let us say, less than or equal to pth power.
+
+### Timestamp: 17:38
 
 Then, how many features would the map have? If you think about it, that it is going to be . That is what it would be. And one can show that this is something like this grow something like d<sup>p</sup> P. Now, what does this tell us? This tells us that if d is let us say, 10, and I cared about some kind of 15th power relationship, let us say, so now that would mean I would the map, would have 10<sup>15</sup> features, the original dimension had only 10. But then in the map space, these are going to be 10<sup>15</sup> .
 

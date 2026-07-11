@@ -4,6 +4,8 @@
 
 Now, what we are going to see is a probabilistic view of linear regression. What happens when you think of linear regression as if there is some probabilistic model that generates our labels. So, that is what, that is what we are going to look at. So, we have already looked at estimation, in general in an unsupervised setting where we have seen maximum likelihood Bayesian methods and so on. But now, we are going to think of our linear regression also as in some sense an estimation problem, which means that there should be some probabilistic mechanism that we are going to assume that generates something that we have seen.
 
+### Timestamp: 01:04
+
 So, what is that we are going to assume? Well, in the linear regression problem, you have the data points in d dimension, the labels are in real numbers and of course, you have a dataset which I can write as {(x1,y1),.., (xn,yn)} this is the dataset. Now, the probabilistic model that we are going to assume is as follows, we are going to assume that the label is generated as follows the label given the data point is generated as w<sup>T</sup> x + ε.
 
 What does this mean? This means that I do not I am not trying to model how the features themselves are generated, I am just trying to model the relationship between features and the labels in a probabilistic way, and what is the probabilistic mechanism that generates the labels if I give you x, well, what we are going to posit or hypothesize is the following.
@@ -16,9 +18,13 @@ So, this is Gaussian, Gaussian. So, so, now, what we are saying is that our data
 
 So, but the only thing that is unknown for us is w we do not know w so, which means now, we can view the whole thing as an estimation problem.
 
+### Timestamp: 03:48
+
 So, now we can view we can view this as an estimation problem, what are we trying to estimate? Well, we are trying to estimate the w which after adding noise affects our labels. So, once we have put down a model as to how the data is generated, at least the y is given x is generated, and we have an unknown parameter.
 
 Now, we already know what some methods to estimate come up with estimators and the simplest method that we have already seen. The solution approach to this problem is, as you must have already guessed, is just the maximum likelihood approach. So, now I want to understand the same problem, but then in a maximum likelihood context and see what comes out of it.
+
+### Timestamp: 04:50
 
 So, which means the standard maximum likelihood problem, I am going to write the likelihood, so the likelihood function is going to look like this. Let us call this x. Now, what is the parameter of interest, well the parameter of interest is w, but then the likelihood function also depends on the data x1 to xn and y1 to yn, because this is the observed data points, we are observing this and then we are treating this as if it is a function of w.
 
@@ -30,13 +36,19 @@ But this noise is 0 mean noise with a certain variance. So, if I add a constant 
 
 Now, I have added w<sup>T</sup> xi to this 0 mean Gaussian for the ith data point. So, now, that would be a Gaussian distribution with mean w<sup>T</sup> xi and variance σ<sup>2</sup> , which we are assuming is known.
 
+### Timestamp: 06:48
+
 So, now this would then be the likelihood can be written as the density of e, which looks like e power, w<sup>T</sup> xi, which is the mean, minus what I observed, which is yi squared by 2σ<sup>2</sup> and of course, with 1 /√2π σ. Though let us content it does not really matter in our in our maximization as we will see.
 
 So, once we have put down this likelihood, I can now do the log likelihood log L (w, x1 to xn, y1 to yn). We want to do the logarithm because it is hard to deal with products, easier to deal with sums. So, this is Σ<sup>n</sup> i=1<sup>,thelogcancelsthe exponential. So, this is minus, (wTxi- yi)2 / 2 σ2 . 1/√2π</sup> σ. Now, remember, we want to think of this as a function of w, x is our constant, σ is our constant, everything else, y is our constant, so it is only a function of w.
 
+### Timestamp: 08:05
+
 And we want to see which w maximizes our likelihood or log likelihood, which means I can equivalently equivalently w star, I mean, to get the best w. I could have maximized. So, the mean, I want to maxw Σ<sup>n</sup> i=1<sup>,Iamgoingtoremove,Idonotcareaboutthesevariables,these are</sup> just constant scalings, these are known σ<sup>2</sup> is assumed to be known. So, these are constants, I do not care about them. I will just hold on to the other guys.
 
 So, this is just (w<sup>T</sup> xi-yi)<sup>2</sup> , of course, the minus is there. Now, this is equivalent to minw Σ<sup>n</sup> i=1<sup>(wT</sup> xi- yi)<sup>2</sup> . Now, this minimization problem is something that we have already encountered. So, this is exactly the linear regression problem with squared error that we already put out, which means we know the solution to this.
+
+### Timestamp: 09:12
 
 So, so basically, what is the solution to this? Well, then, the ŵML as an estimator is exactly same as our w*, which we already know is (xx<sup>T</sup> )<sup>✝</sup> xy from our previous discussion about linear regression. Now, it is great that we started with a completely different technique of looking at things which is by thinking of a probabilistic mechanism for generating y given x and then did the most natural thing which is to look at a maximum likelihood approach and outcomes solution, which is exactly same as the linear regression solution.
 
@@ -57,6 +69,8 @@ Let us say in fact, and if if I mean just for completions sake, if you use a lap
 So, because the laplacian PDF has an absolute value sitting at the top of exp e<sup>-abs(wTxi-y)i</sup> , it it it kind of falls down sharper than the Gaussian distribution but that that is not the important point. The important point is that choosing a noise means implicitly choosing an error function and vice versa, choosing an error function means implicitly choosing a noise, so that is the first connection that we want to make, which is which is important so, good so, we have made that connection.
 
 The question is, is this the only thing that we gain, or are we gaining anything else by looking at this from a probabilistic viewpoint, well, the answer is yes, this is an important conclusion that we are drawing that if you view your w as an estimator, then you can connect the noise and the loss.
+
+### Timestamp: 13:50
 
 But now what else have we gained? So, what else, what else have we gained, by viewing this in a probabilistic way, well, the most important thing that we might have (perf) perhaps gained is that now we can study properties of estimator especially to ŵML. So, this is an important gain that we have when we view learning as a probabilistic mechanism, because the moment you put probabilistic learning becomes estimation and once you have an estimator, then you can bring in all the machinery that we know about understanding estimators. We have already seen some kind of understanding what are good estimators and whatever perhaps not.
 

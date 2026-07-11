@@ -6,9 +6,13 @@ So, we asked the question, can we come up with algorithms, which given a dataset
 
 Today, now, what we are going to see is such an algorithm, which is a simple algorithm, very popular algorithm, and it is it kind of is a base algorithm for several complicated algorithms that we will see later on as well.
 
+### Timestamp: 01:02
+
 And this algorithm is what is called as the decision tree algorithm. What is the input to this algorithm? As usual, the input is a data set, which is a training data set, which looks like as usual, (x1, y1), dot, dot, dot, (xn, yn) where xi is in d dimension for all data points. And yi is in +1 or -1, this is a binary classification problem.
 
 Now, what is going to be the output of this algorithm is? You take the dataset and then output a decision tree. And this decision tree is going to be used to make future computation future predictions. So, what is a decision tree?
+
+### Timestamp: 01:58
 
 A decision tree is going to look as follows. How is the decision tree going to look like? It is a tree, a tree in the sense of computer science, tree is going to look like following. So, it is a binary tree. And it is going to have some nodes, it is a root tree, it is going to have a root node. And then you are going to have some internal nodes, and then you are going to have some leaf nodes, that is our tree typically is.
 
@@ -28,6 +32,8 @@ Once I have this, I can throw away the data set and work just with the tree, whi
 
 So, now the questions that we have to ask is, what are these questions? So, how do I mean how do I build this tree is one thing, but even before we build the tree, we need to ask ourselves, what are we? What type of questions are we asking? So, that we can think about how to build the tree in an efficient way? So, what is the question?
 
+### Timestamp: 07:21
+
 Question? In a binary tree, in a decision tree, a question you can think of a question as a feature value pair. What does that mean? An example would be feature is height, let us say height and the value is 180 centimeters. Now, the question that we will create out of this is as follows; is the height ≤ 180 centimeters? Maybe this is feature 3, maybe this is some value θ. So, in general, it is some feature and then we are asking is some feature less than or equal to some value? This is the type of questions that we are going to restrict our tree to have.
 
 So, once we know what kind of questions we are going to ask, then we need to build this tree somehow from the dataset. Now, which means we have to, what we are going to do is? We are going to greedily ask questions. So, we have to first somehow find what is the best question to ask? And then we will ask, we will later on try to expand this tree. So, which means we need to somehow have a measure of how good a question is? So, what we need immediately then is? We have to ask ourselves how to measure goodness of question?
@@ -35,6 +41,8 @@ So, once we know what kind of questions we are going to ask, then we need to bui
 So, what might be a good way? So, this might be a good time to pause and think, how do you, how can you measure goodness of a question? So, just to just to, point you in the, perhaps a useful direction to think about, instead ask the question, what would be the property of the best possible question? So, I have a data set. And my goal is to do prediction well.
 
 Now, what would be really good question? So, what property should that question have? let us ask this ourselves.
+
+### Timestamp: 09:50
 
 Now, what is a question do to our data set? So, remember, we have this data set, let us call this D. So, data set, which is just a bunch of data points of this form (x1, y1), dot dot dot,(xn, yn). And now we ask a question, let us take one particular question, some feature, let us say height is less than or equal to some value, let us say 100, 120 centimeters, 130 centimeters, whatever. So, we ask this question, of course, this is a yes or no question.
 
@@ -52,6 +60,8 @@ But in reality, such a question may not exist, there may not be a single questio
 
 Now, I need to see how impure each of these parts are. So, or how pure each of these parts are? So, I somehow have to measure this So, which means I know how to measure.
 
+### Timestamp: 13:57
+
 So, need, what we need is a measure of impurity for a set of labels. Let us say I give you a bunch of labels So, y1 to yn, or yk. So, the data set can be of any size. So, after you ask the question, only k points have answered yes. I need to I need to associate a measure of impurity. These y labels are either, +1 or 0. So, we can, for instance, look at the fraction of ones. So, we can, we can see we can look at the fraction of ones in my set of labels.
 
 I give you a bunch of labels. The question is how impure is this bunch of labels? I can compute how many 1s’ are there or the fraction of 1s’. And that fraction could be any value between 0 to 1. So, this is the fraction of 1s’, fraction of 1s’in my set, let us call this value p. p can be any value between 0 to 1, if p is 1, then that means that all my labels are 1, if p is 0, that means all my labels are 0, there is no 1s’ at all.
@@ -66,6 +76,8 @@ So, which means that if you have 25 percent 1s’ and 75 percent 0s’, it is as
 
 So, one function which has this property, which looks like this, So, the function looks like this, it peaks at 0.5. And I have drawn it slightly skewed, but then it is symmetric about half. So, the values at one fourth and three fourths will be the same, it will be 0 at the ends. So, one such function is what is called as the entropy function. So, we could use many functions which have this property.
 
+### Timestamp: 17:33
+
 One popular function that people use is the entropy. Entropy, you think of entropy as a bunch of labels, that is what we are trying to find out some bunch of labels is just the entropy of the fraction of 1s’ because that is what determines how pure or impure this set of labels is? Is defined as the following. It is defined as -(p log p+(1-p) log (1-p)). With the understanding that, the convention says that log of 0, you should treat as 0.
 
 So, if this one possible function, which captures our notion of impurity, and basically what you would get, if you plot here is just the entropy of p, what I am plotting on the y axis is just entropy of p, it will collect this, it is a concave function, which looks like this. So, this is a reasonable measure of, of impurity. Of course, there are some information theoretic reasons why this, this makes sense and so on, we will not get into the information theoretic.
@@ -73,6 +85,8 @@ So, if this one possible function, which captures our notion of impurity, and ba
 In fact, it has, it has underpinnings in statistical physics, from thermodynamics, and so on. That is where the name entropy comes from and then which was borrowed by information theory by Shannon. And then, for our purposes, we should we can just think of measuring impurity. So, some function that measures impurity, that is what we are, we care about.
 
 So, what we now have is some way to measure how impure a bunch of labels are. So, now we have to use this somehow, to come up with a goodness for a question. So, that is our goal So, given a question, how good is this question?
+
+### Timestamp: 19:32
 
 Now, remember, we had a data set D. And then we asked a question. So, we have a data set D and then we ask a question, f (k ≤ θ) it divided my data set into two parts D yes and D no. This is the yes guys, this is the no guys this is D no.
 
@@ -83,6 +97,8 @@ So, it tells us how impure D is? How impure D yes is and how impure D no is? So,
 We need to associate a single number to measure goodness of a question. So, how can we convert these three numbers in a natural way to associate a goodness for question f (k ≤θ)? one way to do this is an and perhaps the most natural way to do this is the following. You look at what is usually called as again, from information theoretical underpinnings is called information gain of a feature comma value, so of a question which is feature comma value pair, can be defined as you know how much impurity I originally had, which is entropy of the original data set D.
 
 Now, I have entropy of D yes and I have entropy of D no. Now, I am going to subtract this impurity from some combination of the impurity of D yes and D no. Now what combination I am going to use? I am going to use some combination that depends on how many data points fell on each side.
+
+### Timestamp: 22:22
 
 So, let us say λ is the fraction of data points that went to the D yes side and fraction of data points that went into the D no side is 1 -λ so λ, sorry, Ɣ. So, I am using not λ ,Ɣ, Ɣ is just, you know, how many guys went to D yes cardinality of the set D yes, by cardinality of the set D.
 

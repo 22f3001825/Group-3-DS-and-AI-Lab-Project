@@ -1,5 +1,7 @@
 # **Machine Learning Techniques Professor Arun Rajkumar Department of Computer Science and Engineering Indian Institute of Technology Madras Kernel Regression**
 
+### Timestamp: 00:13
+
 So, let us try to understand non-linear regression now. By non-linear, I mean that let us say we have some hypothesis that the actual the relation between features that should explain why it is not necessarily linear it is not w<sup>T</sup> x. But then some other complicated relation, maybe height and weight are your features, you want height<sup>2</sup> + 3(weight) - weight<sup>2</sup> , or something like that, that best explains our label y for example.
 
 So, then your linear regression will fail, because it cannot capture these either the squared terms, or if you had a cross term like height into weight, which makes sense, which makes which is important to explain your y still linear regression would not be able to capture such relationships, you can still run linear regression, but then even the best w will make a lot of perhaps a lot of error in your training set and your validation set also.
@@ -16,15 +18,21 @@ So, this is the matrix this is the vector that we have and as it stands, it is i
 
 points.
 
+### Timestamp: 03:13
+
 So, let me put that down and then try to explain that. So, w* this is the first point that we will note must lie in the span of data points. Now why is that true? So, what does it mean to say w* lies in the span of data points, so you have a bunch of data points d dimension, so then w* is also a vector in d dimension, I am saying w if all the data points were lying on a plane in 3 dimensional space, then w* will also be on the same plane.
 
 So, so let us think of this in pictorially maybe you have a 3 (dime) 3 dimensional data points, but then necessarily not all points are in 3 dimension. Let us say there is some maybe use a different color maybe there is some 2 dimensional plane sitting inside this 3 dimensional space, which is where our w* actually lies in, sorry, that is where our data points lie in not w* at.
 
 So, let us say all of our data points are they are 3 dimensional points, but then they effectively are lying in some 2 dimensional plane let us say. Now, now the question is, will our w* also lie on this plane? Or should can w* lie outside this plane?
 
+### Timestamp: 04:50
+
 Now, let us say w* for the sake of argument, let us say the w* was lying outside this plane, maybe this was our w*. Now, remember, w* is the one that minimizes our minimizes the sum of squared error. So, (w*<sup>T</sup> xi - yi)<sup>2</sup> is as small as possible among all possible w's.
 
 Now, if this w* was actually out of this plane, so maybe it was not on this plane, then, let us now look at the following new w that I give you, which is the projection of this w* onto this plane that is the closest point of w* on this plane.
+
+### Timestamp: 05:35
 
 Now, let us call this guy as w<sup>~</sup> , now, let us ask the question what can we say about w<sup>~T</sup> xi - yi, well, how does this compare to this guy. So, it is this of course, it cannot be less than this strictly less than this because by definition, we are assuming w* has the smallest value, because it solves this problem.
 
@@ -38,19 +46,27 @@ So, for any data point, the dot product that w* makes with respect to the data p
 
 So, what I can then say is that, well, without loss of generality, I can assume that the original w* that I have actually lies on the plane or on in general in the span of the data points itself. So, I can start with such a w* because that w* is good enough for my predictions and so, I will use that w*
 
+### Timestamp: 08:30
+
 So, what does that mean? That means that w* equals some linear combination of your data points. So, your data points are in a plane and so, linear combination of these data points should have given w*.
 
 So, it is some x times α* for some α* in Rn. So, Rn because there are n data points and we have a d x n matrix which is which is x. So, you are taking all the vectors in the dataset, now weighing them using alphas α* i for the ith the data point adding them up and then you will get w*. But remember we also know w* is just (xx<sup>T</sup> )<sup>✝</sup> xy this comes from our gradient analysis. So, we took the gradient set it to 0 and then we got w w* is this.
 
+### Timestamp: 09:25
+
 So, this means that x α star equals x x<sup>T</sup> inverse x y or pseudo inverse, I mean I will keep saying inverse but then it also means pseudo inverse. Now, what we want to do is we will kind of try to get rid of this xx<sup>T</sup> . So, we will pre multiply by xx<sup>T</sup> on both sides to get xx<sup>T</sup> xα* = (xx<sup>T</sup> ) (xx<sup>T</sup> )<sup>✝</sup> xy. This is to cancel out this guy so these two guys kind of cancel out, because that is the property of pseudo inverse, you multiply the matrix it in pseudo inverse you will get an i.
 
 So, this is, this just means we have (xx<sup>T</sup> ) x α* = xy. This is where we are where we are right now. So, as you can see, the goal of the whole goal is to somehow write it in terms of x<sup>T</sup> x, so we have x<sup>T</sup> x here, but then there is also an x sitting on the other side, so we can simply say that, we will pre multiply this whole thing by x<sup>T</sup> , let me use a different color to to show the difference maybe screen x<sup>T</sup> (x x<sup>T</sup> )x α* = x<sup>T</sup> x y.
+
+### Timestamp: 11:02
 
 Now, we have something that is nice in the sense that we have x<sup>T</sup> x occurring twice here and occurring once here so, which means this whole thing can be written as x ( x<sup>T</sup> x)<sup>2</sup> α* = x<sup>T</sup> x y. Which means x<sup>T</sup> x is our kernel matrix, which we can let us call this as k define this as k so, then this just means we have equation k<sup>2</sup> α* equals k y. Or in other words, if k is invertible, so then we can simply say α* is just k inverse y.
 
 So, basically, this simply means that what is the what is the use of this, so, what are we saying we are solved for α*, where w* is how you should combine your data points using α* to get w*.
 
 And we are saying if you use a gentle kernel matrix, then the way to combine is given by the inverse of the kernel matrix times y.
+
+### Timestamp: 12:09
 
 Now, what is the use of this? The whole point of doing this is that now when you do prediction, so if you if you have a new data point, let us say, for some xtest, if you have a new data point x test in d dimension, then the kernel would tell you that, well, I need w*<sup>T</sup> ɸ of x test. So, I have to map my x test to high dimension and then take a dot product with w*, which is the best w* which minimizes the squared error of all the data points map to the higher dimensional space.
 
@@ -62,6 +78,8 @@ So, can we do make this prediction without explicitly using ɸ? Well, that is wh
 
 w* is a linear combination of data points in high dimension. Now, this transpose ɸ of x test, this is our prediction. But now this can be gotten as Σ<sup>n</sup> i = 1<sup>αi* K( xi , x</sup> test<sup>).</sup>
 
+### Timestamp: 14:28
+
 So, you have a kernel matrix, kernel function, which given any two data points evaluates the dot products in high dimension, which we can do using this and then α* is simply got by solving k inverse y, where k itself is just n cross n matrix, where you evaluate the kernel for the dataset, like how we did for PCA also, the just the extra thing that appears here is the y also matters now.
 
 Of course, it should matter because it is not PCA, unsupervised so this is supervised. So, the label should also matter and so the y also plays comes into the picture here. So, basically, then how would you do linear and non-linear regression, the algorithm is very simple. So, you are given a bunch of data points, you are given a kernel function, now evaluate the kernel functions and all these data points to get the matrix k and n cross n matrix.
@@ -69,6 +87,8 @@ Of course, it should matter because it is not PCA, unsupervised so this is super
 Now, compute α* = k<sup>-1</sup> y. Now, once you have α* for a new new data point, any data point x test, you you simply compute prediction as Σ<sup>n</sup> i = 1<sup>αi* K( xi , x</sup> test<sup>). it is as if asking you can think of the</sup> kernel function as how similar are these two data points, that is what the kernel function is, in essence doing.
 
 So, in this it is saying, given a new test point, I am seeing how similar is this test point to each of my training data points, that is what the k(xi, xtest) is saying how (sim) how similar is this new point each of the training data points, but then how important is this training point to the w* that is given by α*.
+
+### Timestamp: 16:05
 
 So, α* says how important is i ith point towards w*. Now, the k(xi, xtest) is says how similar is
 
@@ -79,6 +99,8 @@ So, now, by choosing different kernels, which we have seen earlier quadratic ker
 So, this is the this is this is about the relationships between features and how they explain the variables. So, so, so, far we have looked at three different aspects. So, one is the geometry consideration of what does it mean to say we have a w* and we explain that as projection of
 
 labels onto the features subspace spanned by the features is just your xw*, then we looked at computational considerations, we came up with a stochastic gradient descent algorithm.
+
+### Timestamp: 17:56
 
 And now, we are saying well, if you want to run if you want to capture non-linear relationships among features that explains the labels, then use kernel regression, this this is what is called as kernel regression as how PCA to kernel PCA regression to kernel regression.
 

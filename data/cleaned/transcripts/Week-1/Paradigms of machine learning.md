@@ -1,5 +1,7 @@
 # **Machine Learning Techniques Professor Arun Raj Kumar Department of Computer Science and Engineering Indian Institute of Technology Madras Paradigms of Machine Learning**
 
+### Timestamp: 00:13
+
 So, now these are examples. But now what I want to say is give a high level view of what are the broader paradigms of machine learning? And, then how do these examples fit into these paradigms. So, there are three major paradigms. The first one is called  supervised learning, where in addition to data, you also have some kind of supervision associated with the data.
 
 For example, you might have a lot of emails with you, but then that is just data that does not have any supervision. But then some teacher or labeler, might come and say that, hey, these are the emails, which are spamming,  which the labeler labels, that these emails are spam, and then a bunch of other emails as non-spam emails. Now, you not only have data, you also have the labels associated with them.
@@ -58,6 +60,8 @@ So, and the goal of the robot is  then to learn a good policy that will, eventua
 
 So,  such algorithms are called as reinforcement learning algorithms and the setup itself is called reinforcement learning. Again, we would not discuss that as I mentioned in this course.
 
+### Timestamp: 10:25
+
 So, now quickly, let us try to put back, the examples that we saw earlier into buckets that we<br>have discussed. Now, the spam versus non spam problem is a classical standard problem, which<br>comes under the topic of binary classification. It is supervised learning problem, because you<br>have supervision in terms of labels, the labels are either spam or non-spam, there are only two<br>possible labels.<br>So, it is a binary problem. And then, because if you are trying to classify whether it is spam or<br>not, it is a binary classification problem. On the other hand, if you look at forecasting rainfall,<br>here, you have a bunch of features, and then you are trying to predict how much will it rain, and<br>this how much is a continuous number. So, it can rain  2.23 centimeters, or maybe 100.82<br>centimeters, depending on which location you are in, and so on.<br>So, that is a continuous number and that is, what is called as a regression problem. So, now there<br>
 
 So, now quickly, let us try to put back, the examples that we saw earlier into buckets that we have discussed. Now, the spam versus non spam problem is a classical standard problem, which comes under the topic of binary classification. It is supervised learning problem, because you have supervision in terms of labels, the labels are either spam or non-spam, there are only two possible labels.
@@ -86,9 +90,13 @@ And then, the stock market reacts at the end of the day, you have a feedback not
 
 course.
 
+### Timestamp: 14:47
+
 So, now let us talk a bit about pre-requisites. The main pre requisites are those that are typically covered in your machine learning foundations course, which are linear algebra, probability, statistics, and basic high school calculus, a little bit of optimization would really come in handy. So, if you have done the ML foundations course already, and then you are coming to MLT, then you are pretty much, you have the pre-requisites, the necessary pre-requisites.
 
 But then if you are watching this without having done an ML foundations course, but then if you know, this pre-requisite material, then you can still most likely follow most of the lectures. The idea is to keep the lecture self-contained as much as possible. I might use some results that you might have seen in a linear algebra class earlier, but then I will try to keep them as self-contained as possible. That will be the goal of this course as well.
+
+### Timestamp: 15:50
 
 To specifically state the goal of this course would be to put them down in points, mainly, what<br>we want to do is, at a basic level, get a very high-level clear understanding of what various<br>paradigms of machine learning are the ones that we saw, just a while ago. But then in much more<br>detail, in terms of algorithms and so on. Again, given a real-world problem, we should develop<br>an ability to pose it as a relevant machine learning problem.<br>So, because the applications are endless, so now, you might end up in a situation where you<br>have, well, you might encounter a problem, which is not the standard machine learning problem<br>that we discuss in this course. Nevertheless, the ideas in this course should help you, pose the<br>problem as a relevant machine learning problem, abstract out things, post it in as a supervised<br>learning problem or an unsupervised learning problem and things like that, and then try to see<br>which algorithms that we develop in this course, are best suited, and so on.<br>Of course, one of the major goals would be to understand key machine learning algorithms, their<br>differences, when what works and why their pros and cons, in situations where one might be<br>
 
@@ -104,6 +112,8 @@ Of course, as part of this course, we hope to give you a lot of non-graded assig
 
 well.
 
+### Timestamp: 18:31
+
 What I am going to do is give a very, very simple example, something that you might have already seen if you're taking an MLF course. Nevertheless, we will quickly go through this example just to illustrate why these prerequisites are relevant. A simple example would be to take two values from a set of 100 people, one would be their height, and one would be their weight, and then plot it on a two-dimensional plane, you might get a set of points like this.
 
 So, now, let us say your goal is to predict the height of a person, given just a weight, you do not know the height of that person, you want to make a prediction, but you only have the weight as input. Now, how can we use this data to learn a mapping from weight to height? But one simple observation here is that well, on an average, if the weight increases, the height also tends to increase. So, in a linear fashion, so, there is a linear relationship between weight and height.
@@ -111,6 +121,8 @@ So, now, let us say your goal is to predict the height of a person, given just a
 So, we might want to find out that best linear relationship  that maps the weight to the height, right. So, in some sense, we want to find the line and then now once you have the line, if I just tell you the weight, you can use this line to make the prediction for the height. But the problem is there is not a single line, there are infinite possible lines on the two-dimensional plane. Even if you look at only lines passing through the origins, there are still an infinite number of them. How
 
 do I find which is the best line?
+
+### Timestamp: 19:56
 
 Well, we somehow have to find what is the best line using some criteria. And using that criteria, we will then  find the best line and then use that best line to make predictions. So, essentially what we have done is, we are saying that, well, first thing we said is that the weight and height are linearly related, which means that the structure that relates the weight and height is a linear structure, which means we are looking for lines.
 
@@ -122,11 +134,15 @@ And now how do you convert this data into decision? So, how can you figure out t
 
 decisions.
 
+### Timestamp: 21:37
+
 So, all these three are essential ingredients of a machine learning to develop a machine learning algorithm. And this is why these three become major pre requisites for this course, to understand structure, we need to understand basic structure, which is a linear structure, which will help us
 
 develop algorithms to understand nonlinear structures later on. But to understand linear structure, we need to understand lines and the calculus of lines, which is linear algebra.
 
 To deal with uncertainty, our  mathematical language to deal with uncertainty is probability. So, we would need probability. And finally, to convert data to decisions, you need to solve a problem that maximizes something or minimizes something. And then you would have to convert data to decisions, which is where your optimization comes into picture. So, these three become key prerequisites for this course.
+
+### Timestamp: 22:44
 
 So, this is a tentative roadmap for this course, most likely, I will try to follow this roadmap. So, basically, you are at the beginning of this course. So, let us assume this is you. And then you have a long way to go before you finish this course. And then, mount your flag on the castle of victory, whatever you want to call it.
 
@@ -137,6 +153,8 @@ Then we will talk about supervised learning in the second part of the course, so
 Again, I would not talk about the exact algorithms. Now, as we go along, we will see what these algorithms are. And finally, we will talk about some advanced topics in supervised learning.
 
 So, this would be the high level, roadmap for this course from, where you are right now to where you will be after you finish this course. Of course, there are going to be all these assignments in between, well, it is important that, we test ourselves where we stand, and so on. So, all these assignments will actually help you, understand these ideas that we go over in the course very well. So, that is the overall plan.
+
+### Timestamp: 24:16
 
 The high-level references, when I say high level, because I am not going to follow a single textbook for this course. But these might be useful references. So, for linear algebra, if you want to brush up linear algebra, you can look at the book by Professor Gilbert Strang on linear algebra and applications. For probability, a first course on probability should suffice by Sheldon Ross, which is a great book.
 
@@ -149,6 +167,8 @@ So, this would try to, combine whatever you might have seen in your machine lear
 So, this would try to, combine whatever you might have seen in your machine learning foundations course, or pre-requisite courses that you might have taken, and then put them in a machine learning context. So, very nice book, definitely recommend you to take a look at that as well. Again, as I said, these are references.
 
 These are not, we are not going to be following strictly in a textbook for this course, the class, the lecture notes should suffice with respect to solving the assignments or solving the exam problems for this course. But if you want to go over and beyond that, and learn a little bit more deeper about some of the ideas that are being taught in this class, you can always refer to these books. So, some of these, for instance, the PRML book would have a super set of ideas that are being covered in this course.
+
+### Timestamp: 26:27
 
 So, with that we will stop the high-level introduction part of the course. So, I welcome you all to
 
