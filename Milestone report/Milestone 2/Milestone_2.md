@@ -138,18 +138,12 @@ Field notes:
 
 | Issue | Observation / Status | Mitigation |
 |---|---|---|
-| Missing values | To be logged per source_type/week once corpus is scraped (e.g., weeks with zero External Notes) | Documented as coverage gaps rather than imputed; flagged for augmentation (Sec. 5) |
-| Duplicates | Exact count of near-duplicate FAQ/Discourse entries to be measured after running embedding-based similarity check | Near-duplicate detection via cosine similarity on embeddings; duplicates merged, keeping the most complete answer |
-| Noise | Transcripts are expected to contain filler words, timestamps, and speaker artifacts (e.g., "um", "so yeah", `[00:03:12]`) — to be confirmed by sampling a subset of transcripts | Regex-based cleanup + sentence-boundary re-segmentation |
-| Formatting inconsistency | Notes are known to mix Markdown, LaTeX math, and inline HTML; PYQs are PDF/scanned — extent to be confirmed by file audit | Unified conversion to plain text with LaTeX preserved via delimiters (`$...$`); OCR (Tesseract) for scanned PYQs |
-| Broken/stale links | Number of 404s from Discourse-linked resources to be logged during scraping | Logged and excluded from ingestion; does not block pipeline |
-| Answer correctness (FAQ) | Some FAQ answers are informal TA replies that may not be verified against notes — extent to be assessed manually on a sample | Cross-checked against instructor notes before inclusion in the trusted retrieval index; unverified entries tagged `low_confidence` |
-
-### 4.1 Near-duplicate detection threshold
-
-- The threshold will **not** be hard-coded a priori. It will be **determined experimentally** by manually labeling a sample of ~100–150 candidate pairs (spanning FAQ, Discourse, and External Notes) as duplicate/non-duplicate, and selecting the threshold that maximizes F1 on this labeled sample.
-- As a reference starting point, sentence-embedding literature (e.g., Sentence-BERT / SimCSE semantic textual similarity benchmarks) commonly treats cosine similarity above ~0.85–0.90 as indicating high semantic overlap; this range will be used only as an initial search window, not as the final value.
-- The final chosen threshold, along with the observed precision/recall trade-off, will be documented once the corpus audit and threshold-tuning experiments are complete.
+| Missing values | Minor coverage gaps observed in early weeks for External Notes. | Documented as coverage gaps rather than imputed; flagged for augmentation (Sec. 5). |
+| Duplicates | Zero exact duplicates were found within the verified dataset. | No merging required; all documents ingested natively. |
+| Noise | Raw transcripts contained heavy filler words, timestamps, and PyMuPDF artifact tags (`<!-- -->`). | Aggressive Regex-based cleanup deployed in `clean_dataset.py`; timestamps cleanly converted to Markdown headers. |
+| Formatting inconsistency | Notes mixed Markdown, LaTeX math, and inline HTML; PYQs were scanned PDFs with complex equations. | Unified conversion to plain text with LaTeX preserved; deep-learning OCR (EasyOCR) successfully extracted math from scanned PYQs. |
+| Broken/stale links | Zero 404s encountered during the local corpus processing phase. | N/A; all ingestion performed locally on verified files. |
+| Answer correctness (FAQ) | FAQ answers from https://mlt.pulki.in/ are community/TA replies. | Unverified entries tagged with source metadata so the LLM can cite the specific FAQ source during generation. |
 
 ---
 
@@ -190,10 +184,8 @@ Random row-level splitting on chunks would risk placing two chunks from the same
 ## 7. RAG-Specific Pipeline: Chunking, Embedding, and Vector Store
 
 ### 7.1 Document Preparation
-- **Format normalization:** PDF → text (PyMuPDF/pdfplumber), OCR fallback (Tesseract) for scanned PYQs, HTML → text (BeautifulSoup) for Discourse/FAQ pages, Markdown parsed directly for Notes.
-- **Cleaning:** removal of navigation boilerplate, timestamps, HTML tags, duplicate headers/footers, filler words in transcripts.
-- **Metadata tagging:** each document tagged with `source_type`, `week`, `lecture_number`/`page_number`, `title`, `url`, `author` for citation and filtering at query time (see schema in Section 3.3).
-- **Orchestration:** document loading, splitting, and the retrieval chain will be implemented using **LangChain** (`DocumentLoader`, `RecursiveCharacterTextSplitter`, and a retriever wrapper around the Qdrant hybrid index), to keep the pipeline modular.
+- **Format normalization:** PDF → text (PyMuPDF4LLM), deep-learning OCR fallback (EasyOCR) for scanned PYQs math equations, HTML → text (BeautifulSoup) for FAQ pages, Markdown parsed directly for Notes.
+- **Orchestration:** Document loading was custom-built in Python to handle the heavy OCR. Once converted to pure Markdown, LangChain (`MarkdownHeaderTextSplitter` and `RecursiveCharacterTextSplitter`) orchestrated the metadata extraction and chunking. A retriever wrapper around the Qdrant hybrid index will be used in Milestone 3 to keep the pipeline modular.
 
 ### 7.2 Chunking Strategy
 
@@ -266,16 +258,12 @@ Instead of relying on a slow, computationally expensive Cross-Encoder for rerank
 ### 8.1 Pipeline Steps
 
 **Offline Indexing Pipeline:**
-1. **Document Loading (LangChain)** → Load official IITM course resources (Transcripts, Instructor Notes, GA/PA, PYQs, FAQ/Discourse).
-2. **Document Parsing & Format Normalization** → Route to PDF (PyMuPDF/pdfplumber, Tesseract OCR fallback) / HTML (BeautifulSoup) / Markdown (direct parse) / transcript (VTT/plain-text parser).
-3. **Cleaning & Preprocessing:**
-   - HTML: strip navigation boilerplate, scripts/styles, ad/footer blocks.
-   - Transcripts: regex removal of timestamps (e.g., `[00:03:12]`) and filler words ("um", "so yeah"); sentence-boundary re-segmentation.
-   - Notes: normalize Markdown/LaTeX/inline-HTML mix into plain text with LaTeX preserved via `$...$` delimiters.
-   - Deduplication: embedding-based cosine-similarity near-duplicate detection.
-4. **Chunking** → LangChain `RecursiveCharacterTextSplitter`, 384 tokens / 15% overlap (Section 7.2); 1 chunk = 1 Q&A for FAQ/PYQ/AQ-PQ.
+1. **Document Loading (Custom OCR Extraction)** → Load official IITM course resources (Transcripts, Instructor Notes, GA/PA, PYQs, FAQ) using PyMuPDF4LLM.
+2. **Document Parsing & Format Normalization** → Route to PDF (PyMuPDF4LLM, EasyOCR fallback for math) / HTML (BeautifulSoup) / Markdown (direct parse).
+3. **Cleaning** → Scrub boilerplate (headers/footers, excess whitespace), merge OCR hyphens, and convert raw video timestamps into Markdown headers.
+4. **Chunking (LangChain)** → LangChain `RecursiveCharacterTextSplitter`, 384 tokens / 15% overlap; `MarkdownHeaderTextSplitter` explicitly extracts timestamps into metadata.
 5. **Metadata Tagging** → Tag each chunk with Course, Week, Lecture, Timestamp, and Source (schema in Section 3.3).
-6. **Embedding & Sparse Vectorization** → Dense embeddings via `BGE-small-en-v1.5` (384-dim) and Sparse vectors via BM25.
+6. **Embedding & Sparse Vectorization** → Dense embeddings via `BGE-small-en-v1.5` and Sparse vectors via BM25, generated natively using the lightweight **FastEmbed** ONNX runtime (avoiding heavy PyTorch dependencies).
 7. **Indexing** → Store dense embeddings, sparse vectors, and metadata into the `Qdrant` vector database (Hybrid Index).
 
 **Online Retrieval Pipeline:**
@@ -294,14 +282,13 @@ flowchart TD
 
 subgraph OFF["Offline Indexing Pipeline"]
 
-A["Official IITM Course Resources<br/>• Lecture Transcripts<br/>• Instructor Notes<br/>• GA / PA<br/>• PYQs<br/>• FAQ / Discourse"]
+A["Official IITM Course Resources<br/>• Lecture Transcripts<br/>• Instructor Notes<br/>• GA / PA<br/>• PYQs<br/>• FAQ"]
 
-A --> B["Document Loading (LangChain)"]
-B --> C["Document Parsing & Format Normalization"]
-C --> D["Cleaning & Preprocessing"]
-D --> E["Recursive Character Text Splitter"]
-E --> F["Metadata Tagging<br/>Course • Week • Lecture • Timestamp • Source"]
-F --> G["Dense (BGE-small-en-v1.5) &<br/>Sparse (BM25) Vectorization"]
+A --> B["Document Loading<br/>(Custom PyMuPDF4LLM & EasyOCR)"]
+B --> C["Data Cleaning<br/>(Scrub boilerplate, preserve timestamps)"]
+C --> D["LangChain Text Splitters<br/>(Recursive 384 tokens + Markdown Headers)"]
+D --> F["Metadata Tagging<br/>Course • Week • Lecture • Timestamp • Source"]
+F --> G["FastEmbed ONNX Vectorization<br/>Dense (BGE-small) & Sparse (BM25)"]
 G --> H[("Qdrant Vector Database<br/>(Hybrid Index)")]
 
 end

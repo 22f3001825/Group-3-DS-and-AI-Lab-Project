@@ -53,3 +53,7 @@ Discourse_scrapper/topic_errors.jsonl
 Discourse_scrapper/error.log
 Discourse_scrapper/imgs/
 Discourse_scrapper/state.json
+
+# Environment Variables
+.env
+

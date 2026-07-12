@@ -26,3 +26,9 @@ qdrant-client==1.18.0
 pymupdf4llm
 easyocr
 markdownify
+
+# Milestone 3 - Vector Database & Embeddings
+fastembed==0.8.0
+langchain-qdrant
+python-dotenv==1.0.1
+
