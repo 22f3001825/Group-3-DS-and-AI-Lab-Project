@@ -1,7 +1,7 @@
 """
 process_dataset.py
 Standardizes the MLT dataset into Markdown (.md) format.
-Handles PDFs using PyMuPDF4LLM with OCR fallback via Tesseract.
+Handles PDFs using PyMuPDF4LLM with OCR fallback via EasyOCR.
 Preserves directory structure and outputs statistics.
 """
 
