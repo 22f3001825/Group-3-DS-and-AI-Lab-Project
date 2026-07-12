@@ -28,6 +28,8 @@ DEFAULT_AUXILIARY_RETRIES = 2
 CHECKPOINT_EVERY_ITEMS = 10
 CHECKPOINT_INTERVAL_SECONDS = 5.0
 POSTS_PER_STREAM_REQUEST = 20
+DEFAULT_429_COOLDOWN_SECONDS = 15.0
+ATOMIC_REPLACE_ATTEMPTS = 8
 
 
 @dataclass
@@ -47,6 +49,26 @@ class CheckpointTracker:
     def mark_snapshot(self) -> None:
         self.pending_items = 0
         self.last_snapshot_at = time.monotonic()
+
+
+@dataclass
+class RequestCooldown:
+    cooldown_until: float = 0.0
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+    async def wait_until_ready(self) -> None:
+        while True:
+            async with self.lock:
+                remaining = self.cooldown_until - time.monotonic()
+            if remaining <= 0:
+                return
+            await asyncio.sleep(remaining)
+
+    async def defer_for(self, seconds: float) -> float:
+        seconds = max(0.0, seconds)
+        async with self.lock:
+            self.cooldown_until = max(self.cooldown_until, time.monotonic() + seconds)
+            return max(0.0, self.cooldown_until - time.monotonic())
 
 
 def scrape_category(
@@ -103,6 +125,7 @@ async def scrape_category_async(
     image_dir.mkdir(parents=True, exist_ok=True)
 
     request_semaphore = asyncio.Semaphore(max(1, max_concurrent_requests))
+    request_cooldown = RequestCooldown()
     write_lock = asyncio.Lock()
 
     export_path = output_dir / "discourse_export.json"
@@ -124,7 +147,9 @@ async def scrape_category_async(
     checkpoint_tracker = CheckpointTracker()
 
     page_number = 0
-    async for topic_summaries in _iter_category_pages_async(client, category_path, max_pages, request_semaphore):
+    async for topic_summaries in _iter_category_pages_async(
+        client, category_path, max_pages, request_semaphore, request_cooldown
+    ):
         print(f"Category page {page_number}: {len(topic_summaries)} topics")
         pending_topics = []
         for topic_summary in topic_summaries:
@@ -157,6 +182,7 @@ async def scrape_category_async(
                 topic_retry_delay_seconds=topic_retry_delay_seconds,
                 rate_limit_seconds=rate_limit_seconds,
                 request_semaphore=request_semaphore,
+                request_cooldown=request_cooldown,
                 write_lock=write_lock,
                 max_in_flight=max_concurrent_requests,
             ),
@@ -205,6 +231,7 @@ async def scrape_category_async(
             checkpoint_tracker=checkpoint_tracker,
             rate_limit_seconds=rate_limit_seconds,
             request_semaphore=request_semaphore,
+            request_cooldown=request_cooldown,
             write_lock=write_lock,
         ),
         max_in_flight=max_concurrent_requests,
@@ -247,6 +274,7 @@ async def _process_topic(
     topic_retry_delay_seconds: float,
     rate_limit_seconds: float,
     request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
     write_lock: asyncio.Lock,
     max_in_flight: int,
 ) -> None:
@@ -258,6 +286,7 @@ async def _process_topic(
             topic_retries=topic_retries,
             retry_delay_seconds=topic_retry_delay_seconds,
             request_semaphore=request_semaphore,
+            request_cooldown=request_cooldown,
         )
     except asyncio.CancelledError:
         raise
@@ -313,6 +342,7 @@ async def _process_topic(
             image_dir,
             post,
             request_semaphore,
+            request_cooldown,
             write_lock,
             max_in_flight,
         ),
@@ -373,10 +403,11 @@ async def _process_user_profile(
     checkpoint_tracker: CheckpointTracker,
     rate_limit_seconds: float,
     request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
     write_lock: asyncio.Lock,
 ) -> None:
     try:
-        profile = await _fetch_user_profile_async(client, username, request_semaphore)
+        profile = await _fetch_user_profile_async(client, username, request_semaphore, request_cooldown)
     except asyncio.CancelledError:
         raise
     except Exception as exc:
@@ -493,6 +524,7 @@ async def _iter_category_pages_async(
     category_path: str,
     max_pages: int | None,
     request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
 ):
     page = 0
     seen_ids: set[int] = set()
@@ -505,6 +537,7 @@ async def _iter_category_pages_async(
             retries=DEFAULT_AUXILIARY_RETRIES,
             retry_delay_seconds=1.0,
             request_semaphore=request_semaphore,
+            request_cooldown=request_cooldown,
         )
         topics = payload.get("topic_list", {}).get("topics") or []
         topics = [topic for topic in topics if topic.get("id") not in seen_ids]
@@ -523,18 +556,29 @@ async def _get_json_with_retries_async(
     retries: int,
     retry_delay_seconds: float,
     request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
 ) -> dict[str, Any]:
     total_attempts = max(0, retries) + 1
     for attempt in range(1, total_attempts + 1):
         try:
-            return await _client_get_json(client, path, request_semaphore)
+            return await _client_get_json(client, path, request_semaphore, request_cooldown)
         except httpx.HTTPError as exc:
             if attempt >= total_attempts or not _should_retry(exc):
                 raise
             status_code, reason = _response_status(exc)
             status = f"HTTP {status_code} {reason}".strip() if status_code else "request error"
-            print(f"Retrying {resource_label} after {status} (attempt {attempt}/{total_attempts})")
-            await asyncio.sleep(_retry_delay_seconds(exc, retry_delay_seconds, attempt))
+            delay = _retry_delay_seconds(exc, retry_delay_seconds, attempt)
+            if status_code == 429:
+                delay = max(delay, DEFAULT_429_COOLDOWN_SECONDS)
+                remaining = await request_cooldown.defer_for(delay)
+                print(
+                    f"Rate limited while fetching {resource_label}; pausing all requests for "
+                    f"{remaining:.1f} seconds (attempt {attempt}/{total_attempts})"
+                )
+                await request_cooldown.wait_until_ready()
+            else:
+                print(f"Retrying {resource_label} after {status} (attempt {attempt}/{total_attempts})")
+                await asyncio.sleep(delay)
 
     raise RuntimeError("unreachable retry loop state")
 
@@ -545,6 +589,7 @@ async def _get_complete_topic_json_async(
     topic_retries: int,
     retry_delay_seconds: float,
     request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
 ) -> dict[str, Any]:
     topic = await _get_json_with_retries_async(
         client=client,
@@ -553,6 +598,7 @@ async def _get_complete_topic_json_async(
         retries=topic_retries,
         retry_delay_seconds=retry_delay_seconds,
         request_semaphore=request_semaphore,
+        request_cooldown=request_cooldown,
     )
     post_stream = topic.get("post_stream") or {}
     loaded_posts = post_stream.get("posts") or []
@@ -569,6 +615,7 @@ async def _get_complete_topic_json_async(
             retries=topic_retries,
             retry_delay_seconds=retry_delay_seconds,
             request_semaphore=request_semaphore,
+            request_cooldown=request_cooldown,
         )
         extra_posts = payload.get("post_stream", {}).get("posts") or payload.get("posts") or []
         loaded_posts.extend(extra_posts)
@@ -710,6 +757,7 @@ async def _fetch_user_profile_async(
     client,
     username: str,
     request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
 ) -> dict[str, Any]:
     payload = await _get_json_with_retries_async(
         client=client,
@@ -718,6 +766,7 @@ async def _fetch_user_profile_async(
         retries=DEFAULT_AUXILIARY_RETRIES,
         retry_delay_seconds=1.0,
         request_semaphore=request_semaphore,
+        request_cooldown=request_cooldown,
     )
     user = payload.get("user", payload)
     return {
@@ -744,6 +793,7 @@ async def _attach_post_images(
     image_dir: Path,
     post: dict[str, Any],
     request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
     write_lock: asyncio.Lock,
     max_in_flight: int,
 ) -> None:
@@ -753,6 +803,7 @@ async def _attach_post_images(
         image_dir,
         post,
         request_semaphore,
+        request_cooldown,
         write_lock,
         max_in_flight,
     )
@@ -766,6 +817,7 @@ async def _download_post_images_async(
     image_dir: Path,
     post: dict[str, Any],
     request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
     write_lock: asyncio.Lock,
     max_in_flight: int,
 ) -> tuple[list[str], list[dict[str, Any]]]:
@@ -780,6 +832,7 @@ async def _download_post_images_async(
             item[0],
             item[1],
             request_semaphore,
+            request_cooldown,
             write_lock,
         ),
         max_in_flight=max_in_flight,
@@ -797,6 +850,7 @@ async def _download_single_image(
     index: int,
     url: str,
     request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
     write_lock: asyncio.Lock,
 ) -> dict[str, Any]:
     try:
@@ -807,6 +861,7 @@ async def _download_single_image(
             retries=DEFAULT_AUXILIARY_RETRIES,
             retry_delay_seconds=1.0,
             request_semaphore=request_semaphore,
+            request_cooldown=request_cooldown,
         )
     except asyncio.CancelledError:
         raise
@@ -847,13 +902,25 @@ def _image_filename(post: dict[str, Any], index: int, url: str, content_type: st
     return f"topic-{topic_id}-post-{post_id}-{index:02d}-{digest}{extension}"
 
 
-async def _client_get_json(client, path: str, request_semaphore: asyncio.Semaphore) -> dict[str, Any]:
+async def _client_get_json(
+    client,
+    path: str,
+    request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
+) -> dict[str, Any]:
     async with request_semaphore:
+        await request_cooldown.wait_until_ready()
         return await _maybe_await(client.get_json(path))
 
 
-async def _client_get_bytes(client, url: str, request_semaphore: asyncio.Semaphore) -> tuple[bytes, str]:
+async def _client_get_bytes(
+    client,
+    url: str,
+    request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
+) -> tuple[bytes, str]:
     async with request_semaphore:
+        await request_cooldown.wait_until_ready()
         return await _maybe_await(client.get_bytes(url))
 
 
@@ -864,18 +931,29 @@ async def _get_bytes_with_retries_async(
     retries: int,
     retry_delay_seconds: float,
     request_semaphore: asyncio.Semaphore,
+    request_cooldown: RequestCooldown,
 ) -> tuple[bytes, str]:
     total_attempts = max(0, retries) + 1
     for attempt in range(1, total_attempts + 1):
         try:
-            return await _client_get_bytes(client, url, request_semaphore)
+            return await _client_get_bytes(client, url, request_semaphore, request_cooldown)
         except httpx.HTTPError as exc:
             if attempt >= total_attempts or not _should_retry(exc):
                 raise
             status_code, reason = _response_status(exc)
             status = f"HTTP {status_code} {reason}".strip() if status_code else "request error"
-            print(f"Retrying {resource_label} after {status} (attempt {attempt}/{total_attempts})")
-            await asyncio.sleep(_retry_delay_seconds(exc, retry_delay_seconds, attempt))
+            delay = _retry_delay_seconds(exc, retry_delay_seconds, attempt)
+            if status_code == 429:
+                delay = max(delay, DEFAULT_429_COOLDOWN_SECONDS)
+                remaining = await request_cooldown.defer_for(delay)
+                print(
+                    f"Rate limited while fetching {resource_label}; pausing all requests for "
+                    f"{remaining:.1f} seconds (attempt {attempt}/{total_attempts})"
+                )
+                await request_cooldown.wait_until_ready()
+            else:
+                print(f"Retrying {resource_label} after {status} (attempt {attempt}/{total_attempts})")
+                await asyncio.sleep(delay)
 
 
 async def _llm_extract_post(llm_client, post: dict[str, Any], request_semaphore: asyncio.Semaphore):
@@ -1083,7 +1161,17 @@ def _atomic_write_bytes(path: Path, content: bytes) -> None:
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary_path, path)
+        for attempt in range(1, ATOMIC_REPLACE_ATTEMPTS + 1):
+            try:
+                os.replace(temporary_path, path)
+                break
+            except PermissionError as exc:
+                if attempt >= ATOMIC_REPLACE_ATTEMPTS:
+                    raise PermissionError(
+                        f"Could not replace {path} because another Windows process is using it. "
+                        "Close the file in Excel, an editor, or File Explorer preview and run the scraper again."
+                    ) from exc
+                time.sleep(min(1.0, 0.1 * (2 ** (attempt - 1))))
     finally:
         if temporary_path.exists():
             temporary_path.unlink(missing_ok=True)

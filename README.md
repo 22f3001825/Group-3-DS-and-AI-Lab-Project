@@ -19,6 +19,8 @@ The JSONL journals are written immediately. The larger JSON and CSV snapshots ar
 
 Network calls use async `httpx` with one shared concurrency cap. By default, at most 10 requests are active across topic JSON fetches, image downloads, user profile fetches, and LLM fallback calls.
 
+When Discourse responds with `429 Too Many Requests`, the scraper applies a shared cooldown to all further Discourse requests. It honors a numeric `Retry-After` header when supplied and otherwise waits at least 15 seconds before retrying, so concurrent topic workers do not immediately create another burst.
+
 ## 1. Install Dependencies
 
 ```powershell
