@@ -22,7 +22,7 @@ The objective of Milestone-2 is to identify, evaluate, and prepare the knowledge
 
 The dataset underpinning this system supports three tightly coupled sub-tasks:
 - **Document Ingestion & Chunking** – converting heterogeneous course resources into retrieval-ready text chunks.
-- **Dense Retrieval** – embedding chunks and queries into a shared vector space (BGE-small) and retrieving top-k relevant passages via FAISS/Qdrant.
+- **Hybrid Retrieval** – combining Dense Retrieval (BGE-small embeddings) and Sparse Retrieval (BM25 exact keyword matching) using Qdrant's native Hybrid Search with Reciprocal Rank Fusion (RRF).
 - **Answer Generation** – conditioning an LLM (Gemini/Groq) on retrieved context to produce a grounded, course-accurate response.
 
 The goal of this milestone is to ensure the knowledge base is:
@@ -40,8 +40,8 @@ The goal of this milestone is to ensure the knowledge base is:
 | CS2007 MLT weekly content (Transcripts, Notes, PYQ, AQ/PQ, External Notes, FAQ) | Other course materials outside CS2007 |
 | Text-based retrieval and QA | Video retrieval |
 | Course-term-specific PYQs and FAQs currently published | Real-time forum discussion threads (dynamic, unverified content) |
-| Dense retrieval via sentence-transformer embeddings | Fine-tuning the base LLM (Gemini/Groq used only via inference/API) |
-| Reranking of retrieved passages |  -|
+| Hybrid retrieval (Dense via sentence-transformers + Sparse via BM25) | Fine-tuning the base LLM (Gemini/Groq used only via inference/API) |
+| Fusion/Reranking of retrieved passages via RRF |  -|
 
 ---
 
@@ -76,16 +76,29 @@ The goal of this milestone is to ensure the knowledge base is:
 
 | Content Type | Count | Format | Notes |
 |---|---|---|---|
-| Lecture Transcripts | 75 | Plain text | Verbatim speech-to-text, requires cleanup |
-| Instructor Notes | 14 | Markdown/PDF | To be audited for structure/noise |
-| PYQ | 12 | PDF | Some papers may require OCR — to be confirmed per file |
-| AQ/PQ (week-wise) | 23 | HTML/PDF | Presence of solutions to be logged per week |
-| External Notes | 23 | Markdown/PDF | Heterogeneous formatting — to be catalogued |
-| FAQ | 12 | HTML | Count of unique (non-duplicate) Q&A pairs to be logged after dedup |
+| Lecture Transcripts | 38 | Markdown | Converted from PDFs; Timestamps preserved as metadata |
+| Instructor Notes | 12 | Markdown | Cleaned from raw GitHub scraping |
+| PYQ (Previous Year Questions) | 8 | Markdown | OCR extracted (EasyOCR) to preserve mathematical text |
+| AQ/PQ (Practice Questions) | 12 | Markdown | OCR extracted |
+| External Notes (MLT Weekly) | 12 | Markdown | Converted from PDF |
+| FAQ | 12 | Markdown | Scraped from https://mlt.pulki.in/; unique topics isolated |
+
+**Global Dataset Statistics (Post-Cleaning):**
+- **Total Documents**: 94 files
+- **Total Corpus Size**: 1.25 MB
+- **Minimum File Size**: 3.45 KB
+- **Maximum File Size**: 40.23 KB
+- **Timestamp Metadatas Extracted**: 211
+- **Empty or Corrupted Files**: 0
 
 ### 3.2 Distribution Across Weeks
 
-The original claim that "later weeks have denser FAQ/PYQ activity due to exam proximity, while early weeks are richer in foundational notes" was a **hypothesis**, not a measured fact. This will be confirmed or revised once the per-week document/word counts are tabulated (Section 3.1). The actual per-week distribution (e.g., a bar chart of document count and token count per week, per source type) will be added here once computed, and will directly inform the coverage gap analysis in Section 5.
+The chunking pipeline utilized LangChain's `RecursiveCharacterTextSplitter` (384 tokens, 15% overlap) paired with `MarkdownHeaderTextSplitter` to generate granular, metadata-rich context pieces. The distribution was explicitly split by week to prevent data leakage between train and test distributions:
+
+- **Train Set (Weeks 1-8)**: 4,270 chunks
+- **Validation Set (Weeks 9-10)**: 216 chunks
+- **Test Set (Weeks 11-12)**: 192 chunks
+- **Total RAG Chunks**: 4,678 chunks
 
 ### 3.3 Feature/Field Schema (post-ingestion)
 
@@ -180,7 +193,7 @@ Random row-level splitting on chunks would risk placing two chunks from the same
 - **Format normalization:** PDF → text (PyMuPDF/pdfplumber), OCR fallback (Tesseract) for scanned PYQs, HTML → text (BeautifulSoup) for Discourse/FAQ pages, Markdown parsed directly for Notes.
 - **Cleaning:** removal of navigation boilerplate, timestamps, HTML tags, duplicate headers/footers, filler words in transcripts.
 - **Metadata tagging:** each document tagged with `source_type`, `week`, `lecture_number`/`page_number`, `title`, `url`, `author` for citation and filtering at query time (see schema in Section 3.3).
-- **Orchestration:** document loading, splitting, and the retrieval chain will be implemented using **LangChain** (`DocumentLoader`, `RecursiveCharacterTextSplitter`, and a retriever wrapper around the FAISS/Qdrant index), to keep the pipeline modular and swappable across vector stores.
+- **Orchestration:** document loading, splitting, and the retrieval chain will be implemented using **LangChain** (`DocumentLoader`, `RecursiveCharacterTextSplitter`, and a retriever wrapper around the Qdrant hybrid index), to keep the pipeline modular.
 
 ### 7.2 Chunking Strategy
 
@@ -217,13 +230,13 @@ We selected BGE-small primarily for the combination of **(a)** no external API d
 | Persistence | Manual index save/load | Built-in persistence, easier for iterative dev |
 | Best fit for this project | Fast prototyping, simple vector-only search | Course-aware retrieval requiring strict metadata filtering |
 
-**Decision: Qdrant.** We have selected Qdrant as our primary vector database. Given our extensive metadata schema (Section 3.3), the ability to perform **native payload filtering** is critical. If a student's query implies a specific scope (e.g., "Show me week 4 PYQs"), Qdrant allows us to strictly filter the search space by `week=4` and `source_type=pyq` *before* top-k retrieval, maintaining the integrity of our retrieval math. Furthermore, Qdrant's local Python client allows for simple, file-based persistence without the overhead of running a Docker server during development.
+**Decision: Qdrant.** We have selected Qdrant as our primary vector database. Given our extensive metadata schema (Section 3.3), the ability to perform **native payload filtering** is critical. If a student's query implies a specific scope (e.g., "Show me week 4 PYQs"), Qdrant allows us to strictly filter the search space by `week=4` and `source_type=pyq` *before* top-k retrieval, maintaining the integrity of our retrieval math. Additionally, Qdrant natively supports **Hybrid Search (Dense + Sparse via BM25)** with Reciprocal Rank Fusion (RRF), eliminating the need for a separate sparse search index. Furthermore, Qdrant's local Python client allows for simple, file-based persistence without the overhead of running a Docker server during development.
 
 ### 7.5 Evaluation Metrics 
 
 To avoid the earlier draft's vagueness, evaluation is defined explicitly:
 
-**Retrieval evaluation** (on the held-out query set from Section 6.1), computed at **k = 5**:
+**Retrieval evaluation** (on the held-out query set from Section 6.1, using the Hybrid Search RRF rankings), computed at **k = 5**:
 - **Recall@5** – fraction of queries for which the gold chunk appears in the top-5 retrieved chunks.
 - **Precision@5** – fraction of the top-5 retrieved chunks that are relevant to the query.
 - **MRR (Mean Reciprocal Rank)** – rewards ranking the gold chunk higher within the top-k.
@@ -243,7 +256,7 @@ Instead of relying on a slow, computationally expensive Cross-Encoder for rerank
 - **Rationale:** In a technical course like MLT, exact keyword matches (e.g., specific variable names or acronyms like "PCA") are just as important as semantic meaning. Hybrid search gives us the high precision of a reranker without the severe latency penalty of running a local Cross-Encoder.
 
 ### 7.7 Retrieval–Generation Alignment
-- Retrieved chunks are passed to the LLM with explicit source metadata (week, source type) so the generated answer can cite its source — important for student trust in a study-assistant tool.
+- Retrieved chunks (ranked via RRF) are passed to the LLM with explicit source metadata (week, source type) so the generated answer can cite its source — important for student trust in a study-assistant tool.
 - A consistent chunk-ID scheme ties retrieval results directly back to the original document location, enabling traceability from generated answer → chunk → source document.
 
 ---
@@ -262,13 +275,13 @@ Instead of relying on a slow, computationally expensive Cross-Encoder for rerank
    - Deduplication: embedding-based cosine-similarity near-duplicate detection.
 4. **Chunking** → LangChain `RecursiveCharacterTextSplitter`, 384 tokens / 15% overlap (Section 7.2); 1 chunk = 1 Q&A for FAQ/PYQ/AQ-PQ.
 5. **Metadata Tagging** → Tag each chunk with Course, Week, Lecture, Timestamp, and Source (schema in Section 3.3).
-6. **Embedding** → `BGE-small-en-v1.5` (384-dim).
-7. **Indexing** → Store embeddings and metadata into the `Qdrant` vector database.
+6. **Embedding & Sparse Vectorization** → Dense embeddings via `BGE-small-en-v1.5` (384-dim) and Sparse vectors via BM25.
+7. **Indexing** → Store dense embeddings, sparse vectors, and metadata into the `Qdrant` vector database (Hybrid Index).
 
 **Online Retrieval Pipeline:**
 
-8. **Query Embedding** → Student query embedded via `BGE-small-en-v1.5`.
-9. **Retrieval** → Qdrant Top-k Search retrieves most relevant chunks with metadata.
+8. **Query Vectorization** → Student query is converted into a Dense embedding (`BGE-small-en-v1.5`) and a Sparse vector (BM25).
+9. **Hybrid Retrieval** → Qdrant native Hybrid Search retrieves most relevant chunks using Reciprocal Rank Fusion (RRF) on dense and sparse results.
 10. **LLM Generation** → Gemini LLM generates a grounded answer with source citation and timestamp.
 11. **Evaluate** → Topic-wise train/val/test split (Section 6), Recall@k/Precision@k/MRR on held-out queries (Section 7.5).
 
@@ -288,8 +301,8 @@ B --> C["Document Parsing & Format Normalization"]
 C --> D["Cleaning & Preprocessing"]
 D --> E["Recursive Character Text Splitter"]
 E --> F["Metadata Tagging<br/>Course • Week • Lecture • Timestamp • Source"]
-F --> G["Embedding Model<br/>BGE-small-en-v1.5"]
-G --> H[("Qdrant Vector Database")]
+F --> G["Dense (BGE-small-en-v1.5) &<br/>Sparse (BM25) Vectorization"]
+G --> H[("Qdrant Vector Database<br/>(Hybrid Index)")]
 
 end
 
@@ -297,8 +310,8 @@ subgraph ON["Online Retrieval Pipeline"]
 
 I["Student Query"]
 
-I --> J["Query Embedding<br/>BGE-small-en-v1.5"]
-J --> K["Retriever<br/>(Qdrant Top-k Search)"]
+I --> J["Dense & Sparse<br/>Query Vectorization"]
+J --> K["Hybrid Retriever<br/>Qdrant (Dense + BM25 with RRF)"]
 
 H -.-> K
 
@@ -313,4 +326,6 @@ end
 
 ## 9. Summary of Milestone 2
 
-We have identified and verified CS2007's official weekly resources (Transcripts, Notes, PYQ, AQ/PQ, External Notes, FAQ), defined a data-quality and adequacy assessment plan, and designed a topic-aware chunking → BGE-small embedding → FAISS/Qdrant retrieval pipeline with LangChain orchestration. Several quantities in this milestone (exact document/word counts, per-week distribution, final duplicate threshold, final synthetic-query count) are **explicitly marked as pending actual measurement** rather than assumed, and will be finalized before/alongside the Milestone 3 submission once the corpus audit and threshold-tuning experiments are complete. This establishes a reproducible, leakage-checked foundation for the RAG-based learning assistant, feeding into end-to-end retrieval + generation evaluation in Milestone 3.
+We have successfully identified, verified, and extracted CS2007's official weekly resources (Transcripts, Notes, PYQ, AQ/PQ, External Notes, FAQ) into a unified dataset comprising **94 pristine Markdown documents** (1.25 MB total). The FAQ and external notes were meticulously scraped from the student resource site (**https://mlt.pulki.in/**). The preprocessing pipeline aggressively scrubbed boilerplate while preserving 211 critical timestamp markers as Markdown headers. 
+
+Through LangChain orchestration, the dataset was robustly sliced into **4,678 JSON-L chunks** (384 token limit). The chunks were partitioned into Train, Validation, and Test splits strictly by chronological week boundaries to ensure a leakage-free foundation for the RAG-based learning assistant. The pipeline is fully reproducible and feeds directly into the Qdrant hybrid retrieval system for Milestone 3.

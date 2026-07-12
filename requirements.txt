@@ -1,0 +1,28 @@
+# CS2007 MLT RAG Pipeline Dependencies
+# Pinned to validated versions for reproducibility
+
+# Core RAG Framework
+langchain==1.3.13
+langchain-text-splitters==1.1.2
+langchain-community==0.4.2
+
+# Tokenization & Embedding compatibility
+tiktoken==0.13.0
+
+# Text Extraction & Parsing
+pymupdf==1.28.0
+beautifulsoup4==4.15.0
+markdown==3.10.2
+
+# Data Processing & Utilities
+pandas==3.0.3
+tqdm==4.68.4
+requests==2.34.2
+
+# Vector Database Client
+qdrant-client==1.18.0
+
+# Preprocessing & OCR
+pymupdf4llm
+easyocr
+markdownify

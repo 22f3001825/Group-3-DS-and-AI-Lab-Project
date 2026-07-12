@@ -1,0 +1,55 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+bin/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Editor / IDE settings
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local configuration
+llm_config.json
+chrome_debug_user_data/
+discourse_scraper/chrome_debug_user_data/
+
+# Data outputs (optional, depending on project storage constraints)
+# Keep raw structure, ignore processed outputs if they are too large
+data/processed/*.json
+Discourse_scrapper/discourse_export.json
+Discourse_scrapper/discourse_topics.csv
+Discourse_scrapper/discourse_posts.csv
+Discourse_scrapper/discourse_users.csv
+Discourse_scrapper/topic_errors.jsonl
+Discourse_scrapper/error.log
+Discourse_scrapper/imgs/
+Discourse_scrapper/state.json
