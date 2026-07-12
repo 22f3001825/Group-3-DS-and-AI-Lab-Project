@@ -39,7 +39,7 @@ The goal of this milestone is to ensure the knowledge base is:
 |---|---|
 | CS2007 MLT weekly content (Transcripts, Notes, PYQ, AQ/PQ, External Notes, FAQ) | Other course materials outside CS2007 |
 | Text-based retrieval and QA | Video retrieval |
-| Course-term-specific PYQs and FAQs currently published | Real-time forum discussion threads (dynamic, unverified content) |
+| Course-term-specific PYQs, FAQs, and audited static Discourse snapshots | Unfiltered dynamic forum discussion or profile data |
 | Hybrid retrieval (Dense via sentence-transformers + Sparse via BM25) | Fine-tuning the base LLM (Gemini/Groq used only via inference/API) |
 | Fusion/Reranking of retrieved passages via RRF |  -|
 
@@ -58,6 +58,7 @@ The goal of this milestone is to ensure the knowledge base is:
 | AQ/PQ (week-wise) | Weekly graded and practice questions | Course platform | HTML/PDF |
 | External Notes | Community/TA-contributed supplementary notes | Student contributors | Markdown/PDF |
 | FAQ | Frequently asked doubts and instructor/TA responses | Discourse threads, curated FAQ page | HTML |
+| Authenticated Discourse Snapshot | Static export of MLT category threads, replies, solution flags, and attachments | IITM Online Degree Discourse | JSON + downloaded images |
 
 ### 2.2 Ownership & Usage Constraints
 
@@ -93,12 +94,14 @@ The goal of this milestone is to ensure the knowledge base is:
 
 ### 3.2 Distribution Across Weeks
 
-The chunking pipeline utilized LangChain's `RecursiveCharacterTextSplitter` (384 tokens, 15% overlap) paired with `MarkdownHeaderTextSplitter` to generate granular, metadata-rich context pieces. The distribution was explicitly split by week to prevent data leakage between train and test distributions:
+The chunking pipeline uses a token-aware `RecursiveCharacterTextSplitter` (384 tokens, 15% overlap) paired with `MarkdownHeaderTextSplitter` to generate granular, metadata-rich context pieces. The verified course-material distribution is split by week to prevent leakage during tuning:
 
-- **Train Set (Weeks 1-8)**: 4,270 chunks
-- **Validation Set (Weeks 9-10)**: 216 chunks
-- **Test Set (Weeks 11-12)**: 192 chunks
-- **Total RAG Chunks**: 4,678 chunks
+- **Train Set (Weeks 1-8)**: 1,206 chunks
+- **Validation Set (Weeks 9-10)**: 100 chunks
+- **Test Set (Weeks 11-12)**: 86 chunks
+- **Verified Course-Material Chunks**: 1,392 chunks
+- **Cleaned Forum Chunks**: 7,625 chunks
+- **Total Retrieval Corpus**: 9,017 chunks
 
 ### 3.3 Feature/Field Schema (post-ingestion)
 
@@ -130,6 +133,14 @@ Each document, after preprocessing, is represented with the following metadata s
 Field notes:
 - `lecture_number` and `page_number` are populated where applicable (lecture_number for transcripts, page_number for PDF-sourced PYQ/notes); left `null` when not relevant to the source type.
 - `confidence_flag` is used specifically to mark FAQ/external-note content that has not been cross-checked against instructor material (see Section 4).
+
+### 3.4 Authenticated Discourse Snapshot (Audited)
+
+The authenticated MLT category export was processed as a static snapshot rather than as live forum content. The raw export contains **4,659 topics**, **19,631 posts**, and **1,983 user profiles**. User profiles, names, usernames, bios, locations, and avatars are not placed into retrieval artifacts.
+
+The deterministic cleaning run retained **17,157 substantive posts**, quarantined **2,474** posts, and built **5,686 thread-aware RAG documents**. Quarantined records were attributable to low-value acknowledgements, system posts, empty cleaned content, and exact or near duplicates. The cleaner discovered **4,657 attachment links** and records them in a manifest; downloading authenticated attachments is deliberately a separate, authorised ingestion step.
+
+Forum documents are tagged with `source_type: discourse_forum`, thread/post citation URLs, `is_solved`, author role (`staff` or `student`), `like_count`, and a confidence flag. Accepted solutions and staff answers are `verified`; community answers remain `community`. Forum evaluation queries are split by `topic_id`, not post/chunk, preventing a question and its reply from leaking across evaluation partitions.
 
 ---
 
@@ -315,4 +326,4 @@ end
 
 We have successfully identified, verified, and extracted CS2007's official weekly resources (Transcripts, Notes, PYQ, AQ/PQ, External Notes, FAQ) into a unified dataset comprising **94 pristine Markdown documents** (1.25 MB total). The FAQ and external notes were meticulously scraped from the student resource site (**https://mlt.pulki.in/**). The preprocessing pipeline aggressively scrubbed boilerplate while preserving 211 critical timestamp markers as Markdown headers. 
 
-Through LangChain orchestration, the dataset was robustly sliced into **4,678 JSON-L chunks** (384 token limit). The chunks were partitioned into Train, Validation, and Test splits strictly by chronological week boundaries to ensure a leakage-free foundation for the RAG-based learning assistant. The pipeline is fully reproducible and feeds directly into the Qdrant hybrid retrieval system for Milestone 3.
+Through LangChain orchestration, the verified course materials are sliced into **1,392 JSON-L chunks** and the cleaned Discourse snapshot contributes **7,625 thread-aware chunks**, all respecting a 384-token limit. Course materials use chronological week boundaries for tuning splits; forum evaluation queries are split by topic ID, so a question and its replies cannot leak across partitions. The pipeline is reproducible and feeds directly into the Qdrant hybrid retrieval system for Milestone 3.

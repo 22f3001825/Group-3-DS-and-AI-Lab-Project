@@ -1,0 +1,10 @@
+base_url: https://discourse.onlinedegree.iitm.ac.in
+category_path: /c/courses/mlt-kb/32
+cdp_url: http://127.0.0.1:9222
+# LLM fallback can be configured through llm_config.json first, then environment variables:
+# LLM_BASE_URL=http://localhost:8317/v1
+# LLM_MODEL=xxx21f1001895@ds.study.iitm.ac.in
+# LLM_API_KEY=xxx
+skip_sticky_topics: true
+rate_limit_seconds: 0.5
+llm_fallback: always

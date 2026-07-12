@@ -45,6 +45,11 @@ discourse_scraper/chrome_debug_user_data/
 # Data outputs (optional, depending on project storage constraints)
 # Keep raw structure, ignore processed outputs if they are too large
 data/processed/*.json
+data/raw/discourse/
+data/cleaned/discourse/
+data/cleaned/discourse_smoke/
+data/splits/discourse_chunks.jsonl
+data/evaluation/
 Discourse_scrapper/discourse_export.json
 Discourse_scrapper/discourse_topics.csv
 Discourse_scrapper/discourse_posts.csv

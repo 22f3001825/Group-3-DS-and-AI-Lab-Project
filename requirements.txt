@@ -32,3 +32,8 @@ fastembed==0.8.0
 langchain-qdrant
 python-dotenv==1.0.1
 
+# Local retrieval chatbot
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+httpx>=0.27,<1
+

@@ -1,0 +1,12 @@
+.git/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+data/
+reports/
+chrome_debug_user_data/
+llm_config.json
+config.yaml
+state.json
+*.zip
