@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import subprocess
 import sys
+import time
 from pathlib import Path
 
-import requests
+import httpx
 
 from .client import BrowserCookieSession, MissingPlaywrightError, check_cdp_endpoint
-from .exporter import scrape_category
+from .exporter import scrape_category_async
 from .llm import MissingLLMConfigError, OpenAICompatibleLLMClient
 from .profiles import (
     ProfileSelectionError,
@@ -38,6 +40,7 @@ def main(argv: list[str] | None = None) -> int:
         ProfileSelectionError,
         MissingPlaywrightError,
         MissingLLMConfigError,
+        httpx.HTTPError,
     ) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
@@ -63,6 +66,12 @@ def build_parser() -> argparse.ArgumentParser:
     launch.add_argument("--profile", required=True, help="Profile folder/name/email substring, e.g. ds.study or Profile 4.")
     launch.add_argument("--port", type=int, default=9222)
     launch.add_argument("--start-url", default=DEFAULT_BASE_URL)
+    launch.add_argument(
+        "--launch-timeout-seconds",
+        type=float,
+        default=15,
+        help="How long launch waits for Chrome DevTools to become reachable.",
+    )
     launch.add_argument(
         "--debug-user-data-dir",
         type=Path,
@@ -108,6 +117,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=_default_llm_config_path(),
         help="JSON file for LLM settings. File values are used first, then env vars fill missing values.",
+    )
+    scrape.add_argument(
+        "--max-concurrent-requests",
+        type=int,
+        default=10,
+        help="Maximum concurrent HTTP requests across topics, images, user profiles, and LLM calls.",
     )
     scrape.set_defaults(func=cmd_scrape)
 
@@ -159,26 +174,70 @@ def cmd_launch(args) -> int:
     print(f"Launching {selected.label()}")
     print(f"Debug user data dir: {args.debug_user_data_dir}")
     print(format_windows_command(launch_args))
-    subprocess.Popen(launch_args)
+    process = subprocess.Popen(launch_args)
+    cdp_url = f"http://127.0.0.1:{args.port}"
+    version = asyncio.run(_wait_for_cdp_endpoint(cdp_url, process, args.launch_timeout_seconds))
+    print(f"Chrome DevTools: ready at {cdp_url} ({version.get('Browser', 'connected')})")
     return 0
 
 
+async def _wait_for_cdp_endpoint(cdp_url: str, process, timeout_seconds: float) -> dict:
+    deadline = time.monotonic() + max(0, timeout_seconds)
+    last_error: Exception | None = None
+
+    while True:
+        try:
+            return await check_cdp_endpoint(cdp_url, timeout=1)
+        except httpx.HTTPError as exc:
+            last_error = exc
+
+        exit_code = process.poll()
+        if exit_code is not None:
+            raise ConnectionError(
+                "Chrome exited before DevTools became available "
+                f"at {cdp_url} (exit code {exit_code}). "
+                "Close any Chrome windows using the scraper debug profile and run launch again. "
+                "If it keeps happening, try a fresh --debug-user-data-dir."
+            ) from last_error
+
+        if time.monotonic() >= deadline:
+            raise ConnectionError(
+                f"Chrome DevTools did not become reachable at {cdp_url} "
+                f"within {timeout_seconds:g} seconds. "
+                "Chrome may have reused an existing window that was not launched with remote debugging. "
+                "Close the scraper Chrome window or use a fresh --debug-user-data-dir, then run launch again."
+            ) from last_error
+
+        await asyncio.sleep(0.25)
+
+
 def cmd_doctor(args) -> int:
+    version = asyncio.run(_check_cdp_for_doctor_async(args))
+    print(f"Chrome CDP: {version.get('Browser', 'connected')}")
+    with BrowserCookieSession(args.base_url, args.cdp_url) as client:
+        return asyncio.run(_cmd_doctor_login_async(args, client))
+
+
+async def _check_cdp_for_doctor_async(args) -> dict:
     try:
-        version = check_cdp_endpoint(args.cdp_url)
-    except requests.exceptions.RequestException as exc:
+        return await check_cdp_endpoint(args.cdp_url)
+    except httpx.HTTPError as exc:
         raise ConnectionError(
             f"Could not connect to Chrome DevTools at {args.cdp_url}. "
             "Run `python scrape_discourse.py profiles`, copy the launch command for your DS profile, "
             "then run `python scrape_discourse.py doctor` again."
         ) from exc
-    print(f"Chrome CDP: {version.get('Browser', 'connected')}")
-    with BrowserCookieSession(args.base_url, args.cdp_url) as client:
-        if client.is_logged_in():
+
+
+async def _cmd_doctor_login_async(args, client) -> int:
+    try:
+        if await client.is_logged_in():
             print(f"Discourse login: authenticated for {args.base_url}")
             return 0
         print(f"Discourse login: not authenticated for {args.base_url}", file=sys.stderr)
         return 1
+    finally:
+        await client.aclose()
 
 
 def cmd_scrape(args) -> int:
@@ -187,12 +246,17 @@ def cmd_scrape(args) -> int:
         llm_client = OpenAICompatibleLLMClient.from_file_then_env(args.llm_config)
 
     with BrowserCookieSession(args.base_url, args.cdp_url) as client:
-        if not client.is_logged_in():
+        return asyncio.run(_cmd_scrape_async(args, llm_client, client))
+
+
+async def _cmd_scrape_async(args, llm_client, client) -> int:
+    try:
+        if not await client.is_logged_in():
             raise PermissionError(
                 f"Chrome is reachable, but not logged in to {args.base_url}. "
                 "Open that site in the selected profile and try again."
             )
-        export = scrape_category(
+        export = await scrape_category_async(
             client=client,
             base_url=args.base_url,
             category_path=args.category_path,
@@ -205,7 +269,12 @@ def cmd_scrape(args) -> int:
             llm_client=llm_client,
             topic_retries=args.topic_retries,
             topic_retry_delay_seconds=args.topic_retry_delay_seconds,
+            max_concurrent_requests=args.max_concurrent_requests,
         )
+    finally:
+        await client.aclose()
+        if llm_client is not None:
+            await llm_client.aclose()
     print(
         "Exported "
         f"{export['metadata']['topic_count']} topics, "

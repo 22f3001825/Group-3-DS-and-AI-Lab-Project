@@ -9,11 +9,15 @@ It saves:
 - `discourse_posts.csv`
 - `discourse_users.csv`
 - `topic_errors.jsonl` when individual topics return errors such as `403` or `404`
-- `error.log` with a human-readable line for topic fetches that still fail after retries
+- `profile_errors.jsonl` and `image_errors.jsonl` when those resources cannot be exported
+- `topic_journal.jsonl` and `profile_journal.jsonl`, flushed immediately as each result completes
+- `error.log` with a human-readable line for resource fetches that still fail after retries
 - `imgs/` with images referenced inside post/reply content
 - `state.json` in this scraper folder so reruns skip unchanged topics
 
-The main export files are checkpointed during the scrape. After each processed topic, skipped topic error, and fetched user profile, the scraper rewrites `discourse_export.json` and the CSV files with the data collected so far. While a run is still in progress or interrupted, `discourse_export.json -> metadata.status` is `partial`; after a full run completes, it is `complete`.
+The JSONL journals are written immediately. The larger JSON and CSV snapshots are atomically refreshed every few completed items, at each category-page boundary, and at the end. An interrupted write therefore leaves the last complete snapshot intact. While a run is still in progress, `discourse_export.json -> metadata.status` is `partial`; after a full run completes, it is `complete`.
+
+Network calls use async `httpx` with one shared concurrency cap. By default, at most 10 requests are active across topic JSON fetches, image downloads, user profile fetches, and LLM fallback calls.
 
 ## 1. Install Dependencies
 
@@ -50,6 +54,12 @@ Run:
 python scrape_discourse.py launch --profile "Profile 4"
 ```
 
+The command now waits for Chrome DevTools to become reachable before returning. A healthy launch prints a line like:
+
+```text
+Chrome DevTools: ready at http://127.0.0.1:9222 (Chrome/...)
+```
+
 Chrome now launches with a persistent non-standard debug user data directory:
 
 ```text
@@ -77,6 +87,14 @@ python scrape_discourse.py doctor
 ```
 
 If this says Chrome DevTools is not reachable, launch Chrome again with the profile command above.
+
+If `launch` says Chrome exited or DevTools timed out, close any scraper Chrome windows and try a fresh debug profile directory:
+
+```powershell
+python scrape_discourse.py launch --profile "Profile 4" --debug-user-data-dir .\chrome_debug_user_data_fresh
+```
+
+Then log in to Discourse inside that new Chrome window and rerun `doctor`.
 
 If this says Discourse is not authenticated, log in inside that Chrome profile and rerun `doctor`.
 
@@ -125,6 +143,14 @@ python scrape_discourse.py scrape --topic-retries 4 --topic-retry-delay-seconds 
 ```
 
 `--topic-retries 2` is the default, meaning each topic gets 1 initial request plus 2 retries before being recorded as failed.
+
+Tune the global async request cap:
+
+```powershell
+python scrape_discourse.py scrape --max-concurrent-requests 10
+```
+
+Category pagination remains sequential, but topics within each category page run concurrently under this cap. Image downloads, user profile fetches, and LLM calls share the same cap.
 
 Use a custom Chrome debug profile directory:
 
@@ -195,9 +221,11 @@ C:\Users\jibzm\Documents\Codex\2026-07-11\i\outputs\llm_fallback_log.jsonl
 ## Notes
 
 - The scraper uses Discourse JSON endpoints instead of brittle rendered HTML scraping.
-- It maintains `state.json` and only refetches topics whose Discourse summary changed.
-- If an individual topic returns `403` or another HTTP error, the scraper retries it first. If all attempts fail, it records the topic in `discourse_export.json` under `topic_errors`, appends structured data to `topic_errors.jsonl`, writes a human-readable line to `error.log`, and continues with the remaining topics.
-- Images are downloaded only from post/reply content, not avatars.
+- It maintains `state.json` and only refetches topics whose Discourse summary changed. Corrupt interrupted state/export files are preserved with a `.corrupt-*` suffix and rebuilt safely.
+- It uses async `httpx` requests after Chrome cookies are extracted from Playwright.
+- Topics include every post ID advertised by Discourse, including replies omitted from the initial topic response. The topic data records stream and exported post counts for verification.
+- If a topic, user profile, or image returns an error, the scraper retries transient errors first, records the failure, and continues with remaining data. `403` is retried because a freshly copied authenticated session may become usable.
+- Images are downloaded only from post/reply content, not avatars. Failed image URLs remain in each post's `image_errors` metadata.
 - Chrome requires a non-standard `--user-data-dir` for remote debugging, so the scraper uses `chrome_debug_user_data` instead of the normal Chrome profile directory.
 - Do not commit or share `llm_config.json` if it contains a real API key.
 - Use this only for content you are authorized to access and export.

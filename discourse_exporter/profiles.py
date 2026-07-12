@@ -98,6 +98,7 @@ def build_chrome_launch_args(
     args = [
         str(chrome_path),
         f"--remote-debugging-port={port}",
+        "--remote-debugging-address=127.0.0.1",
         f"--profile-directory={profile_folder}",
     ]
     if user_data_dir is not None:

@@ -1,4 +1,5 @@
 import os
+import asyncio
 import json
 import tempfile
 import unittest
@@ -42,6 +43,15 @@ class FakeLLMSession:
         self.last_json = None
 
     def post(self, url, headers, json, timeout):
+        self.last_json = json
+        return FakeLLMResponse()
+
+
+class FakeAsyncLLMSession:
+    def __init__(self):
+        self.last_json = None
+
+    async def post(self, url, headers, json, timeout):
         self.last_json = json
         return FakeLLMResponse()
 
@@ -152,10 +162,27 @@ class LLMTests(unittest.TestCase):
             session=session,
         )
 
-        client.extract_post({"content_text": "known"})
+        asyncio.run(client.extract_post({"content_text": "known"}))
 
         self.assertNotIn("temperature", session.last_json)
         self.assertEqual(session.last_json["model"], "model-that-rejects-temperature")
+
+    def test_llm_request_supports_async_session(self):
+        session = FakeAsyncLLMSession()
+        client = OpenAICompatibleLLMClient(
+            LLMConfig(
+                base_url="http://localhost:8317/v1",
+                model="async-model",
+                api_key="secret",
+            ),
+            session=session,
+        )
+
+        result = asyncio.run(client.extract_post({"content_text": "known"}))
+
+        self.assertEqual(result.confidence, 0.9)
+        self.assertNotIn("temperature", session.last_json)
+        self.assertEqual(session.last_json["model"], "async-model")
 
     def test_normalize_rejects_non_null_fields_without_evidence(self):
         raw = {

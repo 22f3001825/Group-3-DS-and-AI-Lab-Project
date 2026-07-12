@@ -36,6 +36,17 @@ class StateTests(unittest.TestCase):
             self.assertFalse(loaded.topic_needs_fetch({"id": 1, "bumped_at": "a", "posts_count": 1}))
             self.assertTrue(loaded.topic_needs_fetch({"id": 1, "bumped_at": "b", "posts_count": 1}))
 
+    def test_corrupt_state_is_preserved_and_replaced_with_empty_state(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "state.json"
+            path.write_text("{not valid json", encoding="utf-8")
+
+            loaded = ExportState.load(path)
+
+            self.assertEqual(loaded.topics, {})
+            self.assertFalse(path.exists())
+            self.assertEqual(len(list(Path(temp_dir).glob("state.corrupt-*.json"))), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

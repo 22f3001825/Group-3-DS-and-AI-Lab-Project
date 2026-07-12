@@ -89,7 +89,8 @@ class ProfileTests(unittest.TestCase):
         )
 
         self.assertEqual(args[1], "--remote-debugging-port=9222")
-        self.assertEqual(args[2], "--profile-directory=Profile 4")
+        self.assertEqual(args[2], "--remote-debugging-address=127.0.0.1")
+        self.assertEqual(args[3], "--profile-directory=Profile 4")
         rendered = format_windows_command(args)
         self.assertIn('"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"', rendered)
         self.assertIn('"--profile-directory=Profile 4"', rendered)

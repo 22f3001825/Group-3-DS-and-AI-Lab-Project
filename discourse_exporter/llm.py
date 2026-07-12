@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import re
@@ -7,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
-import requests
+import httpx
 
 
 ALLOWED_FIELDS = {
@@ -82,9 +83,10 @@ class NormalizedLLMResult:
 
 
 class OpenAICompatibleLLMClient:
-    def __init__(self, config: LLMConfig, session: requests.Session | None = None):
+    def __init__(self, config: LLMConfig, session: Any | None = None):
         self.config = config
-        self.session = session or requests.Session()
+        self.session = session
+        self._owns_session = session is None
 
     @classmethod
     def from_env(cls) -> "OpenAICompatibleLLMClient":
@@ -94,12 +96,21 @@ class OpenAICompatibleLLMClient:
     def from_file_then_env(cls, config_path: Path | None = None) -> "OpenAICompatibleLLMClient":
         return cls(LLMConfig.from_file_then_env(config_path))
 
-    def extract_post(self, post: dict[str, Any]) -> NormalizedLLMResult:
+    async def aclose(self) -> None:
+        if self._owns_session and self.session is not None:
+            close = getattr(self.session, "aclose", None)
+            if close is not None:
+                result = close()
+                if inspect.isawaitable(result):
+                    await result
+            self.session = None
+
+    async def extract_post(self, post: dict[str, Any]) -> NormalizedLLMResult:
         payload = {
             "model": self.config.model,
             "messages": build_post_fallback_messages(post),
         }
-        response = self.session.post(
+        response = self._session().post(
             self.config.chat_completions_url,
             headers={
                 "Authorization": f"Bearer {self.config.api_key}",
@@ -108,9 +119,15 @@ class OpenAICompatibleLLMClient:
             json=payload,
             timeout=self.config.timeout_seconds,
         )
+        response = await _maybe_await(response)
         response.raise_for_status()
         content = _extract_message_content(response.json())
         return normalize_llm_response(_parse_json_content(content))
+
+    def _session(self) -> Any:
+        if self.session is None:
+            self.session = httpx.AsyncClient()
+        return self.session
 
 
 def build_post_fallback_messages(post: dict[str, Any]) -> list[dict[str, str]]:
@@ -229,6 +246,12 @@ def post_needs_llm_fallback(post: dict[str, Any]) -> bool:
             _missing(posted_by.get("username")),
         ]
     )
+
+
+async def _maybe_await(value):
+    if inspect.isawaitable(value):
+        return await value
+    return value
 
 
 def _fill_if_missing(post: dict[str, Any], field_name: str, result: NormalizedLLMResult) -> None:

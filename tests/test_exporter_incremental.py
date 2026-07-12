@@ -54,15 +54,14 @@ class ExporterIncrementalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = Path(temp_dir) / "out"
 
-            with self.assertRaises(RuntimeError):
-                scrape_category(
-                    client=UserProfileFailureClient(),
-                    base_url="https://discourse.onlinedegree.iitm.ac.in",
-                    category_path="/c/courses/mlt-kb/32",
-                    output_dir=output_dir,
-                    state_path=Path(temp_dir) / "state.json",
-                    rate_limit_seconds=0,
-                )
+            export_result = scrape_category(
+                client=UserProfileFailureClient(),
+                base_url="https://discourse.onlinedegree.iitm.ac.in",
+                category_path="/c/courses/mlt-kb/32",
+                output_dir=output_dir,
+                state_path=Path(temp_dir) / "state.json",
+                rate_limit_seconds=0,
+            )
 
             export_path = output_dir / "discourse_export.json"
             posts_csv_path = output_dir / "discourse_posts.csv"
@@ -74,7 +73,11 @@ class ExporterIncrementalTests(unittest.TestCase):
             self.assertEqual(export["metadata"]["post_count"], 1)
             self.assertEqual(export["topics"][0]["topic_id"], 300)
             self.assertEqual(export["posts"][0]["content_text"], "Persist me early")
-            self.assertEqual(export["metadata"]["status"], "partial")
+            self.assertEqual(export["metadata"]["status"], "complete")
+            self.assertEqual(export["metadata"]["profile_error_count"], 1)
+            self.assertEqual(export["profile_errors"][0]["username"], "alice")
+            self.assertEqual(export_result["metadata"]["profile_error_count"], 1)
+            self.assertTrue((output_dir / "profile_errors.jsonl").exists())
 
 
 if __name__ == "__main__":

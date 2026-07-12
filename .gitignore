@@ -24,6 +24,10 @@ state.json
 *.log
 topic_errors.jsonl
 llm_fallback_log.jsonl
+profile_errors.jsonl
+image_errors.jsonl
+topic_journal.jsonl
+profile_journal.jsonl
 
 # Scrape outputs if --output-dir points at this folder
 discourse_export.json

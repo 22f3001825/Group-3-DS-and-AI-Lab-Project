@@ -66,7 +66,9 @@ def extract_topic_records(topic: dict[str, Any], base_url: str) -> tuple[dict[st
     topic_id = topic["id"]
     slug = topic.get("slug") or str(topic_id)
     url = f"{base_url.rstrip('/')}/t/{slug}/{topic_id}"
-    posts = topic.get("post_stream", {}).get("posts") or []
+    post_stream = topic.get("post_stream", {})
+    posts = post_stream.get("posts") or []
+    stream_post_ids = post_stream.get("stream") or [post.get("id") for post in posts]
 
     topic_record = {
         "topic_id": topic_id,
@@ -83,6 +85,8 @@ def extract_topic_records(topic: dict[str, Any], base_url: str) -> tuple[dict[st
         "like_count": topic.get("like_count"),
         "accepted_answer_post_id": topic.get("accepted_answer_post_id"),
         "accepted_answer_post_number": topic.get("accepted_answer"),
+        "stream_post_count": len(stream_post_ids),
+        "exported_post_count": len(posts),
     }
 
     post_records = [_post_record(topic_record, topic, post, base_url) for post in posts]
