@@ -100,6 +100,62 @@ The chunking pipeline utilized LangChain's `RecursiveCharacterTextSplitter` (384
 - **Test Set (Weeks 11-12)**: 192 chunks
 - **Total RAG Chunks**: 4,678 chunks
 
+#### 3.2.1 Corpus Statistics by Week
+
+The table below gives actual chunk, token, word, and character counts per week, computed directly from the final chunked corpus (`data/splits/*.jsonl`). Token counts are approximate (regex-based word/punctuation tokenization, used since the BGE-small WordPiece tokenizer's vocab file could not be fetched in the reporting environment); relative proportions across weeks/source types are unaffected.
+
+| Week | Chunks | Tokens (approx.) | Words | Characters | Avg Tokens/Chunk |
+|---|---|---|---|---|---|
+| Untagged* | 280 | 18,909 | 12,646 | 77,670 | 67.5 |
+| 1 | 906 | 59,583 | 48,472 | 255,998 | 65.8 |
+| 2 | 602 | 42,365 | 33,641 | 175,688 | 70.4 |
+| 3 | 519 | 36,521 | 26,780 | 141,983 | 70.4 |
+| 4 | 715 | 50,363 | 37,738 | 199,423 | 70.4 |
+| 5 | 433 | 30,435 | 22,044 | 119,955 | 70.3 |
+| 6 | 148 | 13,229 | 7,572 | 44,873 | 89.4 |
+| 7 | 486 | 31,873 | 25,739 | 135,717 | 65.6 |
+| 8 | 181 | 15,230 | 10,003 | 53,568 | 84.1 |
+| 9 | 118 | 11,324 | 5,521 | 33,933 | 96.0 |
+| 10 | 98 | 8,902 | 4,511 | 28,237 | 90.8 |
+| 11 | 128 | 11,832 | 6,107 | 40,373 | 92.4 |
+| 12 | 64 | 5,216 | 2,772 | 17,738 | 81.5 |
+| **Total** | **4,678** | **335,782** | **243,546** | **1,325,156** | — |
+
+*\*280 chunks (all from the "MLT Weekly Notes" / External Notes source) were emitted with `week` unset by the chunking script and currently fall back to `week=0`. This is a metadata bug, not a genuine "week 0" — flagged here (and in Section 4) rather than silently folded into Week 1. To be fixed by back-filling the week tag from the source filename before Milestone 3.*
+
+![Chunk count per week](report_assets/plot_chunks_per_week.png)
+
+![Total token volume per week](report_assets/plot_tokens_per_week.png)
+
+Weeks 9–12 (the Validation/Test range) are visibly thinner in both chunk count and token volume than Weeks 1–8 — roughly 3–4x fewer chunks per week on average. This is expected, since later weeks have proportionally fewer PYQs/FAQs accumulated at scrape time, but it directly affects the retrieval evaluation set size discussed in Section 6.1 and is revisited in Section 5.
+
+#### 3.2.2 Corpus Statistics by Source Type
+
+| Source Type | Chunks | Tokens (approx.) | Words | Characters | Avg Tokens/Chunk |
+|---|---|---|---|---|---|
+| Lecture Transcripts | 2,890 | 183,427 | 154,305 | 799,871 | 63.5 |
+| Instructor Notes | 602 | 52,254 | 31,373 | 186,233 | 86.8 |
+| FAQ | 337 | 30,819 | 13,437 | 93,666 | 91.5 |
+| AQ/PQ (Practice Questions) | 320 | 24,977 | 14,030 | 85,037 | 78.1 |
+| PYQ | 249 | 25,396 | 17,755 | 82,679 | 102.0 |
+| External Notes (MLT Weekly) | 280 | 18,909 | 12,646 | 77,670 | 67.5 |
+
+![Chunk count per source type](report_assets/plot_chunks_per_source.png)
+
+Lecture Transcripts dominate the corpus (62% of all chunks, 55% of tokens), which is expected given they are the most granular and voluminous source. PYQ and FAQ chunks carry the highest average tokens/chunk (~92–102), consistent with the "atomic Q&A" chunking rule in Section 7.2, where a full question+solution is kept as a single chunk rather than split.
+
+#### 3.2.3 Chunk-Length Distributions
+
+![Chunk token-length histogram](report_assets/plot_chunk_token_hist.png)
+
+![Chunk word-length histogram](report_assets/plot_chunk_word_hist.png)
+
+![Chunk token-length spread by source type](report_assets/plot_source_token_boxplot.png)
+
+**Key finding:** chunk length is heavily concentrated between 30–100 tokens (median 75, mean 71.8), with **no chunk in the entire corpus reaching the documented 384-token target** (max observed: 259 tokens; zero chunks ≥ 300). Root cause: `MarkdownHeaderTextSplitter` runs first and splits source documents at every Markdown header boundary; since notes/FAQ/PYQ files are heavily subdivided by heading, most header-bounded sections are already well under 384 tokens before `RecursiveCharacterTextSplitter`'s size cap would ever bind. FAQ and AQ/PQ chunks show this most clearly (96.4% and 96.3% of their chunks carry an `h2` tag), while Instructor Notes and Transcripts (0% `h2`-tagged) rely solely on the recursive splitter and show comparatively higher token counts on average.
+
+This is flagged as a corpus characteristic requiring a decision, not silently absorbed: either (a) treat 384 tokens as a **ceiling** rather than a target, keeping the current header-first behavior since header-bounded chunks are arguably more semantically coherent, or (b) merge small adjacent header-bounded chunks up to the 384-token budget to reduce retrieval-index fragmentation. This will be tested empirically as part of the chunk-size experiments already planned in Sections 6.1/7.2.
+
 ### 3.3 Feature/Field Schema (post-ingestion)
 
 Each document, after preprocessing, is represented with the following metadata schema. This has been corrected from the draft version (which had a duplicated `"Timestamp start"` key and lacked several fields needed for citation/traceability):
@@ -144,17 +200,24 @@ Field notes:
 | Formatting inconsistency | Notes mixed Markdown, LaTeX math, and inline HTML; PYQs were scanned PDFs with complex equations. | Unified conversion to plain text with LaTeX preserved; deep-learning OCR (EasyOCR) successfully extracted math from scanned PYQs. |
 | Broken/stale links | Zero 404s encountered during the local corpus processing phase. | N/A; all ingestion performed locally on verified files. |
 | Answer correctness (FAQ) | FAQ answers from https://mlt.pulki.in/ are community/TA replies. | Unverified entries tagged with source metadata so the LLM can cite the specific FAQ source during generation. |
+| Missing week metadata | 280 chunks (all External Notes) were emitted with `week` unset, appearing as `week=0` in the corpus (Section 3.2.1). Confirmed by direct inspection of the final chunk corpus. | To be fixed by back-filling `week` from the source filename/URL path before Milestone 3; currently excluded from week-wise adequacy conclusions where the missing tag would bias the result. |
+| Chunk size vs. target mismatch | Actual chunk sizes are far below the documented 384-token/15%-overlap target — no chunk exceeds 259 tokens (Section 3.2.3), because `MarkdownHeaderTextSplitter` binds before the recursive splitter's size cap can apply. | Retained as-is for Milestone 2 baseline; to be revisited empirically in the chunk-size tuning experiments (Section 6.1/7.2) — either accept header-bounded chunks as the true strategy, or merge small sections up to the token budget. |
 
 ---
 
 ## 5. Adequacy Evaluation & Augmentation Strategy
 
-### 5.1 Coverage Gaps (Expected — to be confirmed by data)
-- Weeks with sparse External Notes and no PYQ history (e.g., a newly introduced topic) are expected to leave thin retrieval context — to be confirmed once per-week document counts (Section 3.1) are available.
-- FAQ coverage is expected to skew toward assignment-deadline-driven doubts rather than conceptual depth — to be confirmed by categorizing a sample of FAQ questions.
+### 5.1 Coverage Gaps (Confirmed Against Final Corpus Statistics)
+
+With the final chunk corpus now available (Section 3.2.1–3.2.2), the coverage-gap hypotheses from the earlier draft can be checked directly rather than left as assumptions:
+
+- **Confirmed — later weeks are thinner.** Weeks 9–12 (95 to 128 chunks/week, 8,902–11,832 tokens/week) hold roughly 3–4x less content than the Weeks 1–8 average (148–906 chunks/week, 13,229–59,583 tokens/week). Week 12 in particular has only 64 chunks and ~5,200 tokens total — the thinnest week in the corpus by a wide margin. This directly limits the size and diversity of the Test split (Section 6.1) and is the single biggest adequacy risk identified so far.
+- **Confirmed — External Notes coverage is uneven and currently untagged by week.** All 280 External Notes (MLT Weekly) chunks lack a week tag (Section 3.2.1, Section 4) due to a pipeline bug, so we cannot yet confirm *which* weeks they cover until this is fixed. This is a blocking item before final per-week adequacy can be certified — flagged explicitly rather than assumed benign.
+- **Partially confirmed — FAQ is unevenly distributed but not clearly deadline-skewed from metadata alone.** FAQ contributes 337 chunks (91.5 avg tokens/chunk, the second-highest average after PYQ), concentrated as one FAQ document per week rather than spread evenly; a content-level read (not just metadata) is still needed to confirm the deadline-driven-vs-conceptual-depth hypothesis from the earlier draft — this remains open pending manual sampling.
+- **New finding — chunk granularity, not just document count, affects "thinness".** Because chunk size is governed by Markdown header boundaries rather than the 384-token target (Section 3.2.3), two weeks with the same number of source documents can produce very different numbers of retrievable chunks depending on how finely their notes are subdivided by heading. Raw chunk counts per week should therefore be read alongside token volume per week, not in isolation — a week with many small header-bound chunks is not necessarily better covered than a week with fewer, longer chunks.
 
 ### 5.2 Augmentation Plan
-- **Supplementary retrieval-only sources:** For weeks identified as thin, we will supplement with instructor slide PDFs (if available) or sections from an established open textbook (e.g., *An Introduction to Statistical Learning*). These will be used **only as retrieval context**, cited transparently with source/license, and never presented as original course content.
+- **Supplementary retrieval-only sources:** Weeks 9–12, and Week 12 especially, are now confirmed (Section 5.1) as the thinnest in the corpus and are the priority target for augmentation. We will supplement with instructor slide PDFs (if available) or sections from an established open textbook (e.g., *An Introduction to Statistical Learning*). These will be used **only as retrieval context**, cited transparently with source/license, and never presented as original course content.
 - **Synthetic Q&A generation for retrieval evaluation only (not for the knowledge base or training):**
   - **Purpose:** to build a query set for measuring retrieval Recall@k/Precision@k (Section 7.5), not to expand the retrieval index.
   - **Volume (planned):** approximately 5–10 synthetic questions per week across all 12 weeks — exact count to be finalized once per-week source chunk counts are known.
@@ -315,4 +378,4 @@ end
 
 We have successfully identified, verified, and extracted CS2007's official weekly resources (Transcripts, Notes, PYQ, AQ/PQ, External Notes, FAQ) into a unified dataset comprising **94 pristine Markdown documents** (1.25 MB total). The FAQ and external notes were meticulously scraped from the student resource site (**https://mlt.pulki.in/**). The preprocessing pipeline aggressively scrubbed boilerplate while preserving 211 critical timestamp markers as Markdown headers. 
 
-Through LangChain orchestration, the dataset was robustly sliced into **4,678 JSON-L chunks** (384 token limit). The chunks were partitioned into Train, Validation, and Test splits strictly by chronological week boundaries to ensure a leakage-free foundation for the RAG-based learning assistant. The pipeline is fully reproducible and feeds directly into the Qdrant hybrid retrieval system for Milestone 3.
+Through LangChain orchestration, the dataset was robustly sliced into **4,678 JSON-L chunks**. Direct analysis of the final chunk corpus (Section 3.2) confirms an actual mean chunk size of ~72 tokens (well under the documented 384-token target, due to header-first splitting — Section 3.2.3) and a real, confirmed content thinning in Weeks 9–12 relative to Weeks 1–8, which is now the top-priority target for the augmentation plan (Section 5). A metadata bug leaving 280 External Notes chunks without a week tag has also been identified and will be fixed ahead of Milestone 3. The chunks were partitioned into Train, Validation, and Test splits strictly by chronological week boundaries to ensure a leakage-free foundation for the RAG-based learning assistant. The pipeline is fully reproducible and feeds directly into the Qdrant hybrid retrieval system for Milestone 3.
