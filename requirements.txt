@@ -32,3 +32,6 @@ fastembed==0.8.0
 langchain-qdrant
 python-dotenv==1.0.1
 
+# Milestone 4 - LLM Answer Generation
+langchain-google-genai==4.3.1
+

@@ -27,3 +27,25 @@ If you want to recreate the dataset and vector database from scratch, run these 
 ## Next Steps
 - **LLM Integration:** Connect the retrieved Qdrant chunks to the Gemini LLM to generate conversational, context-aware answers.
 - **Evaluation:** Run the RAG pipeline against the completely unseen "Week 11-12" Test Set to evaluate retrieval accuracy.
+
+## LLM Answer Generation (New)
+The project now includes a lightweight RAG answer-generation flow that:
+1. Retrieves relevant chunks from Qdrant.
+2. Builds a grounded prompt with the question and retrieved context.
+3. Sends the prompt to Gemini to produce a final answer.
+
+### Setup
+Create a `.env` file in the project root with your Qdrant credentials and a Gemini API key:
+
+```env
+QDRANT_URL=your_qdrant_url
+QDRANT_API_KEY=your_qdrant_api_key
+GOOGLE_API_KEY=your_google_api_key
+```
+
+### Run the interactive assistant
+```bash
+python src/run_rag.py
+```
+
+If you prefer to use the pipeline programmatically, you can import the helper from `src.rag_pipeline` and call `answer_question(question, retriever)`.
