@@ -85,10 +85,13 @@ The preprocessing workflow is implemented in the repository through the followin
 
 ### 3.2 Input format expected by the retrieval module
 Each chunk is stored as a LangChain Document containing:
-- page_content: the chunk text itself
-- metadata: week, source type, document id, chunk id, and related traceability fields
+- page_content: the chunk text itself, which is the only field passed to the embedding model for vectorization. This text is the primary semantic unit used during retrieval.
+- metadata: week, source type, document id, chunk id, and related traceability fields used for filtering, ranking, and citation. These fields allow the system to retrieve content that is both relevant and course-aware.
+- chunk size limit: the current chunking implementation uses a maximum chunk size of about 384 tokens with a small overlap, so each retrieved unit remains compact and semantically focused rather than becoming too long or overly diluted.
+- context window budgeting: the generation step uses a small top-k setting, so the model receives a limited number of retrieved chunks rather than the entire corpus. In the current implementation, a typical retrieval pass uses about 3 chunks, which keeps the retrieved context compact while still providing enough evidence for a grounded answer.
+- input shape for downstream processing: the embedding model receives a text string of the chunk, while the retriever later passes a shortlist of these chunk texts to the LLM. This design keeps the retrieval stage efficient and the generation stage controlled.
 
-This structure is important because the retrieval module needs both semantic content and metadata to perform filtered, course-aware search.
+This structure is important because the retrieval module needs both semantic content and metadata to perform filtered, course-aware search, while the generation step needs a compact context window that stays within the practical limits of the selected LLM.
 
 ---
 
@@ -125,7 +128,13 @@ This architecture is well suited for the project because it combines:
 - low operational complexity because it does not require model training,
 - practicality for a course-assistant system where grounded explanations are more important than free-form generation.
 
-The design is especially appropriate for educational content because the model can answer only from retrieved course context and avoid unsupported claims.
+Compared with alternative approaches:
+- Fine-tuning: fine-tuning would require labeled task data and additional training effort, while the current project needs a lightweight and controllable setup that can stay grounded in course materials. It would also be harder to update quickly when new course content is added.
+- Keyword-based retrieval alone: this is useful for exact terms, but it is weaker for paraphrased or conceptual questions. Hybrid retrieval is more robust because it combines semantic and lexical matching, which is important in a course setting where students may ask the same concept using different wording.
+- Long-context LLMs: passing the entire course corpus directly to a model would increase cost, latency, and the risk of irrelevant context overwhelming the answer. It would also make the system less traceable because the model would be reasoning over a large and potentially noisy body of content. RAG keeps the context focused, compact, and easy to verify against the retrieved source chunks.
+- Rule-based or static QA systems: these would be rigid and hard to scale as the course material grows. RAG allows the system to adapt more naturally to new documents and to keep answers grounded in the current indexed corpus.
+
+For this project, RAG was therefore chosen because it offers a strong balance between grounding, accuracy, explainability, and practical implementation cost while remaining flexible enough for future extension.
 
 ---
 
