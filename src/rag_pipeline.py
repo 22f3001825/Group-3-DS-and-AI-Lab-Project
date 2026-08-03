@@ -231,9 +231,14 @@ def create_llm(model_name: str, provider: str, api_key: str | None = None) -> An
         if not resolved_key:
             raise RuntimeError("GROQ_API_KEY is not set in your environment.")
 
+        # Support multiple comma-separated keys for load balancing
+        import random
+        keys = [k.strip() for k in resolved_key.split(",") if k.strip()]
+        selected_key = random.choice(keys)
+
         return ChatGroq(
             model=model_name,
-            api_key=resolved_key,
+            api_key=selected_key,
             temperature=0.2,
         )
 

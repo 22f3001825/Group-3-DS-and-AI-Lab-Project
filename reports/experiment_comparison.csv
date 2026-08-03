@@ -1,0 +1,11 @@
+experiment,chunk_size,chunk_overlap,embedding_model,retrieval_mode,top_k,use_reranker,temperature,prompt_style,precision_at_5,recall_at_5,mrr_at_5,recall_at_10,faithfulness,answer_relevance,context_precision,total_time_seconds
+baseline,384,50,BAAI/bge-small-en-v1.5,hybrid,5,False,0.2,structured,0.825,1.0,0.875,1.0,0.92,1.0,0.84,0.0
+chunk_256,256,50,BAAI/bge-small-en-v1.5,hybrid,5,False,0.2,structured,0.825,1.0,0.9375,1.0,0.92,1.0,0.84,0.0
+chunk_512,512,50,BAAI/bge-small-en-v1.5,hybrid,5,False,0.2,structured,0.775,1.0,0.875,1.0,0.27,0.3,0.24,0.0
+embed_minilm,384,50,sentence-transformers/all-MiniLM-L6-v2,hybrid,5,False,0.2,structured,0.775,1.0,0.8438,1.0,0.92,1.0,0.84,66.98
+retrieval_dense_only,384,50,BAAI/bge-small-en-v1.5,dense,5,False,0.2,structured,0.8,1.0,0.9,1.0,0.93,1.0,0.85,60.7
+retrieval_sparse_only,384,50,BAAI/bge-small-en-v1.5,sparse,5,False,0.2,structured,0.775,0.875,0.875,0.875,0.83,1.0,0.78,59.46
+hybrid_reranker,384,50,BAAI/bge-small-en-v1.5,hybrid,5,True,0.2,structured,0.875,1.0,1.0,1.0,0.92,1.0,0.84,80.57
+topk_10,384,50,BAAI/bge-small-en-v1.5,hybrid,10,False,0.2,structured,0.85,1.0,0.875,1.0,0.93,1.0,0.85,82.59
+temp_0_7,384,50,BAAI/bge-small-en-v1.5,hybrid,5,False,0.7,structured,0.825,1.0,0.875,1.0,0.92,1.0,0.84,76.68
+prompt_cot,384,50,BAAI/bge-small-en-v1.5,hybrid,5,False,0.2,cot,0.8,1.0,0.875,1.0,0.92,1.0,0.84,60.05

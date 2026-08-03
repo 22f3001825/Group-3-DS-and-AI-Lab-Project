@@ -36,3 +36,7 @@ python-dotenv==1.0.1
 langchain-google-genai==4.3.1
 langchain-groq
 
+# Milestone 4 - Reranker & Visualization
+sentence-transformers
+matplotlib
+
