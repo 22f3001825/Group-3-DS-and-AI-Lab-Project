@@ -3,6 +3,21 @@ import re
 from pathlib import Path
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 
+# ── Topic Taxonomy ────────────────────────────────────────────────────────────
+_TAXONOMY_PATH = Path(__file__).parent / "topic_taxonomy.json"
+_WEEK_TOPICS: dict[int, list[str]] = {}
+
+if _TAXONOMY_PATH.exists():
+    _taxonomy_data = json.loads(_TAXONOMY_PATH.read_text(encoding="utf-8"))
+    for _entry in _taxonomy_data:
+        _week = _entry["week"]
+        _WEEK_TOPICS.setdefault(_week, []).append(_entry["name"])
+
+
+def get_topic_tags(week: int) -> list[str]:
+    """Return topic names for a given week from the canonical taxonomy."""
+    return _WEEK_TOPICS.get(week, [])
+
 def extract_week(filepath: Path) -> int:
     """Extract week number from filepath/filename."""
     match = re.search(r'(?i)week[\s_-]*0*(\d+)', str(filepath))
@@ -82,6 +97,7 @@ def main():
             chunk.metadata['week'] = week
             chunk.metadata['source_type'] = source
             chunk.metadata['doc_id'] = f"{doc_id}_chunk_{i}"
+            chunk.metadata['topic_tags'] = get_topic_tags(week)
             
             # Format output dictionary
             chunk_dict = {

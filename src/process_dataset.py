@@ -110,8 +110,8 @@ def process_dataset():
         current_dir = Path(root)
         source_folder = current_dir.relative_to(RAW_DIR).parts[0] if current_dir.relative_to(RAW_DIR).parts else "root"
         
-        # TARGET ONLY PYQ and pq for this run
-        if source_folder.lower() not in ["pyq", "pq"]:
+        # TARGET ONLY PYQ, pq, and transcripts for this run
+        if source_folder.lower() not in ["pyq", "pq", "transcripts"]:
             continue
         
         for file_name in files:
