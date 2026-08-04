@@ -162,10 +162,3 @@ python src/test_retrieval.py
 
 ---
 
-## 👥 Team
-
-| Member | Task |
-|--------|------|
-| **You (Lead)** | FastAPI backend, React frontend, topic taxonomy, Qdrant ingestion |
-| **Mayank** | Recommendation engine, knowledge gap detection, lecture timestamps |
-| **Jibin** | Quiz generation (LLM-as-a-Judge), conversation memory, E2E testing |
