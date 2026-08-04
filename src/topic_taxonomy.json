@@ -1,0 +1,61 @@
+[
+  {"id": 1,  "name": "Introduction to Machine Learning", "week": 1, "aliases": ["Intro to ML", "ML Introduction", "What is ML"]},
+  {"id": 2,  "name": "PCA",                              "week": 1, "aliases": ["Principal Component Analysis", "Principal Components", "Dimensionality Reduction"]},
+  {"id": 3,  "name": "Representation Learning",          "week": 1, "aliases": ["Feature Learning", "Latent Representations", "Unsupervised Representation"]},
+  {"id": 4,  "name": "Paradigms of Machine Learning",    "week": 1, "aliases": ["ML Paradigms", "Types of Learning", "Learning Paradigms"]},
+
+  {"id": 5,  "name": "Kernel PCA",                       "week": 2, "aliases": ["Kernel Principal Component Analysis", "Non-linear PCA"]},
+  {"id": 6,  "name": "Kernel Functions",                 "week": 2, "aliases": ["Kernels", "Kernel Trick", "RBF Kernel", "Polynomial Kernel"]},
+  {"id": 7,  "name": "Feature Transformation",           "week": 2, "aliases": ["Feature Mapping", "Feature Extraction"]},
+  {"id": 8,  "name": "Issues with PCA",                  "week": 2, "aliases": ["PCA Limitations", "Time Complexity of PCA"]},
+
+  {"id": 9,  "name": "Introduction to Clustering",       "week": 3, "aliases": ["Clustering", "Unsupervised Clustering"]},
+  {"id": 10, "name": "K-means Clustering",               "week": 3, "aliases": ["K-means", "Lloyd's Algorithm", "K Means"]},
+  {"id": 11, "name": "Kernel K-means",                   "week": 3, "aliases": ["Kernel Clustering", "Non-linear Clustering"]},
+  {"id": 12, "name": "K-means Initialization",           "week": 3, "aliases": ["Centroid Initialization", "K-means++", "Cluster Initialization"]},
+  {"id": 13, "name": "K-means Convergence",              "week": 3, "aliases": ["Convergence of K-means", "Lloyd's Convergence"]},
+  {"id": 14, "name": "Choice of K",                      "week": 3, "aliases": ["Elbow Method", "Selecting K", "Number of Clusters"]},
+
+  {"id": 15, "name": "Maximum Likelihood Estimation",    "week": 4, "aliases": ["MLE", "Likelihood Estimation", "Maximum Likelihood"]},
+  {"id": 16, "name": "Bayesian Estimation",              "week": 4, "aliases": ["Bayesian Inference", "MAP Estimation", "Prior and Posterior"]},
+  {"id": 17, "name": "Gaussian Mixture Models",          "week": 4, "aliases": ["GMM", "Mixture of Gaussians", "Gaussian Mixture"]},
+  {"id": 18, "name": "EM Algorithm",                     "week": 4, "aliases": ["Expectation Maximization", "E-step M-step", "EM"]},
+  {"id": 19, "name": "Jensen's Inequality",              "week": 4, "aliases": ["Convex Functions", "Jensen Inequality"]},
+
+  {"id": 20, "name": "Linear Regression",                "week": 5, "aliases": ["Least Squares Regression", "Ordinary Least Squares", "OLS", "Regression"]},
+  {"id": 21, "name": "Gradient Descent",                 "week": 5, "aliases": ["Stochastic Gradient Descent", "SGD", "Optimization via Gradient"]},
+  {"id": 22, "name": "Kernel Regression",                "week": 5, "aliases": ["Non-linear Regression", "Kernelized Regression"]},
+  {"id": 23, "name": "Probabilistic View of Regression", "week": 5, "aliases": ["Bayesian Linear Regression", "Probabilistic Regression"]},
+  {"id": 24, "name": "Supervised Learning",              "week": 5, "aliases": ["Supervised ML", "Training Data", "Labeled Data"]},
+
+  {"id": 25, "name": "Ridge Regression",                 "week": 6, "aliases": ["L2 Regularization", "Tikhonov Regularization", "Weight Decay"]},
+  {"id": 26, "name": "LASSO Regression",                 "week": 6, "aliases": ["L1 Regularization", "LASSO", "Sparse Regression"]},
+  {"id": 27, "name": "Regularization",                   "week": 6, "aliases": ["Overfitting Prevention", "Regularizer", "Penalty Term"]},
+
+  {"id": 28, "name": "K-Nearest Neighbours",             "week": 7, "aliases": ["KNN", "K-NN", "Nearest Neighbour Classification"]},
+  {"id": 29, "name": "Decision Trees",                   "week": 7, "aliases": ["Decision Tree Algorithm", "Tree Classifier", "CART"]},
+  {"id": 30, "name": "Information Gain",                 "week": 7, "aliases": ["Entropy", "Gini Impurity", "Split Criterion"]},
+  {"id": 31, "name": "Binary Classification",            "week": 7, "aliases": ["Two-class Classification", "Classification"]},
+
+  {"id": 32, "name": "Naive Bayes",                      "week": 8, "aliases": ["Naive Bayes Classifier", "Bayesian Classification", "Class Conditional Independence"]},
+  {"id": 33, "name": "Generative Models",                "week": 8, "aliases": ["Generative Classifier", "Generative Approach", "Class Conditional Distribution"]},
+  {"id": 34, "name": "Discriminative vs Generative",     "week": 8, "aliases": ["Discriminative Models", "Generative vs Discriminative"]},
+
+  {"id": 35, "name": "Perceptron",                       "week": 9, "aliases": ["Perceptron Algorithm", "Linear Classifier", "Rosenblatt Perceptron"]},
+  {"id": 36, "name": "Logistic Regression",              "week": 9, "aliases": ["LR", "Logistic Model", "Sigmoid Regression", "Log-loss"]},
+  {"id": 37, "name": "Discriminative Models",            "week": 9, "aliases": ["Discriminative Learning", "Direct Classification", "Conditional Model"]},
+
+  {"id": 38, "name": "Support Vector Machines",          "week": 10, "aliases": ["SVM", "Support Vector Classifier", "SVC", "Max Margin Classifier"]},
+  {"id": 39, "name": "Kernel SVM",                       "week": 10, "aliases": ["Kernelized SVM", "Non-linear SVM", "RBF SVM"]},
+  {"id": 40, "name": "Margin Maximization",              "week": 10, "aliases": ["Hard Margin SVM", "Soft Margin SVM", "Margin", "Hinge Loss"]},
+
+  {"id": 41, "name": "Ensemble Methods",                 "week": 11, "aliases": ["Ensembles", "Model Combination", "Ensemble Learning"]},
+  {"id": 42, "name": "Bagging",                          "week": 11, "aliases": ["Bootstrap Aggregating", "Random Forest", "Bootstrap Sampling"]},
+  {"id": 43, "name": "Boosting",                         "week": 11, "aliases": ["Adaptive Boosting", "Gradient Boosting", "Ensemble Boosting"]},
+  {"id": 44, "name": "AdaBoost",                         "week": 11, "aliases": ["Adaptive Boosting", "AdaBoost Algorithm"]},
+
+  {"id": 45, "name": "Artificial Neural Networks",       "week": 12, "aliases": ["ANN", "Neural Network", "Deep Learning Basics", "Feedforward Network"]},
+  {"id": 46, "name": "Backpropagation",                  "week": 12, "aliases": ["Backprop", "Chain Rule", "Error Backpropagation"]},
+  {"id": 47, "name": "Multiclass Classification",        "week": 12, "aliases": ["Softmax", "One-vs-Rest", "Multi-class", "Categorical Classification"]},
+  {"id": 48, "name": "Activation Functions",             "week": 12, "aliases": ["ReLU", "Sigmoid", "Tanh", "Activation"]}
+]

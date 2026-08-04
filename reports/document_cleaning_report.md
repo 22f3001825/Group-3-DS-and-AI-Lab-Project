@@ -1,14 +1,14 @@
 # Document Cleaning Report
 
 ## Overview
-- **Total Documents Processed:** 94
+- **Total Documents Processed:** 117
 - **Empty Documents Dropped:** 0
 - **Files Skipped (Errors):** 0
-- **Total Successfully Cleaned:** 94
+- **Total Successfully Cleaned:** 117
 
 ## Cleaning Metrics
 - **OCR Hyphenations Merged:** 0
-- **Timestamps Removed:** 211
+- **Timestamps Removed:** 4949
 - **Duplicate Headers Removed:** 0
 - **Unicode Corruptions Fixed:** 0
 

@@ -1,51 +1,164 @@
-# Group 3 DS and AI Lab Project
+# 🧠 MLT Course AI Assistant — Group 3
 
-Welcome to the Group 3 DS and AI Lab Project repository.
+> **Course-Aware Personalized Learning Companion for the IIT Madras BS Degree MLT Course**
 
-## Overview
-This repository contains the deliverables and source code for our project: **Course-Aware Personalized Learning Companion for IIT Madras BS Degree Students**.
+A full-stack AI assistant that answers student questions using Retrieval-Augmented Generation (RAG) over lecture transcripts, FAQs, and past year questions.
 
-For more details on the problem we are solving, please refer to the [Problem Statement](problem_statement.md).
+---
 
-## 🚀 How to Run the Pipeline
-If you want to recreate the dataset and vector database from scratch, run these scripts in order using `uv`:
+## 🏗️ Architecture Overview
 
-### 1. Data Engineering (Milestone 2)
-1. `uv run python src/process_dataset.py` (Extracts PDFs using EasyOCR)
-2. `uv run python src/clean_dataset.py` (Scrubs HTML and normalizes text)
-3. `uv run python src/prepare_rag_splits.py` (Chunks the text into Train/Val/Test splits)
+```
+┌─────────────────────────────────────┐
+│        React Frontend (Vite)        │  ← web/
+│   Chat  |  Quiz  |  Progress        │
+└────────────────┬────────────────────┘
+                 │ HTTP (localhost:8000)
+┌────────────────▼────────────────────┐
+│         FastAPI Backend             │  ← src/api/
+│  /chat  |  /topics  |  /learner/..  │
+└────────────────┬────────────────────┘
+        ┌────────┴────────┐
+        │                 │
+┌───────▼──────┐  ┌───────▼──────────┐
+│  Qdrant Cloud│  │  SQLite (local)  │
+│  Vector DB   │  │  Learner DB      │
+│  9,427 chunks│  │  Quiz & Mastery  │
+└──────────────┘  └──────────────────┘
+```
 
-### 2. Vector Database Ingestion (Milestone 3)
-*Note: You must have a `.env` file with `QDRANT_URL` and `QDRANT_API_KEY` for these to work.*
-4. `uv run python src/ingest_to_qdrant.py` (Embeds 4,600+ chunks and uploads to Qdrant Cloud)
-5. `uv run python src/test_retrieval.py` (Interactive terminal to test Qdrant Hybrid Search)
+---
 
-## Project Status
- **Milestone 2 (Completed):** Dataset scraped, mathematical PDFs extracted via EasyOCR, text normalized, and LangChain chunks successfully separated into chronological Train/Val/Test splits to prevent data leakage.
- **Milestone 3 Offline Pipeline (Completed):** 4,678 JSON-L chunks converted into Dense (BGE-small) and Sparse (BM25) vectors and securely ingested into a live Qdrant Cloud database.
+## 📁 Project Structure
 
-## Next Steps
-- **LLM Integration:** Connect the retrieved Qdrant chunks to the Gemini LLM to generate conversational, context-aware answers.
-- **Evaluation:** Run the RAG pipeline against the completely unseen "Week 11-12" Test Set to evaluate retrieval accuracy.
+```
+Group-3-DS-and-AI-Lab-Project/
+│
+├── src/
+│   ├── download_transcripts.py   # Scrape lecture transcripts
+│   ├── process_dataset.py        # PDF extraction via EasyOCR
+│   ├── clean_dataset.py          # Normalize and clean text
+│   ├── prepare_rag_splits.py     # Chunk into Train/Val/Test + inject topic_tags
+│   ├── ingest_to_qdrant.py       # Upload chunks to Qdrant Cloud (Hybrid Search)
+│   ├── rag_pipeline.py           # Core RAG: retrieve + LLM answer
+│   ├── run_rag.py                # CLI interactive assistant
+│   ├── topic_taxonomy.json       # Canonical 48-topic MLT taxonomy
+│   │
+│   ├── api/                      # FastAPI backend (Milestone 5)
+│   │   ├── main.py
+│   │   ├── dependencies.py
+│   │   ├── routers/
+│   │   └── schemas/
+│   │
+│   └── database/                 # SQLAlchemy ORM (Milestone 5)
+│       ├── models.py
+│       ├── crud.py
+│       └── session.py
+│
+├── web/                          # React Frontend (Vite)
+│   └── src/
+│       ├── pages/Chat.jsx
+│       ├── pages/Quiz.jsx
+│       └── pages/Progress.jsx
+│
+├── data/
+│   ├── raw/                      # Raw transcripts and PDFs
+│   ├── processed/                # Extracted text
+│   ├── cleaned/                  # Normalized text
+│   └── splits/                   # train/val/test JSONL chunks
+│
+├── .env                          # API keys (DO NOT commit)
+├── .env_example                  # Template for .env
+├── requirements.txt              # Python dependencies
+└── problem_statement.md
+```
 
-## LLM Answer Generation (New)
-The project now includes a lightweight RAG answer-generation flow that:
-1. Retrieves relevant chunks from Qdrant.
-2. Builds a grounded prompt with the question and retrieved context.
-3. Sends the prompt to Gemini to produce a final answer.
+---
 
-### Setup
-Create a `.env` file in the project root with your Qdrant credentials and a Gemini API key:
+## ⚙️ Setup & Running
 
+### Prerequisites
+- **Python 3.10+**
+- **Node.js 18+** (for the React frontend)
+- A `.env` file in the project root (copy from `.env_example`)
+
+### 1. Configure Environment
+
+Create a `.env` file:
 ```env
-QDRANT_URL=your_qdrant_url
+QDRANT_URL=https://your-cluster.qdrant.io
 QDRANT_API_KEY=your_qdrant_api_key
-GOOGLE_API_KEY=your_google_api_key
+
+# At least one LLM provider is required:
+GROQ_API_KEY=your_groq_api_key       # Recommended (free, fast)
+GOOGLE_API_KEY=your_gemini_api_key   # Optional fallback
+
+# Set preferred provider (groq or gemini):
+LLM_PROVIDER=groq
 ```
 
-### Run the interactive assistant
+### 2. Install Python Dependencies
+
 ```bash
-python src/run_rag.py
+python -m pip install -r requirements.txt
 ```
 
-If you prefer to use the pipeline programmatically, you can import the helper from `src.rag_pipeline` and call `answer_question(question, retriever)`.
+### 3. Start the FastAPI Backend
+
+```bash
+python -m uvicorn src.api.main:app --reload --port 8000
+```
+
+> 📖 Interactive API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+### 4. Start the React Frontend
+
+```bash
+cd web
+npm install    # Only needed on first run
+npm run dev
+```
+
+> 🌐 Open in browser: [http://localhost:5173](http://localhost:5173)
+
+---
+
+## 📊 Milestones
+
+| Milestone | Status | Description |
+|-----------|--------|-------------|
+| **M2 — Data Engineering** | ✅ Complete | Scraped 12 weeks of transcripts, FAQs, and PYQs. EasyOCR extracted math PDFs. |
+| **M3 — Vector DB** | ✅ Complete | 9,427 hybrid (dense + sparse) chunks ingested into Qdrant Cloud. |
+| **M4 — RAG Pipeline** | ✅ Complete | Gemini + Groq LLM failover, structured prompt, guardrail for out-of-scope questions. |
+| **M5 — Backend & UI** | ✅ Complete | FastAPI REST API, SQLite learner DB, React 3-page frontend. |
+| **M5.5 — Recommendations** | 🔄 Left | Knowledge gap detection + personalized study plans. |
+| **M5.5 — Quiz Gen + Memory** | 🔄 Left | LLM-as-a-Judge quiz evaluation + conversation memory. |
+
+---
+
+## 🛠️ Rebuilding the Vector Database
+
+Only needed if you add new course material:
+
+```bash
+# 1. Rebuild chunks with topic_tags
+python src/prepare_rag_splits.py
+
+# 2. Upload to Qdrant Cloud
+python src/ingest_to_qdrant.py
+```
+
+---
+
+## 🧪 CLI Testing (No Frontend Required)
+
+```bash
+# Interactive RAG in the terminal
+python src/run_rag.py
+
+# Test Qdrant retrieval only
+python src/test_retrieval.py
+```
+
+---
+

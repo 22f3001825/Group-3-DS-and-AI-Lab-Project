@@ -57,3 +57,11 @@ Discourse_scrapper/state.json
 # Environment Variables
 .env
 
+# SQLite Database (auto-generated at runtime)
+*.db
+
+# React Frontend
+web/node_modules/
+web/dist/
+web/.vite/
+

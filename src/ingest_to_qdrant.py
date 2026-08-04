@@ -115,6 +115,8 @@ def main():
         "url": QDRANT_URL,
         "collection_name": COLLECTION_NAME,
         "retrieval_mode": RetrievalMode.HYBRID,
+        "timeout": 120,
+        "batch_size": 32,
     }
     if QDRANT_API_KEY:
         qdrant_kwargs["api_key"] = QDRANT_API_KEY
