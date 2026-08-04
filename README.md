@@ -131,8 +131,8 @@ npm run dev
 | **M3 — Vector DB** | ✅ Complete | 9,427 hybrid (dense + sparse) chunks ingested into Qdrant Cloud. |
 | **M4 — RAG Pipeline** | ✅ Complete | Gemini + Groq LLM failover, structured prompt, guardrail for out-of-scope questions. |
 | **M5 — Backend & UI** | ✅ Complete | FastAPI REST API, SQLite learner DB, React 3-page frontend. |
-| **M5.5 — Recommendations** | 🔄 Mayank | Knowledge gap detection + personalized study plans. |
-| **M5.5 — Quiz Gen + Memory** | 🔄 Jibin | LLM-as-a-Judge quiz evaluation + conversation memory. |
+| **M5.5 — Recommendations** | 🔄 Left | Knowledge gap detection + personalized study plans. |
+| **M5.5 — Quiz Gen + Memory** | 🔄 Left | LLM-as-a-Judge quiz evaluation + conversation memory. |
 
 ---
 
