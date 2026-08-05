@@ -19,7 +19,9 @@ from typing import Any, Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.database.crud import get_or_create_student, get_topic_mastery_for_student
+from src.database.crud import (
+    get_or_create_student, get_topic_mastery_for_student, record_recommendation_event,
+)
 from src.database.models import ChatMessage, QuizAttempt, TopicMastery
 from src.rag_pipeline import generate_llm_response
 
@@ -64,16 +66,21 @@ def get_student_state_fingerprint(db: Session, student_id: str) -> str:
     """Compute a hash representing the current learning state of a student.
     
     Includes:
-      - Total quiz attempts & timestamp of latest quiz attempt
+      - Total *graded* quiz attempts & timestamp of latest graded attempt
       - Total topic mastery rows & timestamp of latest mastery update
       - Total chat message count
+
+    Generated-but-unanswered rows are excluded deliberately: merely generating a quiz
+    changes nothing about what the student knows, and counting those rows would force
+    a full LLM study-plan regeneration on every question served.
     """
     quiz_stats = (
         db.query(
             func.count(QuizAttempt.attempt_id),
             func.max(QuizAttempt.attempt_time),
         )
-        .filter(QuizAttempt.student_id == student_id)
+        .filter(QuizAttempt.student_id == student_id,
+                QuizAttempt.is_correct.isnot(None))
         .first()
     )
     quiz_count = quiz_stats[0] if quiz_stats else 0
@@ -261,7 +268,11 @@ def analyze_knowledge_state(db: Session, student_id: str) -> dict[str, Any]:
 
         # Multipliers
         prereq_mult = 1.4 if has_prereq_gap else 1.0
-        is_prereq_for_weak = bool(set(prereqs) & weak_topic_ids) or any(
+        # A topic is a foundation when some weak topic depends on IT. Having a weak
+        # prerequisite makes a topic *blocked*, not foundational — that case is already
+        # priced by prereq_mult, and counting it here made a blocked topic (1.4 × 1.3)
+        # outrank the very prerequisite it is waiting on.
+        is_prereq_for_weak = any(
             t_id in _TOPIC_BY_ID.get(w_id, {}).get("prerequisites", []) for w_id in weak_topic_ids
         )
         foundation_mult = 1.3 if is_prereq_for_weak else 1.0
@@ -384,6 +395,14 @@ def generate_study_plan(
 
     analysis = analyze_knowledge_state(db, student_id)
     top_gaps = analysis["gaps"][:top_n]
+
+    # Stamp the intervention point for the pre/post improvement metric (idempotent).
+    for g in top_gaps:
+        try:
+            record_recommendation_event(db, student_id, g["topic_id"], g["topic_name"])
+        except Exception as exc:
+            db.rollback()
+            print(f"  [RecommendationService] Could not record recommendation event ({type(exc).__name__}).")
 
     if not top_gaps:
         result = {

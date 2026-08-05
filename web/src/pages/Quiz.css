@@ -49,6 +49,7 @@
 
 .difficulty-btns {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 .diff-btn {
@@ -89,7 +90,11 @@
 }
 .history-badge.correct { background: var(--success-bg); color: var(--success); }
 .history-badge.wrong { background: var(--danger-bg); color: var(--danger); }
+/* Generated-but-unanswered rows only appear with include_pending=true; they are not
+   wrong answers and must not be rendered as one. */
+.history-badge.pending { background: var(--bg-main); color: var(--text-muted); }
 .empty-hint { font-size: 13px; color: var(--text-muted); }
+.sidebar-hint { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-top: 10px; }
 
 /* Score Ring */
 .stats-banner {
@@ -258,6 +263,147 @@
 .feedback-box p { color: var(--text-secondary); width: 100%; margin-top: 4px; font-size: 13px; }
 
 .question-actions { display: flex; gap: 10px; }
+
+/* Personalization banner — why this topic was chosen */
+.reason-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--accent-glow);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: var(--text-secondary);
+}
+.reason-banner svg { flex-shrink: 0; color: var(--accent-hover); }
+.reason-banner.reason-weak { background: var(--danger-bg); border-color: rgba(239, 68, 68, 0.3); }
+.reason-banner.reason-weak svg { color: var(--danger); }
+.reason-banner.reason-decaying,
+.reason-banner.reason-cached {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.reason-banner.reason-decaying svg,
+.reason-banner.reason-cached svg { color: var(--warning); }
+
+.week-chip,
+.q-counter {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.q-counter { margin-left: auto; }
+
+.short-answer-box {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 14px 16px;
+}
+
+.judge-score {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.mastery-delta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.quiz-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 8px;
+}
+.quiz-sources-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.quiz-source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.quiz-source-chip em { color: var(--text-muted); font-style: normal; }
+
+.quiz-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  background: var(--danger-bg);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.quiz-error svg { flex-shrink: 0; }
+
+/* Personalised quiz gate */
+.unlock-progress {
+  height: 6px;
+  margin-top: 10px;
+  border-radius: 3px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.unlock-bar {
+  height: 100%;
+  width: calc(var(--pct, 0) * 1%);
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.quiz-unlocked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  background: var(--success-bg);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.quiz-unlocked svg { flex-shrink: 0; color: var(--success); }
+.quiz-unlocked strong { color: var(--success); }
+.quiz-unlocked .btn { margin-left: auto; flex-shrink: 0; }
 
 @media (max-width: 768px) {
   .quiz-layout { grid-template-columns: 1fr; height: auto; }

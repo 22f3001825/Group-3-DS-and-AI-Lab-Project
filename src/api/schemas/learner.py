@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # ── Student ───────────────────────────────────────────────────────────────────
@@ -99,18 +99,112 @@ class QuizAttemptCreate(BaseModel):
 
 class QuizAttemptResponse(BaseModel):
     attempt_id: str
+    topic_id: Optional[int] = None
     topic_name: str
     difficulty: str
     question_text: str
+    options: list[str] = []
     student_answer: Optional[str]
     correct_answer: Optional[str]
     is_correct: Optional[bool]
     llm_score: Optional[float]
     feedback: Optional[str]
+    reason: Optional[str] = None
     attempt_time: datetime
 
     class Config:
         from_attributes = True
+
+    @model_validator(mode="after")
+    def _withhold_ungraded_answers(self):
+        """Never return the answer for a question that has not been answered yet.
+
+        Rows are persisted at generation time, so without this the answer and the
+        explanation for a live question would be one GET away.
+        """
+        if self.is_correct is None:
+            self.correct_answer = None
+            self.feedback = None
+        return self
+
+
+# ── Personalized Quiz Generation ──────────────────────────────────────────────
+
+class QuizGenerateRequest(BaseModel):
+    topic_id: Optional[int] = Field(
+        None, description="Override targeting. Omit to quiz the weakest identified area."
+    )
+    difficulty: Optional[str] = Field(None, pattern="^(easy|medium|hard)$")
+    count: int = Field(3, ge=1, le=5)
+    question_type: str = Field("mcq", pattern="^(mcq|short_answer)$")
+
+
+class GeneratedQuestion(BaseModel):
+    """What the client is allowed to see. No correct answer, no explanation."""
+    attempt_id: str
+    question_text: str
+    options: list[str] = []
+    question_type: str = "mcq"
+    topic_id: Optional[int] = None
+    topic_name: str
+    week: int = 0
+    difficulty: str
+    reason: str
+    status: str = ""
+    unmet_prerequisites: list[str] = []
+
+
+class AttemptedTopic(BaseModel):
+    topic_id: int
+    topic_name: str
+    week: int = 0
+    attempts: int = 0
+
+
+class QuizReadinessResponse(BaseModel):
+    """Whether the personalized quiz is available yet, and how far off it is.
+
+    Thresholds come from `src/config.py`. `attempted_topics` is the pool the
+    personalized quiz draws from — it never leaves this list.
+    """
+    ready: bool
+    attempts_completed: int
+    required_attempts: int
+    remaining_attempts: int
+    topics_attempted: int
+    required_topics: int
+    remaining_topics: int
+    attempted_topics: list[AttemptedTopic] = []
+
+
+class QuizAnswerRequest(BaseModel):
+    student_answer: str = Field(..., min_length=1)
+
+
+class QuizSource(BaseModel):
+    doc_id: str
+    label: str = ""
+    chunk_index: Optional[int] = None
+
+
+class MasteryDelta(BaseModel):
+    before: Optional[float] = None
+    after: Optional[float] = None
+    elo: Optional[float] = None
+    streak: Optional[int] = None
+    attempts: Optional[int] = None
+
+
+class QuizAnswerResponse(BaseModel):
+    attempt_id: str
+    is_correct: bool
+    llm_score: Optional[float] = None
+    correct_answer: Optional[str] = None
+    explanation: str = ""
+    feedback: str = ""
+    judge_provider_used: str = "none"
+    sources: list[QuizSource] = []
+    mastery: MasteryDelta
 
 
 # ── Recommendation Engine Schemas ─────────────────────────────────────────────

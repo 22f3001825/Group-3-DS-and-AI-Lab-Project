@@ -11,11 +11,15 @@ from sqlalchemy.orm import Session
 
 from ...database.session import get_db
 from ...database import crud
+from ..dependencies import get_retriever
 from ..schemas.learner import (
-    LearnerProfileResponse, MessageResponse, QuizAttemptCreate, QuizAttemptResponse,
-    RecommendationResponse, SessionCreate, SessionResponse, StudentCreate, StudentResponse,
-    StudentUpdate, TopicMasteryResponse, TopicMasteryUpdate, WeekMasteryOverview,
+    GeneratedQuestion, LearnerProfileResponse, MessageResponse, QuizAnswerRequest,
+    QuizAnswerResponse, QuizAttemptCreate, QuizAttemptResponse, QuizGenerateRequest,
+    QuizReadinessResponse, RecommendationResponse, SessionCreate, SessionResponse,
+    StudentCreate, StudentResponse, StudentUpdate, TopicMasteryResponse,
+    TopicMasteryUpdate, WeekMasteryOverview,
 )
+from ..services import quiz_service
 from ..services.recommendation_service import (
     analyze_knowledge_state, generate_study_plan, get_week_by_week_mastery,
     invalidate_recommendation_cache, load_taxonomy,
@@ -92,8 +96,9 @@ def get_learner_profile(student_id: str, db: Session = Depends(get_db)):
     weeks_data = get_week_by_week_mastery(db, student_id)
     quiz_history = crud.get_quiz_history(db, student_id, limit=20)
 
-    total_quizzes = len(quiz_history)
-    correct_quizzes = sum(1 for q in quiz_history if q.is_correct is True)
+    # Lifetime totals, not the last-20 window, and generated-but-unanswered questions
+    # count in neither the numerator nor the denominator.
+    total_quizzes, correct_quizzes = crud.get_quiz_stats(db, student_id)
     accuracy_pct = int(round(correct_quizzes / max(1, total_quizzes) * 100)) if total_quizzes > 0 else 0
 
     return {
@@ -133,8 +138,88 @@ def get_history(session_id: str, db: Session = Depends(get_db)):
 
 # ── Quiz Attempts ─────────────────────────────────────────────────────────────
 
-@router.post("/learner/{student_id}/quiz", response_model=QuizAttemptResponse, status_code=201)
+@router.get("/learner/{student_id}/quiz/readiness", response_model=QuizReadinessResponse)
+def get_quiz_readiness(student_id: str, db: Session = Depends(get_db)):
+    """Is the personalized quiz available to this student yet, and if not, how far off?
+
+    Thresholds live in `src/config.py`. `attempted_topics` is the pool the personalized
+    quiz draws from.
+    """
+    crud.get_or_create_student(db, student_id)
+    return quiz_service.personalization_readiness(db, student_id)
+
+
+@router.post("/learner/{student_id}/quiz/generate", response_model=list[GeneratedQuestion])
+def generate_quiz(
+    student_id: str,
+    body: QuizGenerateRequest,
+    db: Session = Depends(get_db),
+    retriever=Depends(get_retriever),
+):
+    """Generate grounded questions for this student.
+
+    With `topic_id` this is the topic-wise quiz — any topic, always available. Without
+    it this is the personalized path, which unlocks only once the student has practised
+    enough (see `src/config.py`) and then targets the weakest of the topics they have
+    already attempted. Questions are persisted unanswered; the response carries no
+    correct answer and no explanation.
+
+    Plain `def`, not `async def`: retrieval and the LLM call are blocking, so FastAPI
+    must run this in its threadpool rather than on the event loop.
+    """
+    crud.get_or_create_student(db, student_id)
+    try:
+        return quiz_service.generate_quiz(
+            db,
+            student_id,
+            retriever,
+            topic_id=body.topic_id,
+            difficulty=body.difficulty,
+            count=body.count,
+            question_type=body.question_type,
+        )
+    except quiz_service.TopicNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except quiz_service.PersonalizationNotReadyError as exc:
+        # Structured detail so the client can tell this 409 from the already-graded one
+        # and render progress instead of a bare refusal.
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "personalization_not_ready", "message": str(exc), **exc.readiness},
+        ) from exc
+    except quiz_service.QuizGenerationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.post("/learner/{student_id}/quiz/{attempt_id}/answer", response_model=QuizAnswerResponse)
+def answer_quiz_question(
+    student_id: str,
+    attempt_id: str,
+    body: QuizAnswerRequest,
+    db: Session = Depends(get_db),
+):
+    """Grade one generated question and feed the outcome back into the learner profile."""
+    try:
+        return quiz_service.grade_attempt(db, student_id, attempt_id, body.student_answer)
+    except quiz_service.AttemptNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except crud.AlreadyGradedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except quiz_service.InvalidAnswerError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except quiz_service.JudgeUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.post("/learner/{student_id}/quiz", response_model=QuizAttemptResponse, status_code=201,
+             deprecated=True)
 def create_quiz_attempt(student_id: str, body: QuizAttemptCreate, db: Session = Depends(get_db)):
+    """Deprecated direct-write path — the client supplies its own question and outcome.
+
+    Use POST /learner/{id}/quiz/generate + /quiz/{attempt_id}/answer instead: this
+    endpoint trusts a client-side grade, which is how fabricated outcomes reached the
+    Elo model in the first place.
+    """
     crud.get_or_create_student(db, student_id)
     attempt = crud.add_quiz_attempt(
         db,
@@ -163,9 +248,19 @@ def create_quiz_attempt(student_id: str, body: QuizAttemptCreate, db: Session = 
 
 
 @router.get("/learner/{student_id}/quiz", response_model=list[QuizAttemptResponse])
-def get_quiz_history(student_id: str, db: Session = Depends(get_db)):
+def get_quiz_history(
+    student_id: str,
+    include_pending: bool = Query(False, description="Include generated-but-unanswered questions"),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    """Answered attempts only by default — pending questions are not attempts yet.
+
+    Even with include_pending=true the response model blanks correct_answer and
+    feedback on ungraded rows, so a live question's answer never leaks here.
+    """
     crud.get_or_create_student(db, student_id)
-    return crud.get_quiz_history(db, student_id)
+    return crud.get_quiz_history(db, student_id, limit=limit, answered_only=not include_pending)
 
 
 # ── Topic Taxonomy ────────────────────────────────────────────────────────────

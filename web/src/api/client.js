@@ -2,24 +2,43 @@ const API_URL = 'http://localhost:8000';
 
 class APIClient {
   static async request(endpoint, options = {}) {
+    let response;
     try {
-      const response = await fetch(`${API_URL}${endpoint}`, {
+      response = await fetch(`${API_URL}${endpoint}`, {
         headers: {
           'Content-Type': 'application/json',
           ...options.headers,
         },
         ...options,
       });
+    } catch (networkError) {
+      console.error('API Request failed:', networkError);
+      const error = new Error('Cannot reach the API. Is the backend running on port 8000?');
+      error.status = 0;
+      throw error;
+    }
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-      }
+    if (!response.ok) {
+      // Callers distinguish 503 (generator unavailable) from 409 (already answered) and
+      // from 409 + code "personalization_not_ready", so the status, the server's detail
+      // and — when the detail is an object — its code have to survive the throw.
+      let detail = '';
+      try {
+        const body = await response.json();
+        detail = body?.detail ?? '';
+      } catch { /* non-JSON error body */ }
 
-      return await response.json();
-    } catch (error) {
+      const isObject = detail !== null && typeof detail === 'object';
+      const message = isObject ? (detail.message || `API Error: ${response.status}`) : detail;
+      const error = new Error(message || `API Error: ${response.status}`);
+      error.status = response.status;
+      error.detail = detail;
+      if (isObject && detail.code) error.code = detail.code;
       console.error('API Request failed:', error);
       throw error;
     }
+
+    return await response.json();
   }
 
   // Chat
@@ -73,18 +92,46 @@ class APIClient {
     return this.request(`/learner/${studentId}/profile`);
   }
 
-  // Quiz
+  // Quiz — two-phase: generate (no answers in the payload) then answer (graded server-side)
+  static async getQuizReadiness(studentId) {
+    if (!studentId) return null;
+    return this.request(`/learner/${studentId}/quiz/readiness`);
+  }
+
+  static async generateQuiz(studentId, { topicId = null, difficulty = null, count = 3, questionType = 'mcq' } = {}) {
+    if (!studentId) return [];
+    return this.request(`/learner/${studentId}/quiz/generate`, {
+      method: 'POST',
+      body: JSON.stringify({
+        topic_id: topicId ? parseInt(topicId, 10) : null,
+        difficulty: difficulty || null,
+        count,
+        question_type: questionType,
+      }),
+    });
+  }
+
+  static async answerQuiz(studentId, attemptId, studentAnswer) {
+    return this.request(`/learner/${studentId}/quiz/${attemptId}/answer`, {
+      method: 'POST',
+      body: JSON.stringify({ student_answer: studentAnswer }),
+    });
+  }
+
+  static async getQuizHistory(studentId, { includePending = false, limit = 50 } = {}) {
+    if (!studentId) return [];
+    return this.request(
+      `/learner/${studentId}/quiz?include_pending=${includePending}&limit=${limit}`
+    );
+  }
+
+  /** @deprecated Client-graded write path. Use generateQuiz + answerQuiz. */
   static async submitQuizAttempt(studentId, payload) {
     if (!studentId) return null;
     return this.request(`/learner/${studentId}/quiz`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
-  }
-
-  static async getQuizHistory(studentId) {
-    if (!studentId) return [];
-    return this.request(`/learner/${studentId}/quiz`);
   }
 }
 
