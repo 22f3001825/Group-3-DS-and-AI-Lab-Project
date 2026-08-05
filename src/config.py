@@ -20,3 +20,18 @@ PERSONALIZED_QUIZ_MIN_ATTEMPTS = 3
 # one topic) unlocks a "personalized" quiz that can only ever ask about that same topic.
 # Raise this to 3 to require breadth before the ranking is trusted.
 PERSONALIZED_QUIZ_MIN_TOPICS = 1
+
+
+# ── Conversation memory ───────────────────────────────────────────────────────
+
+# How many recent exchanges (user + assistant pairs) are carried into the prompt so the
+# model can resolve follow-up references. This is deliberately short-term: there is no
+# summarization, so every extra turn is paid for in tokens on every message.
+CHAT_MEMORY_TURNS = 3
+
+# Per-message cap applied *after* an assistant answer is condensed to its Direct Answer
+# section. Full answers run six sections and would dominate the prompt otherwise.
+CHAT_MEMORY_ANSWER_CHARS = 400
+
+# Per-message cap for the student's own past questions (kept verbatim, they are short).
+CHAT_MEMORY_QUESTION_CHARS = 300

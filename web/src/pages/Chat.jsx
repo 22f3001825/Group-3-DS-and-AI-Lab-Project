@@ -7,6 +7,11 @@ import './Chat.css';
 
 const STUDENT_KEY = 'mlt_student_id';
 
+// Messages sent back as conversation memory — 3 exchanges, matching CHAT_MEMORY_TURNS in
+// src/config.py. The server trims to its own limit regardless; this just avoids uploading
+// a whole session's answers on every message.
+const MEMORY_MESSAGES = 6;
+
 function SourceChip({ source, index }) {
   const [open, setOpen] = useState(false);
   const meta = source.metadata || {};
@@ -96,6 +101,8 @@ export default function Chat() {
     {
       role: 'assistant',
       content: "Hi! I'm your **MLT Course Assistant**. I can answer questions about Machine Learning, AI, Statistics, and all topics covered in the IIT Madras MLT course with precise lecture timestamps and citation navigation. What would you like to learn today?",
+      // Not part of the conversation — never sent back as memory.
+      synthetic: true,
     },
   ]);
   const [input, setInput] = useState('');
@@ -124,12 +131,19 @@ export default function Chat() {
     const question = input.trim();
     if (!question || loading) return;
 
+    // Built from the state captured before this question is appended, so the current
+    // question is not duplicated into its own memory.
+    const history = messages
+      .filter(m => !m.synthetic)
+      .slice(-MEMORY_MESSAGES)
+      .map(({ role, content }) => ({ role, content }));
+
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: question }]);
     setLoading(true);
 
     try {
-      const result = await APIClient.chat(question, studentId || null);
+      const result = await APIClient.chat(question, studentId || null, null, history);
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: result.answer,
@@ -140,6 +154,7 @@ export default function Chat() {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: '⚠️ Could not reach the backend. Make sure FastAPI is running on port 8000.',
+        synthetic: true,
       }]);
     } finally {
       setLoading(false);

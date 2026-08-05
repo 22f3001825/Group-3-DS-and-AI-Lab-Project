@@ -33,9 +33,17 @@ async def chat(
     - Retrieves relevant chunks from Qdrant (hybrid dense+sparse search)
     - Generates a structured answer via Gemini / Groq with multi-key failover
     - Persists the exchange to the DB and records topic exploration for learner profile
+
+    `request.history` carries the client's recent turns so follow-up questions resolve; only
+    the current question is persisted, exactly as before.
     """
     try:
-        result = run_rag(request.question, retriever, top_k=request.top_k)
+        result = run_rag(
+            request.question,
+            retriever,
+            top_k=request.top_k,
+            history=[turn.model_dump() for turn in request.history],
+        )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"RAG pipeline error: {exc}")
 
