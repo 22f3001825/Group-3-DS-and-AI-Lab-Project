@@ -36,7 +36,21 @@ def init_db():
                     conn.execute(text("ALTER TABLE topic_mastery ADD COLUMN chat_interactions INTEGER DEFAULT 0"))
                 conn.commit()
         except Exception as e:
-            print(f"[Startup Warning] SQLite migration check: {e}")
+            print(f"[Startup Warning] SQLite migration check (topic_mastery): {e}")
+
+    # Safe SQLite column migration for QuizAttempt (personalized quiz generation)
+    with engine.connect() as conn:
+        try:
+            res = conn.execute(text("PRAGMA table_info(quiz_attempts)")).fetchall()
+            existing_cols = {row[1] for row in res}
+            if existing_cols:
+                if "options" not in existing_cols:
+                    conn.execute(text("ALTER TABLE quiz_attempts ADD COLUMN options JSON"))
+                if "reason" not in existing_cols:
+                    conn.execute(text("ALTER TABLE quiz_attempts ADD COLUMN reason VARCHAR(32)"))
+                conn.commit()
+        except Exception as e:
+            print(f"[Startup Warning] SQLite migration check (quiz_attempts): {e}")
 
 
 @asynccontextmanager

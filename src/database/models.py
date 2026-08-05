@@ -8,6 +8,8 @@ Tables:
   - ChatMessage    : every Q&A exchange
   - TopicMastery   : per-student per-topic Elo & mastery tracking (recommendation engine)
   - QuizAttempt    : every quiz attempt (quiz eval + LLM-as-Judge)
+  - TopicRecommendationEvent : first time a topic entered a student's study plan
+                     (the pre/post split point for the quiz improvement metric)
 """
 from __future__ import annotations
 
@@ -123,8 +125,16 @@ class TopicMastery(Base):
 
 class QuizAttempt(Base):
     """Every quiz attempt.
-    llm_score and feedback store LLM-as-Judge evaluation results.
-    source_chunks stores which Qdrant doc_ids were used to generate the question.
+
+    Rows are created UNANSWERED at generation time (student_answer / is_correct NULL)
+    and graded later by POST /learner/{id}/quiz/{attempt_id}/answer.
+
+    llm_score and feedback store LLM-as-Judge evaluation results; at generation time
+    feedback carries the question's explanation, which grading passes back through.
+    source_chunks stores which Qdrant doc_ids the question was generated from.
+    options holds the shuffled MCQ option texts as served (empty for short answer) —
+    it is what makes re-serving a stored question, validating a submitted answer, and
+    the correct-option position check possible.
     """
     __tablename__ = "quiz_attempts"
 
@@ -135,12 +145,38 @@ class QuizAttempt(Base):
     topic_name     = Column(String(255), nullable=False)
     difficulty     = Column(String(20), default="medium")  # easy | medium | hard
     question_text  = Column(Text, nullable=False)
+    options        = Column(JSON, default=list)     # shuffled option texts; [] for short answer
     student_answer = Column(Text, nullable=True)
     correct_answer = Column(Text, nullable=True)
     is_correct     = Column(Boolean, nullable=True)
     llm_score      = Column(Float, nullable=True)   # filled by LLM-as-Judge
-    feedback       = Column(Text, nullable=True)    # filled by evaluator
+    feedback       = Column(Text, nullable=True)    # explanation at generation, judge feedback after
     source_chunks  = Column(JSON, default=list)     # list of doc_id strings used
+    reason         = Column(String(32), nullable=True)  # weak|developing|decaying|selected|cached
     attempt_time   = Column(DateTime, default=_now, nullable=False)
 
     student = relationship("Student", back_populates="quiz_attempts")
+
+
+# ── TopicRecommendationEvent ──────────────────────────────────────────────────
+
+class TopicRecommendationEvent(Base):
+    """First time a topic appeared in a student's study plan.
+
+    Written by recommendation_service.generate_study_plan(). Deliberately a separate
+    table rather than a TopicMastery column: mastery rows do not exist for untested,
+    unchatted topics — exactly the ones a first recommendation covers — so writing the
+    timestamp there would create rows and self-invalidate the recommendation cache
+    through get_student_state_fingerprint().
+    """
+    __tablename__ = "topic_recommendation_events"
+
+    id                   = Column(Integer, primary_key=True, autoincrement=True)
+    student_id           = Column(String, ForeignKey("students.student_id", ondelete="CASCADE"), nullable=False)
+    topic_id             = Column(Integer, nullable=False)
+    topic_name           = Column(String(255), nullable=False)
+    first_recommended_at = Column(DateTime, default=_now, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("student_id", "topic_id", name="uq_student_topic_recommendation"),
+    )

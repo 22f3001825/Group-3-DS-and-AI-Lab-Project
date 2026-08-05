@@ -6,16 +6,28 @@ Each function takes a db: Session argument — no session management inside thes
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from .models import ChatMessage, ChatSession, QuizAttempt, Student, TopicMastery
+from .models import (
+    ChatMessage, ChatSession, QuizAttempt, Student, TopicMastery,
+    TopicRecommendationEvent,
+)
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+class AlreadyGradedError(Exception):
+    """Raised when a quiz attempt that already carries an outcome is graded again.
+
+    Re-grading would re-run the Elo update and double-count the attempt, which is the
+    same corruption class as feeding fabricated outcomes into the model.
+    """
 
 
 # ── Student ───────────────────────────────────────────────────────────────────
@@ -131,20 +143,33 @@ def get_session_history(db: Session, session_id: str,
 
 # ── TopicMastery & Knowledge Tracing ──────────────────────────────────────────
 
+# Item-difficulty term (Pelánek 2016). An `easy` item is worth less when answered
+# correctly and costs more when missed; a `hard` item the reverse. `medium` is offset 0,
+# so every pre-existing caller keeps today's exact arithmetic.
+_DIFFICULTY_OFFSET: dict[str, float] = {"easy": -100.0, "medium": 0.0, "hard": 100.0}
+
+
 def update_topic_mastery_elo(
     db: Session,
     student_id: str,
     topic_id: int,
     topic_name: str,
     is_correct: bool,
+    difficulty: str = "medium",
+    outcome: Optional[float] = None,
 ) -> TopicMastery:
     """Update student topic mastery using the Pelánek (2016) Elo rating algorithm.
-    
+
     Formula:
-      Expected = 1 / (1 + 10^(-R / 400))
+      Expected = 1 / (1 + 10^(-(R - d) / 400))     d = item difficulty offset
       K = max(16, 64 / (1 + 0.1 * attempts))
       R_new = R_old + K * (Outcome - Expected)
       Mastery = 1 / (1 + 10^(-R_new / 400))
+
+    Args:
+      difficulty: 'easy' | 'medium' | 'hard' — sets the item difficulty offset d.
+      outcome:    Optional continuous outcome in [0, 1] (LLM-as-Judge score for a
+                  short answer). Defaults to the binary is_correct.
     """
     existing = (
         db.query(TopicMastery)
@@ -152,7 +177,12 @@ def update_topic_mastery_elo(
         .first()
     )
 
-    actual = 1.0 if is_correct else 0.0
+    if outcome is None:
+        actual = 1.0 if is_correct else 0.0
+    else:
+        actual = min(1.0, max(0.0, float(outcome)))
+
+    d = _DIFFICULTY_OFFSET.get((difficulty or "medium").lower(), 0.0)
 
     if existing:
         current_elo = existing.elo_rating or 0.0
@@ -161,8 +191,8 @@ def update_topic_mastery_elo(
         # Dynamic learning rate K (shrinks with experience for stability)
         K = max(16.0, 64.0 / (1.0 + 0.1 * attempts))
 
-        # Expected score against baseline difficulty (0.0)
-        expected = 1.0 / (1.0 + math.pow(10.0, -current_elo / 400.0))
+        # Expected score against item difficulty
+        expected = 1.0 / (1.0 + math.pow(10.0, -(current_elo - d) / 400.0))
 
         # Elo rating update
         new_elo = round(current_elo + K * (actual - expected), 4)
@@ -183,7 +213,7 @@ def update_topic_mastery_elo(
     else:
         # Initial attempt starting from neutral Elo (0.0) with K=64
         K = 64.0
-        expected = 0.5
+        expected = 1.0 / (1.0 + math.pow(10.0, d / 400.0))
         init_elo = round(0.0 + K * (actual - expected), 4)
         init_mastery = round(1.0 / (1.0 + math.pow(10.0, -init_elo / 400.0)), 4)
 
@@ -293,7 +323,15 @@ def add_quiz_attempt(
     is_correct: Optional[bool] = None,
     session_id: Optional[str] = None,
     source_chunks: Optional[list[str]] = None,
+    options: Optional[list[str]] = None,
+    feedback: Optional[str] = None,
+    reason: Optional[str] = None,
 ) -> QuizAttempt:
+    """Create a quiz attempt row.
+
+    Generated-but-unanswered questions are created here with student_answer and
+    is_correct left NULL; `feedback` carries the question's explanation until grading.
+    """
     attempt = QuizAttempt(
         student_id=student_id,
         session_id=session_id,
@@ -301,15 +339,22 @@ def add_quiz_attempt(
         topic_name=topic_name,
         difficulty=difficulty,
         question_text=question_text,
+        options=options or [],
         student_answer=student_answer,
         correct_answer=correct_answer,
         is_correct=is_correct,
+        feedback=feedback,
         source_chunks=source_chunks or [],
+        reason=reason,
     )
     db.add(attempt)
     db.commit()
     db.refresh(attempt)
     return attempt
+
+
+def get_quiz_attempt(db: Session, attempt_id: str) -> Optional[QuizAttempt]:
+    return db.query(QuizAttempt).filter(QuizAttempt.attempt_id == attempt_id).first()
 
 
 def update_quiz_evaluation(
@@ -318,13 +363,29 @@ def update_quiz_evaluation(
     llm_score: float,
     feedback: str,
     is_correct: Optional[bool] = None,
+    student_answer: Optional[str] = None,
+    outcome: Optional[float] = None,
+    allow_regrade: bool = False,
 ) -> Optional[QuizAttempt]:
-    """Store quiz evaluation results and update topic mastery accordingly."""
+    """Store quiz evaluation results and update topic mastery accordingly.
+
+    Raises AlreadyGradedError if the attempt already carries an outcome — a second
+    call would re-run the Elo update and double-count the attempt. Pass
+    allow_regrade=True only when the mastery side-effect is deliberately repeated.
+
+    The Elo update uses the attempt's own difficulty, so a correct hard answer moves
+    mastery further than a correct easy one.
+    """
     attempt = db.query(QuizAttempt).filter(QuizAttempt.attempt_id == attempt_id).first()
     if not attempt:
         return None
+    if attempt.is_correct is not None and not allow_regrade:
+        raise AlreadyGradedError(f"Quiz attempt {attempt_id} has already been graded.")
+
     attempt.llm_score = llm_score
     attempt.feedback = feedback
+    if student_answer is not None:
+        attempt.student_answer = student_answer
     if is_correct is not None:
         attempt.is_correct = is_correct
 
@@ -336,6 +397,8 @@ def update_quiz_evaluation(
             topic_id=attempt.topic_id,
             topic_name=attempt.topic_name,
             is_correct=is_correct,
+            difficulty=attempt.difficulty or "medium",
+            outcome=outcome,
         )
 
     db.commit()
@@ -344,11 +407,134 @@ def update_quiz_evaluation(
 
 
 def get_quiz_history(db: Session, student_id: str,
-                     limit: int = 50) -> list[QuizAttempt]:
-    return (
-        db.query(QuizAttempt)
-        .filter(QuizAttempt.student_id == student_id)
-        .order_by(QuizAttempt.attempt_time.desc())
-        .limit(limit)
+                     limit: int = 50,
+                     answered_only: bool = True) -> list[QuizAttempt]:
+    """Most recent quiz attempts, newest first.
+
+    answered_only excludes generated-but-unanswered rows: those are not attempts yet
+    and must not appear in history or in accuracy statistics.
+    """
+    q = db.query(QuizAttempt).filter(QuizAttempt.student_id == student_id)
+    if answered_only:
+        q = q.filter(QuizAttempt.is_correct.isnot(None))
+    return q.order_by(QuizAttempt.attempt_time.desc()).limit(limit).all()
+
+
+def get_quiz_stats(db: Session, student_id: str) -> tuple[int, int]:
+    """Lifetime (answered_total, correct_total) — not windowed, unlike get_quiz_history."""
+    total = (
+        db.query(func.count(QuizAttempt.attempt_id))
+        .filter(QuizAttempt.student_id == student_id,
+                QuizAttempt.is_correct.isnot(None))
+        .scalar()
+        or 0
+    )
+    correct = (
+        db.query(func.count(QuizAttempt.attempt_id))
+        .filter(QuizAttempt.student_id == student_id,
+                QuizAttempt.is_correct.is_(True))
+        .scalar()
+        or 0
+    )
+    return int(total), int(correct)
+
+
+def get_attempts_for_topic(db: Session, student_id: str, topic_id: int,
+                           limit: int = 20,
+                           answered_only: bool = False) -> list[QuizAttempt]:
+    """Recent attempts on one topic — used for the near-duplicate question check."""
+    q = db.query(QuizAttempt).filter(
+        QuizAttempt.student_id == student_id,
+        QuizAttempt.topic_id == topic_id,
+    )
+    if answered_only:
+        q = q.filter(QuizAttempt.is_correct.isnot(None))
+    return q.order_by(QuizAttempt.attempt_time.desc()).limit(limit).all()
+
+
+def get_topic_ids_answered_since(db: Session, student_id: str,
+                                 hours: int = 24) -> set[int]:
+    """Topic ids this student has *answered* within the window (generated rows excluded)."""
+    cutoff = _now() - timedelta(hours=hours)
+    rows = (
+        db.query(QuizAttempt.topic_id)
+        .filter(QuizAttempt.student_id == student_id,
+                QuizAttempt.is_correct.isnot(None),
+                QuizAttempt.attempt_time >= cutoff,
+                QuizAttempt.topic_id.isnot(None))
+        .distinct()
         .all()
     )
+    return {r[0] for r in rows}
+
+
+def get_reusable_questions(db: Session, student_id: str,
+                           topic_ids: Optional[list[int]] = None,
+                           not_seen_days: int = 7,
+                           limit: int = 10) -> list[QuizAttempt]:
+    """Previously generated questions that can be re-served to this student.
+
+    A question is reusable when it has stored options and a correct answer, and the
+    same question text has not been served to this student within not_seen_days.
+    Scoped to one student's own history by design — no cross-student question bank.
+    """
+    q = db.query(QuizAttempt).filter(
+        QuizAttempt.student_id == student_id,
+        QuizAttempt.correct_answer.isnot(None),
+    )
+    if topic_ids:
+        q = q.filter(QuizAttempt.topic_id.in_(topic_ids))
+    candidates = q.order_by(QuizAttempt.attempt_time.desc()).limit(200).all()
+
+    cutoff = _now() - timedelta(days=not_seen_days)
+    recent_texts = set()
+    for row in candidates:
+        served = row.attempt_time
+        if served is not None and served.tzinfo is None:
+            served = served.replace(tzinfo=timezone.utc)
+        if served is not None and served >= cutoff:
+            recent_texts.add((row.question_text or "").strip().lower())
+
+    seen: set[str] = set()
+    out: list[QuizAttempt] = []
+    for row in candidates:
+        key = (row.question_text or "").strip().lower()
+        if not row.options or key in recent_texts or key in seen:
+            continue
+        seen.add(key)
+        out.append(row)
+        if len(out) >= limit:
+            break
+    return out
+
+
+# ── TopicRecommendationEvent ──────────────────────────────────────────────────
+
+def record_recommendation_event(db: Session, student_id: str, topic_id: int,
+                                topic_name: str) -> TopicRecommendationEvent:
+    """Stamp the first time a topic entered this student's study plan (idempotent)."""
+    existing = (
+        db.query(TopicRecommendationEvent)
+        .filter(TopicRecommendationEvent.student_id == student_id,
+                TopicRecommendationEvent.topic_id == topic_id)
+        .first()
+    )
+    if existing:
+        return existing
+    event = TopicRecommendationEvent(
+        student_id=student_id,
+        topic_id=topic_id,
+        topic_name=topic_name,
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+def get_recommendation_events(db: Session,
+                              student_id: Optional[str] = None) -> list[TopicRecommendationEvent]:
+    q = db.query(TopicRecommendationEvent)
+    if student_id:
+        q = q.filter(TopicRecommendationEvent.student_id == student_id)
+    return q.order_by(TopicRecommendationEvent.first_recommended_at.asc()).all()
