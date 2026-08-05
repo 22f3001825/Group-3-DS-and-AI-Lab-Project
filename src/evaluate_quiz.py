@@ -21,9 +21,7 @@ Run from the repo root:
 from __future__ import annotations
 
 import argparse
-import json
 import math
-import re
 import sys
 from collections import Counter
 from datetime import datetime, timezone
@@ -43,9 +41,7 @@ from src.api.services.recommendation_service import find_topic, load_taxonomy
 from src.database import crud
 from src.database.models import QuizAttempt, TopicRecommendationEvent
 from src.database.session import Base, SessionLocal, engine
-from src.rag_pipeline import (
-    _build_provider_queue, create_llm, extract_text_from_response,
-)
+from src import llm_judge
 
 load_dotenv()
 
@@ -57,65 +53,67 @@ RELEVANCE_THRESHOLD = 0.8
 
 # ── Judge selection ───────────────────────────────────────────────────────────
 
+_JUDGE_CRITERIA = ("tests_topic", "answerable_from_context", "exactly_one_correct",
+                   "distractors_plausible")
+
+
 def select_judge() -> dict:
-    """Pin the judge as far from the generator as the configuration allows.
+    """Describe the judge this run will use, for the report header.
 
-    Candidates are ordered by decreasing independence: another provider first, then
-    another model on the generator's own provider, and — only if nothing else answers —
-    the generator's own model. The harness runs either way; the report always states
-    which rung it ended up on, so a reader never assumes independence it did not have.
+    The ladder itself lives in `src/llm_judge.py` — shared with live short-answer grading
+    and with evaluate_rag.py, so there is one judge in the codebase rather than three. It is
+    ordered by decreasing independence: another provider first, then another model on the
+    generator's own provider, and — only if nothing else answers — the generator's own
+    model. The harness runs either way; the report always states which rung it ended up on,
+    so a reader never assumes independence it did not have.
     """
-    queue = _build_provider_queue()
-    if not queue:
-        raise RuntimeError("No LLM API keys configured — cannot run the judge.")
-
-    gen_provider, gen_models, _ = queue[0]
-    gen_model = gen_models[0]
-
-    candidates: list[dict[str, str]] = []
-    for provider, models, keys in queue:
-        if not keys:
-            continue
-        for model in models:
-            if provider == gen_provider and model == gen_model:
-                continue
-            candidates.append({
-                "judge_provider": provider,
-                "judge_model": model,
-                "judge_key": keys[0],
-                "independence": ("cross-provider" if provider != gen_provider
-                                 else "cross-model (same provider)"),
-            })
-    candidates.append({
-        "judge_provider": gen_provider,
-        "judge_model": gen_model,
-        "judge_key": queue[0][2][0],
-        "independence": "none (same model as the generator)",
-    })
-
-    judge = {
+    gen_provider, gen_model = llm_judge.generator_identity()
+    session = llm_judge.new_session(prefer_independence=True)
+    return {
         "generator_provider": gen_provider,
         "generator_model": gen_model,
-        "candidates": candidates,
-        "cursor": 0,
-        **candidates[0],
+        # The rung we *intend* to start on. run_judge() degrades these in place if the
+        # questions were in fact scored somewhere less independent — see _record_actual.
+        "judge_provider": session.current.provider,
+        "judge_model": session.current.model,
+        "independence": session.independence,
     }
-    return judge
 
 
-def _advance_judge(judge: dict) -> bool:
-    """Step down to the next candidate after a failure. False when exhausted."""
-    judge["cursor"] += 1
-    if judge["cursor"] >= len(judge["candidates"]):
-        return False
-    judge.update(judge["candidates"][judge["cursor"]])
-    print(f"[Judge] Falling back to {judge['judge_provider']}/{judge['judge_model']} "
-          f"(independence: {judge['independence']}).")
-    return True
+# Least-independent-wins: the report must describe the weakest judge that actually produced
+# a score, not the best one we hoped to use.
+_INDEPENDENCE_RANK = {
+    llm_judge.CROSS_PROVIDER: 0,
+    llm_judge.CROSS_MODEL: 1,
+    llm_judge.NO_INDEPENDENCE: 2,
+}
+
+
+def _record_actual(judge: dict, session: llm_judge.JudgeSession) -> None:
+    """Degrade the reported judge to the rung this question was really scored on.
+
+    Every question gets a fresh session, so without this the header would keep advertising
+    the ladder's top rung while every single score came from the generator marking its own
+    homework — the precise misreading the independence field exists to prevent.
+    """
+    if _INDEPENDENCE_RANK.get(session.independence, 2) > \
+            _INDEPENDENCE_RANK.get(judge["independence"], 0):
+        judge["judge_provider"] = session.current.provider
+        judge["judge_model"] = session.current.model
+        judge["independence"] = session.independence
+
+
+def _report_fallback(candidate: llm_judge.JudgeCandidate, exc: Exception) -> None:
+    print(f"  [Judge] FAILED {candidate.label} "
+          f"({type(exc).__name__}: {str(exc)[:110]}) — stepping down the ladder.")
 
 
 def run_judge(judge: dict, question: dict, context: str) -> dict[str, float]:
-    """Score one generated question, stepping down the candidate list on failure."""
+    """Score one generated question, stepping down the candidate list on failure.
+
+    A fresh session per question: a candidate that failed once should not be written off
+    for the rest of the run, and the run's headline independence must stay honest.
+    """
     options_block = "\n".join(f"  - {o}" for o in question["options"])
     prompt = f"""You are auditing questions generated for an IIT Madras BS MLT course quiz.
 
@@ -142,39 +140,15 @@ Score each criterion from 0.0 to 1.0:
 Return ONLY a JSON object:
 {{"tests_topic": 0.0, "answerable_from_context": 0.0, "exactly_one_correct": 0.0, "distractors_plausible": 0.0}}"""
 
-    text = ""
-    while True:
-        try:
-            llm = create_llm(
-                model_name=judge["judge_model"],
-                provider=judge["judge_provider"],
-                api_key=judge["judge_key"],
-                temperature=0.0,
-            )
-            text = extract_text_from_response(llm.invoke(prompt))
-            break
-        except Exception as exc:  # noqa: BLE001
-            print(f"  [Judge] FAILED {judge['judge_provider']}/{judge['judge_model']} "
-                  f"({type(exc).__name__}: {str(exc)[:110]})")
-            if not _advance_judge(judge):
-                return {}
-
-    match = re.search(r"\{.*?\}", text.replace("\n", " "), re.DOTALL)
-    if not match:
+    session = llm_judge.new_session(prefer_independence=True)
+    parsed, label = llm_judge.invoke_judge(session, prompt, temperature=0.0,
+                                           on_fallback=_report_fallback)
+    if parsed is None:
         return {}
-    try:
-        parsed = json.loads(match.group(0))
-    except json.JSONDecodeError:
-        return {}
-
-    out: dict[str, float] = {}
-    for key in ("tests_topic", "answerable_from_context", "exactly_one_correct",
-                "distractors_plausible"):
-        try:
-            out[key] = min(1.0, max(0.0, float(parsed.get(key, 0.0))))
-        except (TypeError, ValueError):
-            out[key] = 0.0
-    return out
+    if label != f"{judge['judge_provider']}/{judge['judge_model']}":
+        print(f"  [Judge] Scored on {label} (independence: {session.independence}).")
+    _record_actual(judge, session)
+    return llm_judge.clamp_scores(parsed, _JUDGE_CRITERIA)
 
 
 # ── Sampling ──────────────────────────────────────────────────────────────────
