@@ -1,8 +1,8 @@
 """
 api/routers/chat.py
-Chat and retrieval endpoints.
+Chat and retrieval endpoints with automated learner topic exploration tracking.
 
-POST /chat     — full RAG: retrieve + LLM answer, optionally persist to DB
+POST /chat     — full RAG: retrieve + LLM answer, optionally persist to DB & track topics
 POST /retrieve — retrieve only (no LLM), for debugging
 """
 from __future__ import annotations
@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from ..dependencies import get_retriever
 from ..schemas.chat import ChatRequest, ChatResponse, RetrieveRequest, RetrieveResponse, SourceChunk
 from ..services.rag_service import run_rag, run_retrieve_only
+from ..services.recommendation_service import find_topic
 from ...database.session import get_db
 from ...database import crud
 
@@ -30,8 +31,8 @@ async def chat(
     """
     Full RAG endpoint.
     - Retrieves relevant chunks from Qdrant (hybrid dense+sparse search)
-    - Generates a structured answer via Gemini (falls back to Groq)
-    - Optionally persists the exchange to the DB if student_id is provided
+    - Generates a structured answer via Gemini / Groq with multi-key failover
+    - Persists the exchange to the DB and records topic exploration for learner profile
     """
     try:
         result = run_rag(request.question, retriever, top_k=request.top_k)
@@ -41,8 +42,10 @@ async def chat(
     session_id: Optional[str] = request.session_id
     message_id: Optional[str] = None
 
-    # Persist to DB only if a student_id was provided
+    # Persist to DB if student_id is provided
     if request.student_id:
+        crud.get_or_create_student(db, request.student_id)
+
         # Auto-create session if none given
         if not session_id:
             session = crud.create_chat_session(db, student_id=request.student_id)
@@ -67,6 +70,17 @@ async def chat(
             provider_used=result["provider_used"],
         )
         message_id = assistant_msg.message_id
+
+        # Auto-track topics explored in chat
+        for t_name in result.get("topics_detected", []):
+            matched = find_topic(t_name)
+            if matched:
+                crud.record_chat_topic_interaction(
+                    db,
+                    student_id=request.student_id,
+                    topic_id=matched["id"],
+                    topic_name=matched["name"],
+                )
 
     return ChatResponse(
         answer=result["answer"],

@@ -1,61 +1,445 @@
 [
-  {"id": 1,  "name": "Introduction to Machine Learning", "week": 1, "aliases": ["Intro to ML", "ML Introduction", "What is ML"]},
-  {"id": 2,  "name": "PCA",                              "week": 1, "aliases": ["Principal Component Analysis", "Principal Components", "Dimensionality Reduction"]},
-  {"id": 3,  "name": "Representation Learning",          "week": 1, "aliases": ["Feature Learning", "Latent Representations", "Unsupervised Representation"]},
-  {"id": 4,  "name": "Paradigms of Machine Learning",    "week": 1, "aliases": ["ML Paradigms", "Types of Learning", "Learning Paradigms"]},
+  {
+    "id": 1,
+    "name": "Introduction to Machine Learning",
+    "week": 1,
+    "aliases": ["Intro to ML", "ML Introduction", "What is ML"],
+    "prerequisites": [],
+    "lecture_ref": "Introduction to Machine Learning.md",
+    "description": "Foundational concepts of machine learning, terminology, and real-world application workflows."
+  },
+  {
+    "id": 2,
+    "name": "PCA",
+    "week": 1,
+    "aliases": ["Principal Component Analysis", "Principal Components", "Dimensionality Reduction"],
+    "prerequisites": [1],
+    "lecture_ref": "Principal component analysis Part 1.md",
+    "description": "Linear dimensionality reduction technique maximizing variance along orthogonal principal axes."
+  },
+  {
+    "id": 3,
+    "name": "Representation Learning",
+    "week": 1,
+    "aliases": ["Feature Learning", "Latent Representations", "Unsupervised Representation"],
+    "prerequisites": [1],
+    "lecture_ref": "Representation Learning Part 1.md",
+    "description": "Extracting meaningful latent representations and embeddings from raw features."
+  },
+  {
+    "id": 4,
+    "name": "Paradigms of Machine Learning",
+    "week": 1,
+    "aliases": ["ML Paradigms", "Types of Learning", "Learning Paradigms"],
+    "prerequisites": [1],
+    "lecture_ref": "Paradigms of machine learning.md",
+    "description": "Taxonomy of supervised, unsupervised, and reinforcement learning paradigms."
+  },
 
-  {"id": 5,  "name": "Kernel PCA",                       "week": 2, "aliases": ["Kernel Principal Component Analysis", "Non-linear PCA"]},
-  {"id": 6,  "name": "Kernel Functions",                 "week": 2, "aliases": ["Kernels", "Kernel Trick", "RBF Kernel", "Polynomial Kernel"]},
-  {"id": 7,  "name": "Feature Transformation",           "week": 2, "aliases": ["Feature Mapping", "Feature Extraction"]},
-  {"id": 8,  "name": "Issues with PCA",                  "week": 2, "aliases": ["PCA Limitations", "Time Complexity of PCA"]},
+  {
+    "id": 5,
+    "name": "Kernel PCA",
+    "week": 2,
+    "aliases": ["Kernel Principal Component Analysis", "Non-linear PCA"],
+    "prerequisites": [2, 6],
+    "lecture_ref": "Kernel PCA.md",
+    "description": "Non-linear extension of PCA mapping data to high-dimensional Hilbert spaces using the kernel trick."
+  },
+  {
+    "id": 6,
+    "name": "Kernel Functions",
+    "week": 2,
+    "aliases": ["Kernels", "Kernel Trick", "RBF Kernel", "Polynomial Kernel"],
+    "prerequisites": [2],
+    "lecture_ref": "Kernel Functions.md",
+    "description": "Inner product evaluation in implicit high-dimensional spaces (RBF, Polynomial, Linear kernels)."
+  },
+  {
+    "id": 7,
+    "name": "Feature Transformation",
+    "week": 2,
+    "aliases": ["Feature Mapping", "Feature Extraction"],
+    "prerequisites": [3],
+    "lecture_ref": "Feature Transformation.md",
+    "description": "Non-linear transformations and basis function expansions for feature spaces."
+  },
+  {
+    "id": 8,
+    "name": "Issues with PCA",
+    "week": 2,
+    "aliases": ["PCA Limitations", "Time Complexity of PCA"],
+    "prerequisites": [2],
+    "lecture_ref": "Issues with PCA.md",
+    "description": "Computational complexity, sensitivity to outliers, and limitations of linear PCA."
+  },
 
-  {"id": 9,  "name": "Introduction to Clustering",       "week": 3, "aliases": ["Clustering", "Unsupervised Clustering"]},
-  {"id": 10, "name": "K-means Clustering",               "week": 3, "aliases": ["K-means", "Lloyd's Algorithm", "K Means"]},
-  {"id": 11, "name": "Kernel K-means",                   "week": 3, "aliases": ["Kernel Clustering", "Non-linear Clustering"]},
-  {"id": 12, "name": "K-means Initialization",           "week": 3, "aliases": ["Centroid Initialization", "K-means++", "Cluster Initialization"]},
-  {"id": 13, "name": "K-means Convergence",              "week": 3, "aliases": ["Convergence of K-means", "Lloyd's Convergence"]},
-  {"id": 14, "name": "Choice of K",                      "week": 3, "aliases": ["Elbow Method", "Selecting K", "Number of Clusters"]},
+  {
+    "id": 9,
+    "name": "Introduction to Clustering",
+    "week": 3,
+    "aliases": ["Clustering", "Unsupervised Clustering"],
+    "prerequisites": [4],
+    "lecture_ref": "Introduction to Clustering.docx.md",
+    "description": "Unsupervised partitioning of data points based on geometric distance metrics."
+  },
+  {
+    "id": 10,
+    "name": "K-means Clustering",
+    "week": 3,
+    "aliases": ["K-means", "Lloyd's Algorithm", "K Means"],
+    "prerequisites": [9],
+    "lecture_ref": "K-means Clustering (Lloyd_s algorithm).docx.md",
+    "description": "Lloyd's iterative algorithm optimizing cluster centroids by minimizing within-cluster sum of squares."
+  },
+  {
+    "id": 11,
+    "name": "Kernel K-means",
+    "week": 3,
+    "aliases": ["Kernel Clustering", "Non-linear Clustering"],
+    "prerequisites": [10, 6],
+    "lecture_ref": "Nature of clusters produced by K-means.docx.md",
+    "description": "Applying the kernel trick to identify non-linearly separable clusters."
+  },
+  {
+    "id": 12,
+    "name": "K-means Initialization",
+    "week": 3,
+    "aliases": ["Centroid Initialization", "K-means++", "Cluster Initialization"],
+    "prerequisites": [10],
+    "lecture_ref": "Initialization of centroids, K-means .docx.md",
+    "description": "Methods for selecting initial centroids, including K-means++ probabilistic seeding."
+  },
+  {
+    "id": 13,
+    "name": "K-means Convergence",
+    "week": 3,
+    "aliases": ["Convergence of K-means", "Lloyd's Convergence"],
+    "prerequisites": [10],
+    "lecture_ref": "Convergence of K-means algorithm.docx.md",
+    "description": "Mathematical guarantees, monotonicity of objective function, and local minima in K-means."
+  },
+  {
+    "id": 14,
+    "name": "Choice of K",
+    "week": 3,
+    "aliases": ["Elbow Method", "Selecting K", "Number of Clusters"],
+    "prerequisites": [10],
+    "lecture_ref": "Choice of K.docx.md",
+    "description": "Heuristics and statistical metrics for selecting the optimal number of clusters."
+  },
 
-  {"id": 15, "name": "Maximum Likelihood Estimation",    "week": 4, "aliases": ["MLE", "Likelihood Estimation", "Maximum Likelihood"]},
-  {"id": 16, "name": "Bayesian Estimation",              "week": 4, "aliases": ["Bayesian Inference", "MAP Estimation", "Prior and Posterior"]},
-  {"id": 17, "name": "Gaussian Mixture Models",          "week": 4, "aliases": ["GMM", "Mixture of Gaussians", "Gaussian Mixture"]},
-  {"id": 18, "name": "EM Algorithm",                     "week": 4, "aliases": ["Expectation Maximization", "E-step M-step", "EM"]},
-  {"id": 19, "name": "Jensen's Inequality",              "week": 4, "aliases": ["Convex Functions", "Jensen Inequality"]},
+  {
+    "id": 15,
+    "name": "Maximum Likelihood Estimation",
+    "week": 4,
+    "aliases": ["MLE", "Likelihood Estimation", "Maximum Likelihood"],
+    "prerequisites": [1],
+    "lecture_ref": "Maximum Likelihood Estimation.docx.md",
+    "description": "Frequentist parameter estimation maximizing the log-likelihood of observed data."
+  },
+  {
+    "id": 16,
+    "name": "Bayesian Estimation",
+    "week": 4,
+    "aliases": ["Bayesian Inference", "MAP Estimation", "Prior and Posterior"],
+    "prerequisites": [15],
+    "lecture_ref": "Bayesian estimation.docx.md",
+    "description": "Parameter estimation combining prior beliefs with data likelihood (MAP and posterior distributions)."
+  },
+  {
+    "id": 17,
+    "name": "Gaussian Mixture Models",
+    "week": 4,
+    "aliases": ["GMM", "Mixture of Gaussians", "Gaussian Mixture"],
+    "prerequisites": [15, 10],
+    "lecture_ref": "Gaussian Mixture Models.docx.md",
+    "description": "Probabilistic clustering modeling data as a mixture of multiple Gaussian distributions."
+  },
+  {
+    "id": 18,
+    "name": "EM Algorithm",
+    "week": 4,
+    "aliases": ["Expectation Maximization", "E-step M-step", "EM"],
+    "prerequisites": [17, 15],
+    "lecture_ref": "EM Algorithm.docx.md",
+    "description": "Iterative Expectation-Maximization framework for finding MLE in latent variable models."
+  },
+  {
+    "id": 19,
+    "name": "Jensen's Inequality",
+    "week": 4,
+    "aliases": ["Convex Functions", "Jensen Inequality"],
+    "prerequisites": [1],
+    "lecture_ref": "Convex functions and Jensen’s Inequality.docx.md",
+    "description": "Convexity property used to establish the Evidence Lower Bound (ELBO) in the EM algorithm."
+  },
 
-  {"id": 20, "name": "Linear Regression",                "week": 5, "aliases": ["Least Squares Regression", "Ordinary Least Squares", "OLS", "Regression"]},
-  {"id": 21, "name": "Gradient Descent",                 "week": 5, "aliases": ["Stochastic Gradient Descent", "SGD", "Optimization via Gradient"]},
-  {"id": 22, "name": "Kernel Regression",                "week": 5, "aliases": ["Non-linear Regression", "Kernelized Regression"]},
-  {"id": 23, "name": "Probabilistic View of Regression", "week": 5, "aliases": ["Bayesian Linear Regression", "Probabilistic Regression"]},
-  {"id": 24, "name": "Supervised Learning",              "week": 5, "aliases": ["Supervised ML", "Training Data", "Labeled Data"]},
+  {
+    "id": 20,
+    "name": "Linear Regression",
+    "week": 5,
+    "aliases": ["Least Squares Regression", "Ordinary Least Squares", "OLS", "Regression"],
+    "prerequisites": [1],
+    "lecture_ref": "Geometric interpretation of linear regression.docx (1).md",
+    "description": "Continuous target estimation via Ordinary Least Squares and geometric projection."
+  },
+  {
+    "id": 21,
+    "name": "Gradient Descent",
+    "week": 5,
+    "aliases": ["Stochastic Gradient Descent", "SGD", "Optimization via Gradient"],
+    "prerequisites": [20],
+    "lecture_ref": "Gradient descent.docx .md",
+    "description": "First-order iterative optimization algorithm for minimizing differentiable loss functions."
+  },
+  {
+    "id": 22,
+    "name": "Kernel Regression",
+    "week": 5,
+    "aliases": ["Non-linear Regression", "Kernelized Regression"],
+    "prerequisites": [20, 6],
+    "lecture_ref": "Kernel regression.docx pdf.md",
+    "description": "Non-parametric and kernel-based regression methods for non-linear curve fitting."
+  },
+  {
+    "id": 23,
+    "name": "Probabilistic View of Regression",
+    "week": 5,
+    "aliases": ["Bayesian Linear Regression", "Probabilistic Regression"],
+    "prerequisites": [20, 15],
+    "lecture_ref": "Probabilistic view of linear regression.docx .md",
+    "description": "Deriving OLS and regularized regression as Maximum Likelihood and MAP under Gaussian noise."
+  },
+  {
+    "id": 24,
+    "name": "Supervised Learning",
+    "week": 5,
+    "aliases": ["Supervised ML", "Training Data", "Labeled Data"],
+    "prerequisites": [4],
+    "lecture_ref": "Supervised Learning.docx.md",
+    "description": "Principles of learning predictive mappings from labeled training pairs."
+  },
 
-  {"id": 25, "name": "Ridge Regression",                 "week": 6, "aliases": ["L2 Regularization", "Tikhonov Regularization", "Weight Decay"]},
-  {"id": 26, "name": "LASSO Regression",                 "week": 6, "aliases": ["L1 Regularization", "LASSO", "Sparse Regression"]},
-  {"id": 27, "name": "Regularization",                   "week": 6, "aliases": ["Overfitting Prevention", "Regularizer", "Penalty Term"]},
+  {
+    "id": 25,
+    "name": "Ridge Regression",
+    "week": 6,
+    "aliases": ["L2 Regularization", "Tikhonov Regularization", "Weight Decay"],
+    "prerequisites": [20, 27],
+    "lecture_ref": "week06_notes.md",
+    "description": "L2-regularized linear regression preventing multicollinearity and shrinking coefficients."
+  },
+  {
+    "id": 26,
+    "name": "LASSO Regression",
+    "week": 6,
+    "aliases": ["L1 Regularization", "LASSO", "Sparse Regression"],
+    "prerequisites": [20, 27],
+    "lecture_ref": "week06_notes.md",
+    "description": "L1-regularized regression encouraging sparse feature selection through diamond-shaped constraint geometry."
+  },
+  {
+    "id": 27,
+    "name": "Regularization",
+    "week": 6,
+    "aliases": ["Overfitting Prevention", "Regularizer", "Penalty Term"],
+    "prerequisites": [20],
+    "lecture_ref": "week06_notes.md",
+    "description": "Techniques to combat overfitting by penalizing model complexity in empirical risk minimization."
+  },
 
-  {"id": 28, "name": "K-Nearest Neighbours",             "week": 7, "aliases": ["KNN", "K-NN", "Nearest Neighbour Classification"]},
-  {"id": 29, "name": "Decision Trees",                   "week": 7, "aliases": ["Decision Tree Algorithm", "Tree Classifier", "CART"]},
-  {"id": 30, "name": "Information Gain",                 "week": 7, "aliases": ["Entropy", "Gini Impurity", "Split Criterion"]},
-  {"id": 31, "name": "Binary Classification",            "week": 7, "aliases": ["Two-class Classification", "Classification"]},
+  {
+    "id": 28,
+    "name": "K-Nearest Neighbours",
+    "week": 7,
+    "aliases": ["KNN", "K-NN", "Nearest Neighbour Classification"],
+    "prerequisites": [24],
+    "lecture_ref": "K-Nearest Neighbours.docx.md",
+    "description": "Instance-based non-parametric classifier using majority vote among k closest training instances."
+  },
+  {
+    "id": 29,
+    "name": "Decision Trees",
+    "week": 7,
+    "aliases": ["Decision Tree Algorithm", "Tree Classifier", "CART"],
+    "prerequisites": [24],
+    "lecture_ref": "Introduction to Decision Trees.docx.md",
+    "description": "Hierarchical recursive partitioning model making sequential feature splits."
+  },
+  {
+    "id": 30,
+    "name": "Information Gain",
+    "week": 7,
+    "aliases": ["Entropy", "Gini Impurity", "Split Criterion"],
+    "prerequisites": [29],
+    "lecture_ref": "Decision Tree Algorithm.docx.md",
+    "description": "Entropy and Gini impurity metrics for selecting optimal split attributes in decision trees."
+  },
+  {
+    "id": 31,
+    "name": "Binary Classification",
+    "week": 7,
+    "aliases": ["Two-class Classification", "Classification"],
+    "prerequisites": [24],
+    "lecture_ref": "Introduction to Binary Classification.docx.md",
+    "description": "Fundamentals of two-class decision boundaries, 0-1 loss, and evaluation metrics."
+  },
 
-  {"id": 32, "name": "Naive Bayes",                      "week": 8, "aliases": ["Naive Bayes Classifier", "Bayesian Classification", "Class Conditional Independence"]},
-  {"id": 33, "name": "Generative Models",                "week": 8, "aliases": ["Generative Classifier", "Generative Approach", "Class Conditional Distribution"]},
-  {"id": 34, "name": "Discriminative vs Generative",     "week": 8, "aliases": ["Discriminative Models", "Generative vs Discriminative"]},
+  {
+    "id": 32,
+    "name": "Naive Bayes",
+    "week": 8,
+    "aliases": ["Naive Bayes Classifier", "Bayesian Classification", "Class Conditional Independence"],
+    "prerequisites": [31, 16, 33],
+    "lecture_ref": "Generative model-based algorithm.docx.md",
+    "description": "Probabilistic classifier applying Bayes theorem under the conditional feature independence assumption."
+  },
+  {
+    "id": 33,
+    "name": "Generative Models",
+    "week": 8,
+    "aliases": ["Generative Classifier", "Generative Approach", "Class Conditional Distribution"],
+    "prerequisites": [16, 31],
+    "lecture_ref": "Generative and Discriminative Models.docx.md",
+    "description": "Modeling the joint probability distribution P(X, Y) to perform classification via Bayes rule."
+  },
+  {
+    "id": 34,
+    "name": "Discriminative vs Generative",
+    "week": 8,
+    "aliases": ["Discriminative Models", "Generative vs Discriminative"],
+    "prerequisites": [33, 31],
+    "lecture_ref": "Generative and Discriminative Models.docx.md",
+    "description": "Contrasting direct boundary modeling P(Y|X) with joint data distribution modeling P(X, Y)."
+  },
 
-  {"id": 35, "name": "Perceptron",                       "week": 9, "aliases": ["Perceptron Algorithm", "Linear Classifier", "Rosenblatt Perceptron"]},
-  {"id": 36, "name": "Logistic Regression",              "week": 9, "aliases": ["LR", "Logistic Model", "Sigmoid Regression", "Log-loss"]},
-  {"id": 37, "name": "Discriminative Models",            "week": 9, "aliases": ["Discriminative Learning", "Direct Classification", "Conditional Model"]},
+  {
+    "id": 35,
+    "name": "Perceptron",
+    "week": 9,
+    "aliases": ["Perceptron Algorithm", "Linear Classifier", "Rosenblatt Perceptron"],
+    "prerequisites": [31],
+    "lecture_ref": "Lecture 1.md",
+    "description": "Classical linear threshold classifier and error-driven weight update convergence theorem."
+  },
+  {
+    "id": 36,
+    "name": "Logistic Regression",
+    "week": 9,
+    "aliases": ["LR", "Logistic Model", "Sigmoid Regression", "Log-loss"],
+    "prerequisites": [31, 20, 21],
+    "lecture_ref": "Lecture 2.md",
+    "description": "Probabilistic linear classification using the sigmoid link function and cross-entropy loss."
+  },
+  {
+    "id": 37,
+    "name": "Discriminative Models",
+    "week": 9,
+    "aliases": ["Discriminative Learning", "Direct Classification", "Conditional Model"],
+    "prerequisites": [36],
+    "lecture_ref": "Lecture 4.md",
+    "description": "Classifiers parameterized directly to model posterior probability P(Y|X) without modeling inputs."
+  },
 
-  {"id": 38, "name": "Support Vector Machines",          "week": 10, "aliases": ["SVM", "Support Vector Classifier", "SVC", "Max Margin Classifier"]},
-  {"id": 39, "name": "Kernel SVM",                       "week": 10, "aliases": ["Kernelized SVM", "Non-linear SVM", "RBF SVM"]},
-  {"id": 40, "name": "Margin Maximization",              "week": 10, "aliases": ["Hard Margin SVM", "Soft Margin SVM", "Margin", "Hinge Loss"]},
+  {
+    "id": 38,
+    "name": "Support Vector Machines",
+    "week": 10,
+    "aliases": ["SVM", "Support Vector Classifier", "SVC", "Max Margin Classifier"],
+    "prerequisites": [31, 36],
+    "lecture_ref": "Lecture 1.md",
+    "description": "Maximum-margin hyperplane classifier formulated as quadratic optimization with support vectors."
+  },
+  {
+    "id": 39,
+    "name": "Kernel SVM",
+    "week": 10,
+    "aliases": ["Kernelized SVM", "Non-linear SVM", "RBF SVM"],
+    "prerequisites": [38, 6],
+    "lecture_ref": "Lecture 3.md",
+    "description": "Dual formulation of SVM operating in reproducing kernel Hilbert spaces for non-linear boundaries."
+  },
+  {
+    "id": 40,
+    "name": "Margin Maximization",
+    "week": 10,
+    "aliases": ["Hard Margin SVM", "Soft Margin SVM", "Margin", "Hinge Loss"],
+    "prerequisites": [38],
+    "lecture_ref": "Lecture 2.md",
+    "description": "Geometric and functional margin theory, slack variables, and hinge loss in soft-margin SVMs."
+  },
 
-  {"id": 41, "name": "Ensemble Methods",                 "week": 11, "aliases": ["Ensembles", "Model Combination", "Ensemble Learning"]},
-  {"id": 42, "name": "Bagging",                          "week": 11, "aliases": ["Bootstrap Aggregating", "Random Forest", "Bootstrap Sampling"]},
-  {"id": 43, "name": "Boosting",                         "week": 11, "aliases": ["Adaptive Boosting", "Gradient Boosting", "Ensemble Boosting"]},
-  {"id": 44, "name": "AdaBoost",                         "week": 11, "aliases": ["Adaptive Boosting", "AdaBoost Algorithm"]},
+  {
+    "id": 41,
+    "name": "Ensemble Methods",
+    "week": 11,
+    "aliases": ["Ensembles", "Model Combination", "Ensemble Learning"],
+    "prerequisites": [29, 31],
+    "lecture_ref": "Lecture 1.md",
+    "description": "Combining multiple weak learners to reduce variance and bias for superior generalization."
+  },
+  {
+    "id": 42,
+    "name": "Bagging",
+    "week": 11,
+    "aliases": ["Bootstrap Aggregating", "Random Forest", "Bootstrap Sampling"],
+    "prerequisites": [41, 29],
+    "lecture_ref": "Lecture 2.md",
+    "description": "Bootstrap Aggregating training parallel independent estimators to minimize variance."
+  },
+  {
+    "id": 43,
+    "name": "Boosting",
+    "week": 11,
+    "aliases": ["Adaptive Boosting", "Gradient Boosting", "Ensemble Boosting"],
+    "prerequisites": [41],
+    "lecture_ref": "Lecture 3.md",
+    "description": "Sequential ensemble paradigm focusing iteratively on previously misclassified sample weights."
+  },
+  {
+    "id": 44,
+    "name": "AdaBoost",
+    "week": 11,
+    "aliases": ["Adaptive Boosting", "AdaBoost Algorithm"],
+    "prerequisites": [43],
+    "lecture_ref": "Lecture 4.md",
+    "description": "Adaptive Boosting algorithm optimizing exponential loss through weighted decision stumps."
+  },
 
-  {"id": 45, "name": "Artificial Neural Networks",       "week": 12, "aliases": ["ANN", "Neural Network", "Deep Learning Basics", "Feedforward Network"]},
-  {"id": 46, "name": "Backpropagation",                  "week": 12, "aliases": ["Backprop", "Chain Rule", "Error Backpropagation"]},
-  {"id": 47, "name": "Multiclass Classification",        "week": 12, "aliases": ["Softmax", "One-vs-Rest", "Multi-class", "Categorical Classification"]},
-  {"id": 48, "name": "Activation Functions",             "week": 12, "aliases": ["ReLU", "Sigmoid", "Tanh", "Activation"]}
+  {
+    "id": 45,
+    "name": "Artificial Neural Networks",
+    "week": 12,
+    "aliases": ["ANN", "Neural Network", "Deep Learning Basics", "Feedforward Network"],
+    "prerequisites": [35, 36, 48],
+    "lecture_ref": "Lecture 1.md",
+    "description": "Multi-layer feedforward networks with non-linear activations as universal function approximators."
+  },
+  {
+    "id": 46,
+    "name": "Backpropagation",
+    "week": 12,
+    "aliases": ["Backprop", "Chain Rule", "Error Backpropagation"],
+    "prerequisites": [45, 21],
+    "lecture_ref": "Lecture 3.md",
+    "description": "Reverse-mode automatic differentiation applying the multivariable calculus chain rule."
+  },
+  {
+    "id": 47,
+    "name": "Multiclass Classification",
+    "week": 12,
+    "aliases": ["Softmax", "One-vs-Rest", "Multi-class", "Categorical Classification"],
+    "prerequisites": [31, 36],
+    "lecture_ref": "Lecture 5.md",
+    "description": "Generalizing binary classifiers to K classes via One-vs-All, One-vs-One, and Softmax categorical cross-entropy."
+  },
+  {
+    "id": 48,
+    "name": "Activation Functions",
+    "week": 12,
+    "aliases": ["ReLU", "Sigmoid", "Tanh", "Activation"],
+    "prerequisites": [36],
+    "lecture_ref": "Lecture 2.md",
+    "description": "Non-linear node activation functions (Sigmoid, Tanh, ReLU) and their gradient properties."
+  }
 ]

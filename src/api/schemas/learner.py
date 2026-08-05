@@ -1,11 +1,11 @@
 """
 api/schemas/learner.py
-Pydantic request and response models for learner profile endpoints.
+Pydantic request and response models for learner profile, recommendations, and analytics.
 """
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 
@@ -73,8 +73,11 @@ class TopicMasteryResponse(BaseModel):
     topic_id: int
     topic_name: str
     mastery_score: float
-    attempts: int
-    last_tested: Optional[datetime]
+    elo_rating: float = 0.0
+    attempts: int = 0
+    streak: int = 0
+    chat_interactions: int = 0
+    last_tested: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -102,9 +105,69 @@ class QuizAttemptResponse(BaseModel):
     student_answer: Optional[str]
     correct_answer: Optional[str]
     is_correct: Optional[bool]
-    llm_score: Optional[float]      # filled by Jibin's LLM-as-Judge
-    feedback: Optional[str]         # filled by Jibin's evaluator
+    llm_score: Optional[float]
+    feedback: Optional[str]
     attempt_time: datetime
 
     class Config:
         from_attributes = True
+
+
+# ── Recommendation Engine Schemas ─────────────────────────────────────────────
+
+class EvaluatedTopic(BaseModel):
+    topic_id: int
+    topic_name: str
+    week: int
+    lecture_ref: str = ""
+    description: str = ""
+    prerequisites: list[int] = []
+    effective_score: float
+    raw_score: float
+    elo_rating: float
+    attempts: int
+    streak: int
+    chat_interactions: int
+    days_since_tested: Optional[int] = None
+    status: str
+    has_prerequisite_gap: bool = False
+    unmet_prerequisites: list[str] = []
+    priority: float = 0.0
+    suggested_actions: list[str] = []
+
+
+class StudyPlanItem(EvaluatedTopic):
+    llm_advice: str = ""
+
+
+class RecommendationResponse(BaseModel):
+    student_id: str
+    overall_mastery_pct: int
+    total_topics_tested: int
+    total_topics: int
+    coverage_pct: int
+    study_plan: list[StudyPlanItem]
+    strengths: list[EvaluatedTopic]
+    decaying_topics: list[EvaluatedTopic]
+    all_topics: list[EvaluatedTopic]
+    llm_provider_used: str = "none"
+
+
+class WeekMasteryOverview(BaseModel):
+    week: int
+    average_mastery_pct: int
+    topics_tested: int
+    total_topics: int
+    topics: list[EvaluatedTopic]
+
+
+class LearnerProfileResponse(BaseModel):
+    student: StudentResponse
+    overall_mastery_pct: int
+    total_topics_tested: int
+    total_topics: int
+    coverage_pct: int
+    total_quizzes_taken: int
+    quiz_accuracy_pct: int
+    weeks: list[WeekMasteryOverview]
+    recent_quiz_attempts: list[QuizAttemptResponse]

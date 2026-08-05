@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { CheckCircle, XCircle, RefreshCw, Flame, Trophy } from 'lucide-react';
 import APIClient from '../api/client';
 import './Quiz.css';
@@ -16,10 +17,11 @@ function ScoreCircle({ correct, total }) {
 }
 
 export default function Quiz() {
+  const location = useLocation();
   const [topics, setTopics] = useState([]);
-  const [topicId, setTopicId] = useState('');
+  const [topicId, setTopicId] = useState(() => location.state?.topicId || '');
   const [difficulty, setDifficulty] = useState('medium');
-  const [studentId, setStudentId] = useState(() => localStorage.getItem(STUDENT_KEY) || '');
+  const [studentId, setStudentId] = useState(() => localStorage.getItem(STUDENT_KEY) || 'student_001');
   const [question, setQuestion] = useState(null);
   const [selected, setSelected] = useState(null);
   const [submitted, setSubmitted] = useState(false);
@@ -31,10 +33,15 @@ export default function Quiz() {
 
   useEffect(() => {
     APIClient.getTopics()
-      .then(setTopics)
+      .then((data) => {
+        setTopics(data);
+        if (location.state?.topicId) {
+          setTopicId(String(location.state.topicId));
+        }
+      })
       .catch(() => setTopics([]));
     if (studentId) loadHistory(studentId);
-  }, []);
+  }, [location.state]);
 
   const loadHistory = async (sid) => {
     try {
@@ -52,19 +59,20 @@ export default function Quiz() {
 
     const topic = topics.find(t => String(t.id) === String(topicId));
     const topicName = topic?.name || 'Machine Learning';
+    const topicDesc = topic?.description || `${topicName} is an essential concept in the MLT curriculum.`;
 
     const options = [
-      `${topicName} is a fundamental concept in the MLT course.`,
-      `${topicName} has no practical applications in data science.`,
-      `${topicName} is only relevant to deep learning and neural networks.`,
-      `${topicName} was not covered in the IIT Madras MLT curriculum.`,
+      `${topicDesc}`,
+      `${topicName} has no mathematical foundation and is rarely used in machine learning.`,
+      `${topicName} was removed from the standard curriculum due to high computational overhead.`,
+      `${topicName} is only applicable to unstructured text without numerical representations.`,
     ];
 
     setQuestion({
-      text: `Which statement best describes "${topicName}"?`,
+      text: `Which statement accurately characterizes "${topicName}" (Week ${topic?.week || '?'})?`,
       options,
       correct: 0,
-      explanation: `See Week ${topic?.week || '?'} lecture materials for a detailed explanation of ${topicName}.`,
+      explanation: `${topicName} (Week ${topic?.week}): ${topicDesc}`,
       topicName,
       topicId: parseInt(topicId),
       difficulty,
@@ -96,8 +104,6 @@ export default function Quiz() {
       } catch { /* ignore */ }
     }
   };
-
-  const topicData = topics.find(t => String(t.id) === String(topicId));
 
   return (
     <div className="quiz-layout">

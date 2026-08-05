@@ -5,6 +5,7 @@ Each function takes a db: Session argument — no session management inside thes
 """
 from __future__ import annotations
 
+import math
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -33,6 +34,13 @@ def get_student(db: Session, student_id: str) -> Optional[Student]:
 
 def get_student_by_email(db: Session, email: str) -> Optional[Student]:
     return db.query(Student).filter(Student.email == email).first()
+
+
+def get_or_create_student(db: Session, student_id: str, name: str = "Student") -> Student:
+    student = get_student(db, student_id)
+    if not student:
+        student = create_student(db, student_id=student_id, name=name)
+    return student
 
 
 def update_student(db: Session, student_id: str, name: Optional[str] = None,
@@ -111,7 +119,7 @@ def add_chat_message(
 
 def get_session_history(db: Session, session_id: str,
                         limit: int = 50) -> list[ChatMessage]:
-    """Return messages in chronological order — Jibin uses this for conversation memory."""
+    """Return messages in chronological order."""
     return (
         db.query(ChatMessage)
         .filter(ChatMessage.session_id == session_id)
@@ -121,17 +129,91 @@ def get_session_history(db: Session, session_id: str,
     )
 
 
-# ── TopicMastery ──────────────────────────────────────────────────────────────
+# ── TopicMastery & Knowledge Tracing ──────────────────────────────────────────
 
-def upsert_topic_mastery(
+def update_topic_mastery_elo(
     db: Session,
     student_id: str,
     topic_id: int,
     topic_name: str,
-    new_score: float,
+    is_correct: bool,
 ) -> TopicMastery:
-    """Insert or update mastery score for a student-topic pair.
-    Uses weighted running average so one bad quiz doesn't crash the score.
+    """Update student topic mastery using the Pelánek (2016) Elo rating algorithm.
+    
+    Formula:
+      Expected = 1 / (1 + 10^(-R / 400))
+      K = max(16, 64 / (1 + 0.1 * attempts))
+      R_new = R_old + K * (Outcome - Expected)
+      Mastery = 1 / (1 + 10^(-R_new / 400))
+    """
+    existing = (
+        db.query(TopicMastery)
+        .filter(TopicMastery.student_id == student_id, TopicMastery.topic_id == topic_id)
+        .first()
+    )
+
+    actual = 1.0 if is_correct else 0.0
+
+    if existing:
+        current_elo = existing.elo_rating or 0.0
+        attempts = existing.attempts or 0
+
+        # Dynamic learning rate K (shrinks with experience for stability)
+        K = max(16.0, 64.0 / (1.0 + 0.1 * attempts))
+
+        # Expected score against baseline difficulty (0.0)
+        expected = 1.0 / (1.0 + math.pow(10.0, -current_elo / 400.0))
+
+        # Elo rating update
+        new_elo = round(current_elo + K * (actual - expected), 4)
+
+        # Map Elo to continuous mastery probability in [0.0, 1.0]
+        new_mastery = round(1.0 / (1.0 + math.pow(10.0, -new_elo / 400.0)), 4)
+
+        existing.elo_rating = new_elo
+        existing.mastery_score = new_mastery
+        existing.attempts = attempts + 1
+        existing.streak = (existing.streak + 1) if is_correct else 0
+        existing.last_tested = _now()
+        existing.updated_at = _now()
+
+        db.commit()
+        db.refresh(existing)
+        return existing
+    else:
+        # Initial attempt starting from neutral Elo (0.0) with K=64
+        K = 64.0
+        expected = 0.5
+        init_elo = round(0.0 + K * (actual - expected), 4)
+        init_mastery = round(1.0 / (1.0 + math.pow(10.0, -init_elo / 400.0)), 4)
+
+        mastery = TopicMastery(
+            student_id=student_id,
+            topic_id=topic_id,
+            topic_name=topic_name,
+            elo_rating=init_elo,
+            mastery_score=init_mastery,
+            attempts=1,
+            streak=1 if is_correct else 0,
+            chat_interactions=0,
+            last_tested=_now(),
+        )
+        db.add(mastery)
+        db.commit()
+        db.refresh(mastery)
+        return mastery
+
+
+def record_chat_topic_interaction(
+    db: Session,
+    student_id: str,
+    topic_id: int,
+    topic_name: str,
+) -> TopicMastery:
+    """Record that a student explored a topic in chat.
+    
+    If the topic is untested, initializes a baseline record with 0.0 Elo (0.50 mastery).
+    Increments the chat_interactions counter.
     """
     existing = (
         db.query(TopicMastery)
@@ -139,10 +221,7 @@ def upsert_topic_mastery(
         .first()
     )
     if existing:
-        # Weighted average: 70% history, 30% new score
-        existing.mastery_score = round(0.7 * existing.mastery_score + 0.3 * new_score, 4)
-        existing.attempts += 1
-        existing.last_tested = _now()
+        existing.chat_interactions = (existing.chat_interactions or 0) + 1
         existing.updated_at = _now()
         db.commit()
         db.refresh(existing)
@@ -152,9 +231,12 @@ def upsert_topic_mastery(
             student_id=student_id,
             topic_id=topic_id,
             topic_name=topic_name,
-            mastery_score=new_score,
-            attempts=1,
-            last_tested=_now(),
+            elo_rating=0.0,
+            mastery_score=0.5,
+            attempts=0,
+            streak=0,
+            chat_interactions=1,
+            last_tested=None,
         )
         db.add(mastery)
         db.commit()
@@ -162,10 +244,20 @@ def upsert_topic_mastery(
         return mastery
 
 
+def upsert_topic_mastery(
+    db: Session,
+    student_id: str,
+    topic_id: int,
+    topic_name: str,
+    new_score: float,
+) -> TopicMastery:
+    """Backward-compatible helper: Updates mastery score and maps to Elo."""
+    is_correct = new_score >= 0.5
+    return update_topic_mastery_elo(db, student_id, topic_id, topic_name, is_correct)
+
+
 def get_topic_mastery_for_student(db: Session, student_id: str) -> list[TopicMastery]:
-    """All topic mastery rows for a student, sorted weakest first.
-    Mayank's recommendation engine calls this to find knowledge gaps.
-    """
+    """All topic mastery rows for a student, sorted weakest first."""
     return (
         db.query(TopicMastery)
         .filter(TopicMastery.student_id == student_id)
@@ -176,7 +268,7 @@ def get_topic_mastery_for_student(db: Session, student_id: str) -> list[TopicMas
 
 def get_weak_topics(db: Session, student_id: str, threshold: float = 0.4,
                     limit: int = 5) -> list[TopicMastery]:
-    """Topics where mastery_score < threshold — direct input for Mayank's gap detection."""
+    """Topics where mastery_score < threshold — direct input for gap detection."""
     return (
         db.query(TopicMastery)
         .filter(TopicMastery.student_id == student_id,
@@ -213,7 +305,6 @@ def add_quiz_attempt(
         correct_answer=correct_answer,
         is_correct=is_correct,
         source_chunks=source_chunks or [],
-        # llm_score and feedback left NULL — Jibin fills these
     )
     db.add(attempt)
     db.commit()
@@ -228,7 +319,7 @@ def update_quiz_evaluation(
     feedback: str,
     is_correct: Optional[bool] = None,
 ) -> Optional[QuizAttempt]:
-    """Jibin's LLM-as-Judge calls this to store evaluation results."""
+    """Store quiz evaluation results and update topic mastery accordingly."""
     attempt = db.query(QuizAttempt).filter(QuizAttempt.attempt_id == attempt_id).first()
     if not attempt:
         return None
@@ -236,6 +327,17 @@ def update_quiz_evaluation(
     attempt.feedback = feedback
     if is_correct is not None:
         attempt.is_correct = is_correct
+
+    # If topic_id is known, update mastery
+    if attempt.topic_id is not None and is_correct is not None:
+        update_topic_mastery_elo(
+            db,
+            student_id=attempt.student_id,
+            topic_id=attempt.topic_id,
+            topic_name=attempt.topic_name,
+            is_correct=is_correct,
+        )
+
     db.commit()
     db.refresh(attempt)
     return attempt

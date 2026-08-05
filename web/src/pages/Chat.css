@@ -126,7 +126,7 @@
 }
 
 .message-bubble {
-  max-width: 70%;
+  max-width: 76%;
   padding: 14px 18px;
   border-radius: var(--radius);
 }
@@ -156,28 +156,38 @@
 /* Source Chips */
 .sources-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 12px;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sources-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
 }
 
 .source-chip {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: var(--bg-input);
+  background: rgba(255, 255, 255, 0.03);
   font-size: 12px;
   overflow: hidden;
   transition: var(--transition);
-  flex-shrink: 0;
 }
 .source-chip.expanded {
-  flex: 0 0 100%;
+  border-color: rgba(99, 102, 241, 0.4);
 }
 .source-chip-header {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 10px;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -185,31 +195,50 @@
   font-size: 12px;
   font-family: inherit;
   width: 100%;
+  text-align: left;
 }
-.source-chip-header:hover { color: var(--accent-hover); }
+.source-chip-header:hover {
+  color: var(--accent-hover);
+  background: rgba(255, 255, 255, 0.02);
+}
+.source-title-text {
+  flex: 1;
+  font-weight: 500;
+}
 .source-chip-body {
-  padding: 8px 12px 10px;
+  padding: 10px 14px 12px;
   border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
 }
 .source-meta {
   display: flex;
-  gap: 8px;
-  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 .source-meta span {
   font-size: 11px;
-  color: var(--text-muted);
-  display: flex;
+  color: var(--text-secondary);
+  display: inline-flex;
   align-items: center;
-  gap: 3px;
-  background: var(--bg-main);
-  padding: 2px 6px;
+  gap: 4px;
+  padding: 3px 8px;
   border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.timestamp-tag {
+  color: #fbbf24 !important;
+  background: rgba(245, 158, 11, 0.15) !important;
+  font-weight: 600;
+}
+.week-tag {
+  color: #a5b4fc !important;
+  background: rgba(99, 102, 241, 0.15) !important;
 }
 .source-chip-body p {
   color: var(--text-secondary);
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* Typing */
@@ -263,7 +292,6 @@
   max-height: 160px;
   overflow-y: auto;
   transition: var(--transition);
-  field-sizing: content;
   min-height: 48px;
 }
 .chat-textarea:focus {

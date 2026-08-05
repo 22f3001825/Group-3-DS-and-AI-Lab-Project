@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, Bot, BookOpen, ChevronDown, ChevronUp, Clock, Zap } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Send, User, Bot, BookOpen, ChevronDown, ChevronUp, Clock, Zap, Video } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import APIClient from '../api/client';
 import './Chat.css';
@@ -8,23 +9,37 @@ const STUDENT_KEY = 'mlt_student_id';
 
 function SourceChip({ source, index }) {
   const [open, setOpen] = useState(false);
+  const meta = source.metadata || {};
+  const lectureTitle = meta.lecture_title || meta.h1 || `Context ${index + 1}`;
+  const timestamp = meta.timestamp;
+  const week = meta.week;
+
   return (
     <div className={`source-chip ${open ? 'expanded' : ''}`}>
       <button className="source-chip-header" onClick={() => setOpen(!open)}>
         <BookOpen size={13} />
-        <span>Context {index + 1}</span>
+        <span className="source-title-text">
+          {meta.formatted_ref || (week ? `Week ${week}: ${lectureTitle}` : lectureTitle)}
+        </span>
         {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
       </button>
       {open && (
         <div className="source-chip-body">
           <div className="source-meta">
-            <span>{source.metadata?.source_type || 'Document'}</span>
-            {source.metadata?.week && <span>Week {source.metadata.week}</span>}
-            {source.metadata?.timestamp && (
-              <span><Clock size={11} /> {source.metadata.timestamp}</span>
+            <span className="source-type-tag">{meta.source_type || 'Lecture Material'}</span>
+            {week && <span className="week-tag">Week {week}</span>}
+            {timestamp && (
+              <span className="timestamp-tag">
+                <Clock size={11} /> Timestamp: {timestamp}
+              </span>
+            )}
+            {lectureTitle && (
+              <span className="lecture-tag">
+                <Video size={11} /> {lectureTitle}
+              </span>
             )}
           </div>
-          <p>{source.text?.slice(0, 280)}{source.text?.length > 280 ? '…' : ''}</p>
+          <p>{source.text?.slice(0, 320)}{source.text?.length > 320 ? '…' : ''}</p>
         </div>
       )}
     </div>
@@ -53,6 +68,7 @@ function Message({ msg }) {
             )}
             {msg.sources && msg.sources.length > 0 && (
               <div className="sources-row">
+                <div className="sources-label">📚 Cited Lecture Sources &amp; Timestamps:</div>
                 {msg.sources.map((s, i) => <SourceChip key={i} source={s} index={i} />)}
               </div>
             )}
@@ -75,21 +91,28 @@ function TypingIndicator() {
 }
 
 export default function Chat() {
+  const location = useLocation();
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: "Hi! I'm your **MLT Course Assistant**. I can answer questions about Machine Learning, AI, Statistics, and all topics covered in the IIT Madras MLT course. What would you like to learn today?",
+      content: "Hi! I'm your **MLT Course Assistant**. I can answer questions about Machine Learning, AI, Statistics, and all topics covered in the IIT Madras MLT course with precise lecture timestamps and citation navigation. What would you like to learn today?",
     },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [studentId, setStudentId] = useState(() => localStorage.getItem(STUDENT_KEY) || '');
+  const [studentId, setStudentId] = useState(() => localStorage.getItem(STUDENT_KEY) || 'student_001');
   const [editingId, setEditingId] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  useEffect(() => {
+    if (location.state?.initialPrompt) {
+      setInput(location.state.initialPrompt);
+    }
+  }, [location.state]);
 
   const handleSetId = (e) => {
     e.preventDefault();
@@ -131,10 +154,10 @@ export default function Chat() {
   };
 
   const suggestions = [
-    'What is Principal Component Analysis?',
-    'Explain gradient descent with an example',
-    'What is the bias-variance tradeoff?',
-    'How does SVD relate to PCA?',
+    'What is Principal Component Analysis and where is it covered in lectures?',
+    'Explain Gradient Descent step by step with lecture citations',
+    'What is the Bias-Variance Tradeoff in machine learning?',
+    'How does Singular Value Decomposition (SVD) relate to PCA?',
   ];
 
   return (

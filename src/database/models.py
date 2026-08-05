@@ -4,10 +4,10 @@ SQLAlchemy ORM models for the MLT learner profile system.
 
 Tables:
   - Student        : core identity
-  - ChatSession    : groups messages (Jibin's conversation memory)
+  - ChatSession    : groups messages (conversation memory)
   - ChatMessage    : every Q&A exchange
-  - TopicMastery   : per-student per-topic score (Mayank's recommendation engine)
-  - QuizAttempt    : every quiz attempt (Jibin's quiz eval + LLM-as-Judge)
+  - TopicMastery   : per-student per-topic Elo & mastery tracking (recommendation engine)
+  - QuizAttempt    : every quiz attempt (quiz eval + LLM-as-Judge)
 """
 from __future__ import annotations
 
@@ -51,9 +51,7 @@ class Student(Base):
 # ── ChatSession ───────────────────────────────────────────────────────────────
 
 class ChatSession(Base):
-    """Groups a set of messages into one conversation.
-    Jibin's conversation memory loads ChatMessages from a given session_id.
-    """
+    """Groups a set of messages into one conversation."""
     __tablename__ = "chat_sessions"
 
     session_id  = Column(String, primary_key=True, default=_uuid)
@@ -90,20 +88,29 @@ class ChatMessage(Base):
 # ── TopicMastery ──────────────────────────────────────────────────────────────
 
 class TopicMastery(Base):
-    """Per-student per-topic performance score.
-    Mayank's knowledge gap detection and recommendation engine query this table directly.
-    mastery_score: 0.0 = never attempted / very weak, 1.0 = fully mastered.
+    """Per-student per-topic performance score based on Pelánek (2016) Elo Knowledge Tracing.
+    
+    Attributes:
+      - elo_rating        : Continuous skill rating (0.0 = neutral/average, >0 = stronger, <0 = weaker)
+      - mastery_score     : Sigmoid-mapped score [0.0, 1.0]
+      - attempts          : Total quiz question attempts on this topic
+      - streak            : Current consecutive correct answers streak
+      - chat_interactions : Number of times this topic was explored in chat
+      - last_tested       : Timestamp of last quiz attempt
     """
     __tablename__ = "topic_mastery"
 
-    id            = Column(Integer, primary_key=True, autoincrement=True)
-    student_id    = Column(String, ForeignKey("students.student_id", ondelete="CASCADE"), nullable=False)
-    topic_id      = Column(Integer, nullable=False)   # matches id in topic_taxonomy.json
-    topic_name    = Column(String(255), nullable=False)
-    mastery_score = Column(Float, default=0.5, nullable=False)   # 0.0–1.0
-    attempts      = Column(Integer, default=0, nullable=False)
-    last_tested   = Column(DateTime, nullable=True)
-    updated_at    = Column(DateTime, default=_now, onupdate=_now, nullable=False)
+    id                = Column(Integer, primary_key=True, autoincrement=True)
+    student_id        = Column(String, ForeignKey("students.student_id", ondelete="CASCADE"), nullable=False)
+    topic_id          = Column(Integer, nullable=False)   # matches id in topic_taxonomy.json
+    topic_name        = Column(String(255), nullable=False)
+    elo_rating        = Column(Float, default=0.0, nullable=False)
+    mastery_score     = Column(Float, default=0.5, nullable=False)   # 0.0–1.0
+    attempts          = Column(Integer, default=0, nullable=False)
+    streak            = Column(Integer, default=0, nullable=False)
+    chat_interactions = Column(Integer, default=0, nullable=False)
+    last_tested       = Column(DateTime, nullable=True)
+    updated_at        = Column(DateTime, default=_now, onupdate=_now, nullable=False)
 
     student = relationship("Student", back_populates="topic_masteries")
 
@@ -116,8 +123,7 @@ class TopicMastery(Base):
 
 class QuizAttempt(Base):
     """Every quiz attempt.
-    llm_score and feedback are left NULL by Milestone 5 — Jibin (Person 5) fills them
-    when implementing LLM-as-Judge quiz evaluation.
+    llm_score and feedback store LLM-as-Judge evaluation results.
     source_chunks stores which Qdrant doc_ids were used to generate the question.
     """
     __tablename__ = "quiz_attempts"
@@ -132,8 +138,8 @@ class QuizAttempt(Base):
     student_answer = Column(Text, nullable=True)
     correct_answer = Column(Text, nullable=True)
     is_correct     = Column(Boolean, nullable=True)
-    llm_score      = Column(Float, nullable=True)   # filled by Jibin's LLM-as-Judge
-    feedback       = Column(Text, nullable=True)    # filled by Jibin's evaluator
+    llm_score      = Column(Float, nullable=True)   # filled by LLM-as-Judge
+    feedback       = Column(Text, nullable=True)    # filled by evaluator
     source_chunks  = Column(JSON, default=list)     # list of doc_id strings used
     attempt_time   = Column(DateTime, default=_now, nullable=False)
 

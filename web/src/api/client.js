@@ -23,10 +23,10 @@ class APIClient {
   }
 
   // Chat
-  static async chat(question, studentId = null) {
+  static async chat(question, studentId = null, sessionId = null) {
     return this.request('/chat', {
       method: 'POST',
-      body: JSON.stringify({ question, student_id: studentId, top_k: 5 }),
+      body: JSON.stringify({ question, student_id: studentId, session_id: sessionId, top_k: 5 }),
     });
   }
 
@@ -39,15 +39,38 @@ class APIClient {
     }
   }
 
-  // Topics
+  static async getSessionMessages(sessionId) {
+    if (!sessionId) return [];
+    try {
+      return await this.request(`/session/${sessionId}/history`);
+    } catch {
+      return [];
+    }
+  }
+
+  // Topics & Taxonomy
   static async getTopics() {
     return this.request('/topics');
   }
 
-  // Mastery
+  static async getTopicsByWeek(week) {
+    return this.request(`/topics/week/${week}`);
+  }
+
+  // Mastery & Recommendations
   static async getMastery(studentId) {
     if (!studentId) return [];
     return this.request(`/learner/${studentId}/mastery`);
+  }
+
+  static async getRecommendations(studentId, topN = 5, forceRefresh = false) {
+    if (!studentId) return null;
+    return this.request(`/learner/${studentId}/recommendations?top_n=${topN}&force_refresh=${forceRefresh}`);
+  }
+
+  static async getLearnerProfile(studentId) {
+    if (!studentId) return null;
+    return this.request(`/learner/${studentId}/profile`);
   }
 
   // Quiz

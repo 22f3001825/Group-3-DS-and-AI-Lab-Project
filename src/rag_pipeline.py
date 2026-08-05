@@ -1,15 +1,16 @@
 """RAG answer generation pipeline for the course-assistant project.
 
-Milestone 4 — LLM & Prompt Engineering upgrade:
+Milestone 4 — LLM & Prompt Engineering upgrade with Multi-Key Load Balancing:
   - Structured prompt template (Direct Answer → Explanation → Math → Example → Sources)
   - Out-of-scope guardrail: LLM declines non-course questions
-  - Correct Groq model IDs
-  - Smart API failover: rate-limit (429) vs auth (401/403) vs other errors handled separately
-  - top_k default raised to 5 for richer context
+  - Groq and Gemini Multi-API-Key Load Balancer & Auto-Rotation (api1, api2, GROQ_API_KEY_1...)
+  - Smart API failover: rate-limit (429) vs auth (401/403) vs other errors handled per-key & per-model
+  - Generic LLM completion function for recommendation service & RAG
 """
 
 from __future__ import annotations
 
+import itertools
 import os
 import re
 from typing import Any
@@ -32,6 +33,77 @@ GROQ_MODELS: list[str] = [
     "llama3-70b-8192",
     "mixtral-8x7b-32768",
 ]
+
+
+# ── Multi-Key Discovery & Load Balancing ───────────────────────────────────────
+
+_groq_key_cycle: itertools.cycle | None = None
+_gemini_key_cycle: itertools.cycle | None = None
+
+
+def get_groq_api_keys() -> list[str]:
+    """Discover all configured Groq API keys from environment variables.
+    
+    Supports:
+      - GROQ_API_KEYS (comma-separated string)
+      - GROQ_API_KEY
+      - GROQ_API_KEY_1, GROQ_API_KEY_2, ... GROQ_API_KEY_20
+      - GROQ_KEY_1, GROQ_KEY_2, ...
+      - api1, api2, api3, ... (if formatted like Groq keys 'gsk_...' or provided as fallback)
+    """
+    keys: list[str] = []
+
+    # 1. Comma-separated list in GROQ_API_KEYS
+    if os.getenv("GROQ_API_KEYS"):
+        for k in os.getenv("GROQ_API_KEYS", "").split(","):
+            cleaned = k.strip()
+            if cleaned and cleaned not in keys:
+                keys.append(cleaned)
+
+    # 2. Main single key
+    main_k = os.getenv("GROQ_API_KEY")
+    if main_k and main_k.strip() and main_k.strip() not in keys:
+        keys.append(main_k.strip())
+
+    # 3. Numbered environment variables
+    for prefix in ("GROQ_API_KEY_", "GROQ_KEY_", "GROQ_API_KEY", "groq_api_key_"):
+        for i in range(1, 21):
+            val = os.getenv(f"{prefix}{i}")
+            if val and val.strip() and val.strip() not in keys:
+                keys.append(val.strip())
+
+    # 4. Generic numbered keys (api1, api2, api3...)
+    for i in range(1, 21):
+        for var_name in (f"api{i}", f"API{i}", f"api_{i}", f"API_{i}", f"groq_{i}", f"GROQ_{i}"):
+            val = os.getenv(var_name)
+            if val and val.strip() and val.strip() not in keys:
+                # If key looks like a Groq key (gsk_...) or general key, add it
+                keys.append(val.strip())
+
+    return keys
+
+
+def get_gemini_api_keys() -> list[str]:
+    """Discover all configured Gemini/Google API keys from environment variables."""
+    keys: list[str] = []
+
+    if os.getenv("GEMINI_API_KEYS") or os.getenv("GOOGLE_API_KEYS"):
+        for k in (os.getenv("GEMINI_API_KEYS") or os.getenv("GOOGLE_API_KEYS") or "").split(","):
+            cleaned = k.strip()
+            if cleaned and cleaned not in keys:
+                keys.append(cleaned)
+
+    for k in (os.getenv("GOOGLE_API_KEY"), os.getenv("GEMINI_API_KEY")):
+        if k and k.strip() and k.strip() not in keys:
+            keys.append(k.strip())
+
+    for prefix in ("GOOGLE_API_KEY_", "GEMINI_API_KEY_", "GOOGLE_KEY_", "GEMINI_KEY_"):
+        for i in range(1, 21):
+            val = os.getenv(f"{prefix}{i}")
+            if val and val.strip() and val.strip() not in keys:
+                keys.append(val.strip())
+
+    return keys
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -68,13 +140,13 @@ def _classify_error(exc: Exception) -> str:
     """Classify an LLM API exception for smarter failover decisions.
 
     Returns one of:
-      'rate_limit'  — HTTP 429, quota exceeded → retry next model / provider
-      'auth'        — HTTP 401/403, invalid key → skip entire provider immediately
-      'other'       — any other error → retry next model
+      'rate_limit'  — HTTP 429, quota exceeded → rotate key / try next model
+      'auth'        — HTTP 401/403, invalid key → mark this key invalid, rotate to next key
+      'other'       — any other error → retry next model/key
     """
     error_str = str(exc).lower()
 
-    # ── Rate-limit / quota signals (try next model first) ──────────────────
+    # ── Rate-limit / quota signals ─────────────────────────────────────────
     rate_limit_keywords = (
         "429",
         "rate limit",
@@ -82,11 +154,13 @@ def _classify_error(exc: Exception) -> str:
         "resource_exhausted",      # Google gRPC quota
         "too many requests",
         "rate_limit_exceeded",     # Groq
+        "tokens per minute",
+        "requests per minute",
     )
     if any(kw in error_str for kw in rate_limit_keywords):
         return "rate_limit"
 
-    # ── Auth / bad-key signals (skip entire provider) ───────────────────────
+    # ── Auth / bad-key signals ─────────────────────────────────────────────
     auth_keywords = (
         "401",
         "403",
@@ -119,9 +193,6 @@ def build_prompt(question: str, documents: list[Document]) -> str:
       1. Out-of-scope questions  → LLM must decline with a fixed message.
       2. In-scope questions      → LLM must produce a structured, detailed answer
                                    (Direct Answer, Explanation, Math, Example, Sources).
-
-    Math is written in plain Unicode (e.g. ∇, Σ, η) so it renders correctly in
-    the terminal without needing a LaTeX renderer.
     """
     if not documents:
         context_block = (
@@ -171,11 +242,6 @@ Structure your answer using exactly these sections (omit a section only if it ge
 
 **Mathematical Notation / Formula (if applicable):**
 [Write any formulas or derivations using plain Unicode math notation.
- Examples of acceptable notation:
-   Loss function:    L(w) = (1/n) Σᵢ (yᵢ - ŷᵢ)²
-   Gradient descent: w ← w − η · ∇L(w)
-   Sigmoid:          σ(z) = 1 / (1 + e^(−z))
-   Dot product:      wᵀx + b
  Walk through what each symbol means.]
 
 **Worked Example:**
@@ -208,16 +274,14 @@ ANSWER
 
 # ── LLM Factory ──────────────────────────────────────────────────────────────
 
-def create_llm(model_name: str, provider: str, api_key: str | None = None) -> Any:
-    """Instantiate a Gemini or Groq LLM for a specific model.
+def create_llm(model_name: str, provider: str, api_key: str | None = None, temperature: float = 0.2) -> Any:
+    """Instantiate a Gemini or Groq LLM for a specific model and API key.
 
     Args:
-        model_name: Exact model identifier (e.g. 'gemini-2.0-flash').
-        provider:   Either 'gemini' or 'groq'.
-        api_key:    Optional override; falls back to environment variables.
-
-    Raises:
-        RuntimeError: If the required package is not installed or the API key is missing.
+        model_name:  Exact model identifier (e.g. 'llama-3.3-70b-versatile').
+        provider:    Either 'gemini' or 'groq'.
+        api_key:     Optional explicit key; otherwise resolved from environment key pools.
+        temperature: Sampling temperature.
     """
     if provider == "groq":
         try:
@@ -227,14 +291,14 @@ def create_llm(model_name: str, provider: str, api_key: str | None = None) -> An
                 "Install langchain-groq to use Groq: pip install langchain-groq"
             ) from exc
 
-        resolved_key = api_key or os.getenv("GROQ_API_KEY")
+        resolved_key = api_key or (get_groq_api_keys()[0] if get_groq_api_keys() else None)
         if not resolved_key:
-            raise RuntimeError("GROQ_API_KEY is not set in your environment.")
+            raise RuntimeError("No Groq API keys found in environment.")
 
         return ChatGroq(
             model=model_name,
             api_key=resolved_key,
-            temperature=0.2,
+            temperature=temperature,
         )
 
     # Default → Gemini
@@ -245,47 +309,119 @@ def create_llm(model_name: str, provider: str, api_key: str | None = None) -> An
             "Install langchain-google-genai to use Gemini: pip install langchain-google-genai"
         ) from exc
 
-    resolved_key = api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+    resolved_key = api_key or (get_gemini_api_keys()[0] if get_gemini_api_keys() else None)
     if not resolved_key:
-        raise RuntimeError(
-            "GOOGLE_API_KEY (or GEMINI_API_KEY) is not set in your environment."
-        )
+        raise RuntimeError("No Gemini/Google API keys found in environment.")
 
     return ChatGoogleGenerativeAI(
         model=model_name,
         google_api_key=resolved_key,
-        temperature=0.2,
+        temperature=temperature,
     )
 
 
-# ── Provider List Builder ─────────────────────────────────────────────────────
+# ── Provider & Key Multi-Tier Queue Builder ───────────────────────────────────
 
-def _build_provider_queue() -> list[tuple[str, list[str]]]:
-    """Return an ordered list of (provider, [models]) based on available API keys.
-
-    The preferred provider (from LLM_PROVIDER env var, default 'gemini') goes first.
-    Only providers with a configured API key are included.
+def _build_provider_queue() -> list[tuple[str, list[str], list[str]]]:
+    """Return an ordered list of (provider, [models], [available_keys]).
+    
+    Supports provider preference via LLM_PROVIDER ('groq' vs 'gemini') and
+    pools all configured API keys for automatic round-robin and multi-key failover.
     """
     preferred = (os.getenv("LLM_PROVIDER") or "gemini").strip().lower()
 
-    gemini_available = bool(os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"))
-    groq_available = bool(os.getenv("GROQ_API_KEY"))
+    gemini_keys = get_gemini_api_keys()
+    groq_keys = get_groq_api_keys()
 
-    primary: list[tuple[str, list[str]]] = []
-    fallback: list[tuple[str, list[str]]] = []
+    gemini_entry = ("gemini", GEMINI_MODELS, gemini_keys)
+    groq_entry = ("groq", GROQ_MODELS, groq_keys)
+
+    queue: list[tuple[str, list[str], list[str]]] = []
 
     if preferred == "groq":
-        if groq_available:
-            primary.append(("groq", GROQ_MODELS))
-        if gemini_available:
-            fallback.append(("gemini", GEMINI_MODELS))
+        if groq_keys:
+            queue.append(groq_entry)
+        if gemini_keys:
+            queue.append(gemini_entry)
     else:
-        if gemini_available:
-            primary.append(("gemini", GEMINI_MODELS))
-        if groq_available:
-            fallback.append(("groq", GROQ_MODELS))
+        if gemini_keys:
+            queue.append(gemini_entry)
+        if groq_keys:
+            queue.append(groq_entry)
 
-    return primary + fallback
+    # If preferred wasn't available, include any available
+    if not queue:
+        if groq_keys:
+            queue.append(groq_entry)
+        if gemini_keys:
+            queue.append(gemini_entry)
+
+    return queue
+
+
+# ── Generic Resilient LLM Completion Invoker ──────────────────────────────────
+
+def generate_llm_response(
+    prompt: str,
+    temperature: float = 0.2,
+    max_tokens: int | None = None,
+) -> tuple[str | None, str]:
+    """Resiliently invoke an LLM with automatic multi-key rotation and multi-provider failover.
+    
+    Rotates across all available Groq and Gemini API keys upon rate limits (429) or auth errors.
+    
+    Returns:
+      (answer_text, provider_label_used)
+    """
+    provider_queue = _build_provider_queue()
+    if not provider_queue:
+        print("  [LLM] Warning: No API keys configured for Groq or Gemini.", flush=True)
+        return None, "none"
+
+    for provider_name, models, keys in provider_queue:
+        if not keys:
+            continue
+
+        for key_idx, current_key in enumerate(keys, start=1):
+            key_masked = f"{current_key[:6]}...{current_key[-4:]}" if len(current_key) > 10 else "***"
+            skip_this_key = False
+
+            for model_name in models:
+                if skip_this_key:
+                    break
+
+                attempt_label = f"{provider_name}/{model_name} [Key #{key_idx}: {key_masked}]"
+                print(f"  [LLM] Invoking {attempt_label}...", flush=True)
+                try:
+                    llm = create_llm(
+                        model_name=model_name,
+                        provider=provider_name,
+                        api_key=current_key,
+                        temperature=temperature,
+                    )
+                    response = llm.invoke(prompt)
+                    text = extract_text_from_response(response)
+                    if text:
+                        print(f"  [LLM] Success with {attempt_label}", flush=True)
+                        return text, f"{provider_name}/{model_name}"
+                except Exception as exc:
+                    err_type = _classify_error(exc)
+                    print(
+                        f"  [LLM] FAILED {attempt_label} ({err_type}): "
+                        f"{type(exc).__name__}: {str(exc)[:160]}",
+                        flush=True,
+                    )
+                    if err_type in ("auth", "rate_limit"):
+                        # For rate_limit (429) or invalid auth on this specific key,
+                        # immediately rotate to the next key in the pool!
+                        print(
+                            f"  [LLM] Key #{key_idx} hit {err_type}. Rotating to next available key in pool...",
+                            flush=True,
+                        )
+                        skip_this_key = True
+                        break  # move to next key
+
+    return None, "none"
 
 
 # ── Main Pipeline ─────────────────────────────────────────────────────────────
@@ -298,85 +434,34 @@ def answer_question(
     """Retrieve relevant chunks and generate a grounded, structured answer.
 
     Failover strategy:
-      - rate_limit (429) → try next model on same provider → then try next provider
-      - auth (401/403)   → skip entire provider immediately, move to next
-      - other error      → try next model on same provider
+      - Rate limit (429) / Quota -> rotate to next Groq/Gemini key -> next model -> next provider
+      - Auth error (401/403)     -> skip bad key, rotate to next key in pool
+      - Other error              -> try next model/key
 
     Returns a dict with keys:
       answer        (str)           — final answer text
       sources       (list[Document])— retrieved context chunks
-      provider_used (str)           — e.g. 'gemini/gemini-2.0-flash'
+      provider_used (str)           — e.g. 'groq/llama-3.3-70b-versatile'
       fallback_used (bool)          — True if primary provider was bypassed
       prompt        (str)           — the exact prompt sent to the LLM
     """
     # 1. Retrieve context
     retrieved_docs: list[Document] = retriever.invoke(question)[:top_k]
 
-    # 2. Build prompt once (same for all providers)
+    # 2. Build prompt once
     prompt = build_prompt(question, retrieved_docs)
 
-    # 3. Build provider queue
-    provider_queue = _build_provider_queue()
-    if not provider_queue:
-        raise RuntimeError(
-            "No LLM API keys configured. "
-            "Add GOOGLE_API_KEY or GROQ_API_KEY to your .env file."
-        )
+    # 3. Generate answer using multi-key resilient completion
+    answer_text, provider_used = generate_llm_response(prompt, temperature=0.2)
+    fallback_used = False
 
-    answer_text: str | None = None
-    provider_used: str = ""
-    fallback_used: bool = False
-    is_primary_provider = True
+    preferred = (os.getenv("LLM_PROVIDER") or "gemini").strip().lower()
+    if provider_used != "none" and not provider_used.startswith(preferred):
+        fallback_used = True
 
-    for provider_name, models in provider_queue:
-        if not is_primary_provider:
-            fallback_used = True
-
-        skip_provider = False  # set True on auth failure to skip remaining models
-
-        for model_name in models:
-            if skip_provider:
-                break
-
-            attempt_label = f"{provider_name}/{model_name}"
-            print(f"  [LLM] Trying {attempt_label}...", flush=True)
-            try:
-                llm = create_llm(model_name=model_name, provider=provider_name)
-                response = llm.invoke(prompt)
-                answer_text = extract_text_from_response(response)
-
-                if answer_text:
-                    provider_used = attempt_label
-                    print(f"  [LLM] Success with {attempt_label}", flush=True)
-                    break  # success — stop trying more models
-
-            except Exception as exc:
-                error_class = _classify_error(exc)
-                # Always print the failure so it's visible in the terminal
-                print(
-                    f"  [LLM] FAILED {attempt_label} ({error_class}): "
-                    f"{type(exc).__name__}: {str(exc)[:200]}",
-                    flush=True,
-                )
-
-                if error_class == "auth":
-                    # Bad API key — no point trying other models on this provider
-                    print(
-                        f"  [LLM] Auth error on provider '{provider_name}' — "
-                        "skipping remaining models for this provider.",
-                        flush=True,
-                    )
-                    skip_provider = True
-                # rate_limit / other → continue to next model
-
-        if answer_text:
-            break  # already got a good answer
-
-        is_primary_provider = False  # about to try the fallback provider
-
-    # 4. Last-resort: return raw context snippets if all providers failed
+    # 4. Fallback if all providers and keys failed
     if not answer_text:
-        print("\n  [LLM] All providers exhausted — returning raw context as fallback.", flush=True)
+        print("\n  [LLM] All providers and keys exhausted — returning raw context as fallback.", flush=True)
 
         if retrieved_docs:
             answer_text = (

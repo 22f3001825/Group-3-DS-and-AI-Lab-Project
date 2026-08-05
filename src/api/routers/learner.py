@@ -1,46 +1,27 @@
 """
 api/routers/learner.py
-Learner profile CRUD endpoints.
-
-POST   /learner                           — create student
-GET    /learner/{student_id}              — get student
-PUT    /learner/{student_id}              — update student name/email
-
-GET    /learner/{student_id}/mastery      — all topic mastery rows (Mayank)
-PUT    /learner/{student_id}/mastery      — update a topic score
-
-POST   /learner/{student_id}/session      — start new chat session
-GET    /learner/{student_id}/sessions     — list sessions
-GET    /session/{session_id}/history      — get messages in session (Jibin)
-
-POST   /learner/{student_id}/quiz         — record quiz attempt
-GET    /learner/{student_id}/quiz         — get quiz history
-
-GET    /topics                            — full taxonomy
-GET    /topics/week/{week}                — topics for a week
+Learner profile, recommendation engine, and knowledge analytics endpoints.
 """
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ...database.session import get_db
 from ...database import crud
 from ..schemas.learner import (
-    MessageResponse, QuizAttemptCreate, QuizAttemptResponse,
-    SessionCreate, SessionResponse, StudentCreate, StudentResponse,
-    StudentUpdate, TopicMasteryResponse, TopicMasteryUpdate,
+    LearnerProfileResponse, MessageResponse, QuizAttemptCreate, QuizAttemptResponse,
+    RecommendationResponse, SessionCreate, SessionResponse, StudentCreate, StudentResponse,
+    StudentUpdate, TopicMasteryResponse, TopicMasteryUpdate, WeekMasteryOverview,
+)
+from ..services.recommendation_service import (
+    analyze_knowledge_state, generate_study_plan, get_week_by_week_mastery,
+    invalidate_recommendation_cache, load_taxonomy,
 )
 
 router = APIRouter(tags=["Learner"])
-
-# Load taxonomy once
-_TAXONOMY_PATH = Path(__file__).resolve().parent.parent.parent / "topic_taxonomy.json"
-_TAXONOMY: list[dict] = json.loads(_TAXONOMY_PATH.read_text(encoding="utf-8")) if _TAXONOMY_PATH.exists() else []
 
 
 # ── Student ───────────────────────────────────────────────────────────────────
@@ -56,7 +37,8 @@ def create_student(body: StudentCreate, db: Session = Depends(get_db)):
 def get_student(student_id: str, db: Session = Depends(get_db)):
     student = crud.get_student(db, student_id)
     if not student:
-        raise HTTPException(status_code=404, detail="Student not found.")
+        # Automatically initialize student profile for seamless UX
+        student = crud.create_student(db, student_id=student_id, name=f"Student {student_id[:6]}")
     return student
 
 
@@ -72,44 +54,77 @@ def update_student(student_id: str, body: StudentUpdate, db: Session = Depends(g
 
 @router.get("/learner/{student_id}/mastery", response_model=list[TopicMasteryResponse])
 def get_mastery(student_id: str, db: Session = Depends(get_db)):
-    """Returns all topic mastery rows sorted weakest first.
-    Mayank's recommendation engine calls this to find knowledge gaps.
-    """
-    if not crud.get_student(db, student_id):
-        raise HTTPException(status_code=404, detail="Student not found.")
+    """Returns all topic mastery rows sorted weakest first."""
+    student = crud.get_or_create_student(db, student_id)
     return crud.get_topic_mastery_for_student(db, student_id)
 
 
 @router.put("/learner/{student_id}/mastery", response_model=TopicMasteryResponse)
 def update_mastery(student_id: str, body: TopicMasteryUpdate, db: Session = Depends(get_db)):
-    if not crud.get_student(db, student_id):
-        raise HTTPException(status_code=404, detail="Student not found.")
-    return crud.upsert_topic_mastery(
-        db, student_id, body.topic_id, body.topic_name, body.new_score
+    student = crud.get_or_create_student(db, student_id)
+    is_correct = body.new_score >= 0.5
+    res = crud.update_topic_mastery_elo(
+        db, student_id, body.topic_id, body.topic_name, is_correct
     )
+    invalidate_recommendation_cache(student_id)
+    return res
+
+
+# ── Recommendations & Gap Analysis ────────────────────────────────────────────
+
+@router.get("/learner/{student_id}/recommendations", response_model=RecommendationResponse)
+def get_recommendations(
+    student_id: str,
+    top_n: int = 5,
+    force_refresh: bool = Query(False, description="Force LLM study plan regeneration"),
+    db: Session = Depends(get_db),
+):
+    """Generate personalized study recommendations with state-fingerprint caching."""
+    crud.get_or_create_student(db, student_id)
+    return generate_study_plan(db, student_id, top_n=top_n, force_refresh=force_refresh)
+
+
+@router.get("/learner/{student_id}/profile", response_model=LearnerProfileResponse)
+def get_learner_profile(student_id: str, db: Session = Depends(get_db)):
+    """Get complete learner profile with overall stats, week heatmaps, and quiz history."""
+    student = crud.get_or_create_student(db, student_id)
+    analysis = analyze_knowledge_state(db, student_id)
+    weeks_data = get_week_by_week_mastery(db, student_id)
+    quiz_history = crud.get_quiz_history(db, student_id, limit=20)
+
+    total_quizzes = len(quiz_history)
+    correct_quizzes = sum(1 for q in quiz_history if q.is_correct is True)
+    accuracy_pct = int(round(correct_quizzes / max(1, total_quizzes) * 100)) if total_quizzes > 0 else 0
+
+    return {
+        "student": student,
+        "overall_mastery_pct": analysis["overall_mastery_pct"],
+        "total_topics_tested": analysis["topics_tested"],
+        "total_topics": analysis["total_topics"],
+        "coverage_pct": analysis["coverage_pct"],
+        "total_quizzes_taken": total_quizzes,
+        "quiz_accuracy_pct": accuracy_pct,
+        "weeks": weeks_data,
+        "recent_quiz_attempts": quiz_history,
+    }
 
 
 # ── Chat Sessions ─────────────────────────────────────────────────────────────
 
 @router.post("/learner/{student_id}/session", response_model=SessionResponse, status_code=201)
 def create_session(student_id: str, body: SessionCreate, db: Session = Depends(get_db)):
-    if not crud.get_student(db, student_id):
-        raise HTTPException(status_code=404, detail="Student not found.")
+    crud.get_or_create_student(db, student_id)
     return crud.create_chat_session(db, student_id=student_id, title=body.title)
 
 
 @router.get("/learner/{student_id}/sessions", response_model=list[SessionResponse])
 def list_sessions(student_id: str, db: Session = Depends(get_db)):
-    if not crud.get_student(db, student_id):
-        raise HTTPException(status_code=404, detail="Student not found.")
+    crud.get_or_create_student(db, student_id)
     return crud.get_sessions_for_student(db, student_id)
 
 
 @router.get("/session/{session_id}/history", response_model=list[MessageResponse])
 def get_history(session_id: str, db: Session = Depends(get_db)):
-    """Chronological message history for a session.
-    Jibin uses this to load conversation memory before generating a reply.
-    """
     session = crud.get_chat_session(db, session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found.")
@@ -120,8 +135,7 @@ def get_history(session_id: str, db: Session = Depends(get_db)):
 
 @router.post("/learner/{student_id}/quiz", response_model=QuizAttemptResponse, status_code=201)
 def create_quiz_attempt(student_id: str, body: QuizAttemptCreate, db: Session = Depends(get_db)):
-    if not crud.get_student(db, student_id):
-        raise HTTPException(status_code=404, detail="Student not found.")
+    crud.get_or_create_student(db, student_id)
     attempt = crud.add_quiz_attempt(
         db,
         student_id=student_id,
@@ -135,17 +149,22 @@ def create_quiz_attempt(student_id: str, body: QuizAttemptCreate, db: Session = 
         session_id=body.session_id,
         source_chunks=body.source_chunks,
     )
-    # Auto-update mastery score if we know the result
+    # Auto-update mastery score via Elo
     if body.is_correct is not None and body.topic_id is not None:
-        score = 1.0 if body.is_correct else 0.0
-        crud.upsert_topic_mastery(db, student_id, body.topic_id, body.topic_name, score)
+        crud.update_topic_mastery_elo(
+            db,
+            student_id=student_id,
+            topic_id=body.topic_id,
+            topic_name=body.topic_name,
+            is_correct=body.is_correct,
+        )
+    invalidate_recommendation_cache(student_id)
     return attempt
 
 
 @router.get("/learner/{student_id}/quiz", response_model=list[QuizAttemptResponse])
 def get_quiz_history(student_id: str, db: Session = Depends(get_db)):
-    if not crud.get_student(db, student_id):
-        raise HTTPException(status_code=404, detail="Student not found.")
+    crud.get_or_create_student(db, student_id)
     return crud.get_quiz_history(db, student_id)
 
 
@@ -153,14 +172,15 @@ def get_quiz_history(student_id: str, db: Session = Depends(get_db)):
 
 @router.get("/topics", response_model=list[dict])
 def get_all_topics():
-    """Returns the full topic taxonomy (all 12 weeks)."""
-    return _TAXONOMY
+    """Returns the full topic taxonomy including DAG prerequisites and lecture refs."""
+    return load_taxonomy()
 
 
 @router.get("/topics/week/{week}", response_model=list[dict])
 def get_topics_for_week(week: int):
     """Returns topics for a specific week."""
-    result = [t for t in _TAXONOMY if t["week"] == week]
+    taxonomy = load_taxonomy()
+    result = [t for t in taxonomy if t["week"] == week]
     if not result:
         raise HTTPException(status_code=404, detail=f"No topics found for week {week}.")
     return result
