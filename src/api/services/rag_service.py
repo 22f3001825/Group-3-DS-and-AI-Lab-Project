@@ -87,8 +87,17 @@ def extract_topics_from_sources(sources: list[Document]) -> list[str]:
     return topics
 
 
-def run_rag(question: str, retriever: Any, top_k: int = 5) -> dict[str, Any]:
+def run_rag(
+    question: str,
+    retriever: Any,
+    top_k: int = 5,
+    history: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Call answer_question() and return a fully serialisable result dict.
+
+    Args:
+        history: recent {'role', 'content'} turns, oldest first. Trimmed and condensed by
+                 `rag_pipeline.format_history`; affects the prompt only, not retrieval.
 
     Returns:
         answer        : str
@@ -98,7 +107,7 @@ def run_rag(question: str, retriever: Any, top_k: int = 5) -> dict[str, Any]:
         topics_detected: list[str]  (for DB storage)
         raw_sources   : list[Document]
     """
-    result = answer_question(question, retriever, top_k=top_k)
+    result = answer_question(question, retriever, top_k=top_k, history=history)
 
     serialised_sources = [doc_to_dict(doc) for doc in result["sources"]]
     topics = extract_topics_from_sources(result["sources"])

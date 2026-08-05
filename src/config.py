@@ -36,3 +36,16 @@ SHORT_ANSWER_PASS_MARK = 0.6
 # generator's own model only if nothing else answers. Set False to grade on the primary
 # provider first — faster, but a model then marks its own homework.
 JUDGE_PREFER_INDEPENDENT = True
+# ── Conversation memory ───────────────────────────────────────────────────────
+
+# How many recent exchanges (user + assistant pairs) are carried into the prompt so the
+# model can resolve follow-up references. This is deliberately short-term: there is no
+# summarization, so every extra turn is paid for in tokens on every message.
+CHAT_MEMORY_TURNS = 3
+
+# Per-message cap applied *after* an assistant answer is condensed to its Direct Answer
+# section. Full answers run six sections and would dominate the prompt otherwise.
+CHAT_MEMORY_ANSWER_CHARS = 400
+
+# Per-message cap for the student's own past questions (kept verbatim, they are short).
+CHAT_MEMORY_QUESTION_CHARS = 300
