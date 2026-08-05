@@ -222,7 +222,7 @@ export default function Quiz() {
       <button
         className={`btn ${ready ? 'btn-primary' : 'btn-ghost'}`}
         style={{ width: '100%', justifyContent: 'center' }}
-        onClick={() => runGenerate(false)}
+        onClick={() => { setJustUnlocked(false); runGenerate(false); }}
         disabled={loading || !studentId || !ready}
       >
         {loading && ready
