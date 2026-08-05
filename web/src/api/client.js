@@ -42,10 +42,18 @@ class APIClient {
   }
 
   // Chat
-  static async chat(question, studentId = null, sessionId = null) {
+  // `history` is short-term memory for follow-ups: recent {role, content} turns, oldest
+  // first. The server trims it and condenses each answer, so send the raw turns.
+  static async chat(question, studentId = null, sessionId = null, history = []) {
     return this.request('/chat', {
       method: 'POST',
-      body: JSON.stringify({ question, student_id: studentId, session_id: sessionId, top_k: 5 }),
+      body: JSON.stringify({
+        question,
+        student_id: studentId,
+        session_id: sessionId,
+        top_k: 5,
+        history,
+      }),
     });
   }
 
