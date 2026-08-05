@@ -86,13 +86,37 @@ class TopicMasteryResponse(BaseModel):
 # ── QuizAttempt ───────────────────────────────────────────────────────────────
 
 class QuizAttemptCreate(BaseModel):
+    """Body of the deprecated direct-write endpoint. The outcome is graded server-side."""
+
     topic_name: str
     question_text: str
     topic_id: Optional[int] = None
     difficulty: str = Field(default="medium", pattern="^(easy|medium|hard)$")
-    student_answer: Optional[str] = None
-    correct_answer: Optional[str] = None
-    is_correct: Optional[bool] = None
+    student_answer: Optional[str] = Field(
+        default=None,
+        description="Omit to store the question unanswered; supply it to have it graded.",
+    )
+    correct_answer: Optional[str] = Field(
+        default=None,
+        description="Required whenever student_answer is supplied — it is what the answer "
+                    "is matched or judged against.",
+    )
+    options: list[str] = Field(
+        default=[],
+        description="Supply the MCQ options to have the answer graded by exact match. "
+                    "Leave empty for a short answer, which is graded by the LLM judge.",
+    )
+    is_correct: Optional[bool] = Field(
+        default=None,
+        deprecated=True,
+        description="Ignored. The server regrades every answer; a client-supplied verdict "
+                    "is not trusted because it feeds the Elo mastery model.",
+    )
+    feedback: Optional[str] = Field(
+        default=None,
+        description="Optional explanation of the correct answer. Passed to the judge as "
+                    "grader notes for a short answer, and stored as feedback for an MCQ.",
+    )
     session_id: Optional[str] = None
     source_chunks: list[str] = []
 

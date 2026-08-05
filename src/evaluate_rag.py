@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import os
 import sys
-import json
-import re
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -22,9 +20,11 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
 try:
-    from src.rag_pipeline import answer_question, _build_provider_queue, create_llm, extract_text_from_response
+    from src.rag_pipeline import answer_question
+    from src import llm_judge
 except ModuleNotFoundError:
-    from rag_pipeline import answer_question, _build_provider_queue, create_llm, extract_text_from_response
+    from rag_pipeline import answer_question
+    import llm_judge
 
 load_dotenv()
 
@@ -65,19 +65,17 @@ def is_chunk_relevant(chunk_text: str, gold_keywords: list[str]) -> bool:
     return any(kw.lower() in text_lower for kw in gold_keywords)
 
 
-def parse_judge_json(text: str) -> dict:
-    """Extract and parse the JSON score object from the LLM Judge response."""
-    match = re.search(r'\{.*?\}', text.replace('\n', ' '), re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(0))
-        except json.JSONDecodeError:
-            pass
-    return {"faithfulness": 0.0, "answer_relevance": 0.0, "context_precision": 0.0}
+JUDGE_METRICS = ("faithfulness", "answer_relevance", "context_precision")
 
 
 def run_llm_judge(query: str, context: str, answer: str) -> dict:
-    """Ask an LLM to act as a judge and score the generation quality."""
+    """Ask an LLM to act as a judge and score the generation quality.
+
+    The rubric is this harness's; the ladder, failover and JSON extraction come from
+    `src/llm_judge.py`, shared with the quiz evaluator and with live short-answer grading.
+    Judging prefers a model other than the generator's own, so the scores below are not
+    a model marking its own homework wherever the key pool allows it.
+    """
     # Fast path: If out-of-scope guardrail triggered correctly, give perfect scores
     if "outside the scope of the ML course assistant" in answer:
         return {"faithfulness": 1.0, "answer_relevance": 1.0, "context_precision": 1.0}
@@ -101,20 +99,15 @@ Output ONLY a valid JSON object in this exact format, with no markdown code bloc
 {{"faithfulness": 0.9, "answer_relevance": 1.0, "context_precision": 0.8}}
 """
     
-    provider_queue = _build_provider_queue()
-    for provider_name, models in provider_queue:
-        for model_name in models:
-            try:
-                llm = create_llm(model_name=model_name, provider=provider_name)
-                response = llm.invoke(prompt)
-                res_text = extract_text_from_response(response)
-                scores = parse_judge_json(res_text)
-                if any(v > 0.0 for v in scores.values()): # basic validity check
-                    return scores
-            except Exception:
-                continue
-                
-    return {"faithfulness": 0.0, "answer_relevance": 0.0, "context_precision": 0.0}
+    try:
+        session = llm_judge.new_session(prefer_independence=True)
+    except llm_judge.NoJudgeAvailableError:
+        return dict.fromkeys(JUDGE_METRICS, 0.0)
+
+    parsed, _label = llm_judge.invoke_judge(session, prompt, temperature=0.0)
+    if parsed is None:
+        return dict.fromkeys(JUDGE_METRICS, 0.0)
+    return llm_judge.clamp_scores(parsed, JUDGE_METRICS)
 
 
 # ── Qdrant Connection ─────────────────────────────────────────────────────────

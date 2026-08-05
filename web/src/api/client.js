@@ -133,7 +133,14 @@ class APIClient {
     );
   }
 
-  /** @deprecated Client-graded write path. Use generateQuiz + answerQuiz. */
+  /**
+   * @deprecated Direct-write path. Use generateQuiz + answerQuiz, which also keeps the
+   * answer server-side until the student commits to one.
+   *
+   * The server grades this itself: `payload.is_correct` is ignored, and `correct_answer`
+   * is required whenever `student_answer` is sent (400 otherwise). Send `options` to have
+   * the answer graded by exact match; omit them for LLM-judged short answers.
+   */
   static async submitQuizAttempt(studentId, payload) {
     if (!studentId) return null;
     return this.request(`/learner/${studentId}/quiz`, {

@@ -14,16 +14,23 @@ Five properties the milestone requires, and where each one lives here:
   P3 difficulty  resolve_difficulty() — a ladder over elo_rating/streak, and the
                  resolved value is fed back into the Elo update (crud._DIFFICULTY_OFFSET)
                  so a hard correct answer is worth more than an easy one.
-  P4 feedback    grade_attempt() — outcomes drive update_topic_mastery_elo and
-                 invalidate the recommendation cache, closing the loop.
+  P4 feedback    grade_answer() decides right/wrong — exact answer matching for MCQ, the
+                 shared LLM judge for short answers — and grade_attempt() drives that
+                 outcome into update_topic_mastery_elo and invalidates the recommendation
+                 cache, closing the loop.
   P5 measurement src/evaluate_quiz.py consumes the persisted rows.
 
 Two rules that are not negotiable:
   - The correct answer never reaches the browser before grading. Rows are created
     unanswered; the answer lives server-side until POST .../answer.
   - Nothing is ever fabricated. If generation or validation fails we re-serve a stored
-    question or raise QuizGenerationError. A placeholder question that is graded and
-    fed into Elo corrupts every mastery number downstream.
+    question or raise QuizGenerationError; if a short answer cannot be judged we raise
+    JudgeUnavailableError and leave the row ungraded. A placeholder question — or a
+    guessed grade — that is fed into Elo corrupts every mastery number downstream.
+
+grade_answer() is deliberately DB-free so that every quiz write path in the application
+shares it, including the deprecated direct-write endpoint in routers/learner.py. There is
+one grading rule here and one judge (src/llm_judge.py), not one per caller.
 """
 from __future__ import annotations
 
@@ -34,9 +41,13 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
-from src.config import PERSONALIZED_QUIZ_MIN_ATTEMPTS, PERSONALIZED_QUIZ_MIN_TOPICS
+from src.config import (
+    JUDGE_PREFER_INDEPENDENT, PERSONALIZED_QUIZ_MIN_ATTEMPTS,
+    PERSONALIZED_QUIZ_MIN_TOPICS, SHORT_ANSWER_PASS_MARK,
+)
 from src.database import crud
 from src.database.models import TopicMastery
+from src.llm_judge import NoJudgeAvailableError, clamp_scores, invoke_judge, new_session
 from src.rag_pipeline import generate_llm_response
 
 from .recommendation_service import (
@@ -56,7 +67,6 @@ NO_REPEAT_DAYS = 7             # do not re-serve the same question this recently
 DUPLICATE_LOOKBACK = 20        # attempts per topic scanned for near-duplicate questions
 MAX_OPTION_CHARS = 200
 MIN_QUESTION_CHARS = 20
-SHORT_ANSWER_PASS_MARK = 0.6
 
 MCQ = "mcq"
 SHORT_ANSWER = "short_answer"
@@ -861,10 +871,14 @@ def _describe_sources(doc_ids: list[str]) -> list[dict[str, Any]]:
 
 def judge_short_answer(question: str, reference_answer: str, student_answer: str,
                        explanation: str = "") -> tuple[float, str, str]:
-    """LLM-as-Judge for free-text answers. Returns (score in [0,1], feedback, provider).
+    """LLM-as-Judge for free-text answers. Returns (score in [0,1], feedback, judge label).
 
-    Raises JudgeUnavailableError rather than inventing a score — an ungraded attempt
-    can be retried, a fabricated grade silently corrupts the mastery model.
+    The rubric is ours; the machinery is the shared Milestone-4 judge in `src/llm_judge.py`,
+    so this grades on a model that is not the one that wrote the question wherever the key
+    pool allows it, and steps down the ladder rather than failing on the first bad reply.
+
+    Raises JudgeUnavailableError rather than inventing a score — an ungraded attempt can be
+    retried, a fabricated grade silently corrupts the mastery model.
     """
     prompt = f"""You are grading one short answer from a student in the IIT Madras BS MLT course.
 
@@ -887,27 +901,72 @@ right, and what to fix.
 
 Return ONLY a JSON object: {{"score": 0.0, "feedback": "..."}}"""
 
-    raw, provider = generate_llm_response(prompt, temperature=0.1)
-    if not raw:
+    try:
+        parsed, label = invoke_judge(new_session(JUDGE_PREFER_INDEPENDENT), prompt,
+                                     temperature=0.1)
+    except NoJudgeAvailableError as exc:
         raise JudgeUnavailableError(
-            "Short answers cannot be graded right now — no LLM provider reachable."
+            "Short answers cannot be graded right now — no LLM provider is configured."
+        ) from exc
+
+    if parsed is None:
+        raise JudgeUnavailableError(
+            "Short answers cannot be graded right now — no grading model returned a usable "
+            "verdict."
         )
 
-    match = re.search(r"\{.*\}", raw, re.DOTALL)
-    if not match:
-        raise JudgeUnavailableError("The grading model returned an unparseable response.")
-    try:
-        parsed = json.loads(match.group(0))
-    except json.JSONDecodeError as exc:
-        raise JudgeUnavailableError("The grading model returned invalid JSON.") from exc
-
-    try:
-        score = min(1.0, max(0.0, float(parsed.get("score", 0.0))))
-    except (TypeError, ValueError) as exc:
-        raise JudgeUnavailableError("The grading model returned a non-numeric score.") from exc
-
+    score = clamp_scores(parsed, ("score",))["score"]
     feedback = (parsed.get("feedback") or "").strip() or "No feedback returned by the grader."
-    return score, feedback, provider
+    return score, feedback, label
+
+
+def grade_answer(question_text: str, options: list[str], correct_answer: Optional[str],
+                 student_answer: str, explanation: str = "") -> dict[str, Any]:
+    """Decide whether one answer is right. Pure — no DB, no attempt row.
+
+    This is the single grading rule for **every** quiz in the application, and the two
+    mechanisms are picked by shape rather than by a flag the caller could get wrong:
+
+      - `options` present → MCQ, graded by **exact answer matching**. The submitted text must
+        be one of the options that were served (otherwise InvalidAnswerError — a client
+        cannot invent an answer), and it is correct when it equals `correct_answer` under
+        `_norm` (case- and whitespace-insensitive; nothing else is forgiven). `outcome` is
+        None so the Elo update uses the binary result.
+      - no `options` → short answer, graded by the shared LLM judge. The judge's continuous
+        score becomes `outcome`, so partial credit moves mastery proportionally, while
+        `is_correct` is the same score thresholded at SHORT_ANSWER_PASS_MARK for reporting.
+
+    Raises InvalidAnswerError on an unservable answer and JudgeUnavailableError when a short
+    answer cannot be judged. Neither is ever converted into a zero — an ungraded attempt is
+    recoverable, a fabricated one is not.
+    """
+    answer = (student_answer or "").strip()
+
+    if options:
+        match = next((o for o in options if _norm(o) == _norm(answer)), None)
+        if match is None:
+            raise InvalidAnswerError("That answer is not one of the options that were served.")
+        is_correct = _norm(match) == _norm(correct_answer)
+        return {
+            "is_correct": is_correct,
+            "llm_score": 1.0 if is_correct else 0.0,
+            "outcome": None,
+            "feedback": explanation,
+            "judge_provider": "none",
+        }
+
+    if not answer:
+        raise InvalidAnswerError("An answer is required.")
+    score, judge_feedback, judge_provider = judge_short_answer(
+        question_text, correct_answer or "", answer, explanation,
+    )
+    return {
+        "is_correct": score >= SHORT_ANSWER_PASS_MARK,
+        "llm_score": score,
+        "outcome": score,
+        "feedback": judge_feedback,
+        "judge_provider": judge_provider,
+    }
 
 
 def grade_attempt(db: Session, student_id: str, attempt_id: str,
@@ -923,52 +982,34 @@ def grade_attempt(db: Session, student_id: str, attempt_id: str,
     if attempt.is_correct is not None:
         raise crud.AlreadyGradedError(f"Quiz attempt {attempt_id} has already been graded.")
 
-    options = list(attempt.options or [])
     explanation = attempt.feedback or ""
     answer = (student_answer or "").strip()
-
-    if options:
-        # MCQ — grade by normalized text match against the options actually served.
-        match = next((o for o in options if _norm(o) == _norm(answer)), None)
-        if match is None:
-            raise InvalidAnswerError("That answer is not one of the options that were served.")
-        is_correct = _norm(match) == _norm(attempt.correct_answer)
-        llm_score = 1.0 if is_correct else 0.0
-        outcome = None
-        feedback_to_store = explanation
-        judge_provider = "none"
-    else:
-        # Short answer — LLM-as-Judge, with a continuous outcome into the Elo update.
-        if not answer:
-            raise InvalidAnswerError("An answer is required.")
-        llm_score, judge_feedback, judge_provider = judge_short_answer(
-            attempt.question_text, attempt.correct_answer or "", answer, explanation,
-        )
-        is_correct = llm_score >= SHORT_ANSWER_PASS_MARK
-        outcome = llm_score
-        feedback_to_store = judge_feedback
+    graded = grade_answer(
+        attempt.question_text, list(attempt.options or []), attempt.correct_answer,
+        answer, explanation,
+    )
 
     before = _mastery_snapshot(db, student_id, attempt.topic_id)
     crud.update_quiz_evaluation(
         db,
         attempt_id=attempt_id,
-        llm_score=llm_score,
-        feedback=feedback_to_store,
-        is_correct=is_correct,
+        llm_score=graded["llm_score"],
+        feedback=graded["feedback"],
+        is_correct=graded["is_correct"],
         student_answer=answer,
-        outcome=outcome,
+        outcome=graded["outcome"],
     )
     after = _mastery_snapshot(db, student_id, attempt.topic_id)
     invalidate_recommendation_cache(student_id)
 
     return {
         "attempt_id": attempt_id,
-        "is_correct": is_correct,
-        "llm_score": llm_score,
+        "is_correct": graded["is_correct"],
+        "llm_score": graded["llm_score"],
         "correct_answer": attempt.correct_answer,
         "explanation": explanation,
-        "feedback": feedback_to_store,
-        "judge_provider_used": judge_provider,
+        "feedback": graded["feedback"],
+        "judge_provider_used": graded["judge_provider"],
         "sources": _describe_sources(list(attempt.source_chunks or [])),
         "mastery": {
             "before": before["mastery_score"],

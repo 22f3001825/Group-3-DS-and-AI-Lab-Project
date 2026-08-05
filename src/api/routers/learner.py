@@ -214,13 +214,39 @@ def answer_quiz_question(
 @router.post("/learner/{student_id}/quiz", response_model=QuizAttemptResponse, status_code=201,
              deprecated=True)
 def create_quiz_attempt(student_id: str, body: QuizAttemptCreate, db: Session = Depends(get_db)):
-    """Deprecated direct-write path — the client supplies its own question and outcome.
+    """Deprecated direct-write path — the client supplies the question, the server grades it.
 
-    Use POST /learner/{id}/quiz/generate + /quiz/{attempt_id}/answer instead: this
-    endpoint trusts a client-side grade, which is how fabricated outcomes reached the
-    Elo model in the first place.
+    Prefer POST /learner/{id}/quiz/generate + /quiz/{attempt_id}/answer, which also keeps the
+    answer server-side until the student has committed to one. This endpoint remains for
+    callers that already hold a question, but `body.is_correct` is **ignored**: the outcome is
+    recomputed here through the same `quiz_service.grade_answer` every other quiz uses, so a
+    client can no longer post a verdict of its own into the Elo mastery model.
+
+    Grading follows the answer's shape — `options` present means MCQ and exact matching,
+    absent means short answer and the LLM judge. An attempt with no `student_answer` is
+    stored unanswered and moves no mastery.
     """
     crud.get_or_create_student(db, student_id)
+
+    answer = (body.student_answer or "").strip()
+    graded = None
+    if answer:
+        if not (body.correct_answer or "").strip():
+            raise HTTPException(
+                status_code=400,
+                detail="correct_answer is required when student_answer is supplied — the "
+                       "server grades the attempt and will not accept a client verdict.",
+            )
+        try:
+            graded = quiz_service.grade_answer(
+                body.question_text, body.options, body.correct_answer, answer,
+                body.feedback or "",
+            )
+        except quiz_service.InvalidAnswerError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except quiz_service.JudgeUnavailableError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
     attempt = crud.add_quiz_attempt(
         db,
         student_id=student_id,
@@ -230,19 +256,28 @@ def create_quiz_attempt(student_id: str, body: QuizAttemptCreate, db: Session = 
         difficulty=body.difficulty,
         student_answer=body.student_answer,
         correct_answer=body.correct_answer,
-        is_correct=body.is_correct,
+        is_correct=graded["is_correct"] if graded else None,
         session_id=body.session_id,
         source_chunks=body.source_chunks,
+        options=body.options,
+        feedback=graded["feedback"] if graded else body.feedback,
     )
-    # Auto-update mastery score via Elo
-    if body.is_correct is not None and body.topic_id is not None:
-        crud.update_topic_mastery_elo(
-            db,
-            student_id=student_id,
-            topic_id=body.topic_id,
-            topic_name=body.topic_name,
-            is_correct=body.is_correct,
-        )
+    if graded is not None:
+        attempt.llm_score = graded["llm_score"]
+        db.commit()
+        db.refresh(attempt)
+        # Elo with the attempt's own difficulty and, for a judged short answer, the
+        # continuous score — so partial credit moves mastery proportionally.
+        if body.topic_id is not None:
+            crud.update_topic_mastery_elo(
+                db,
+                student_id=student_id,
+                topic_id=body.topic_id,
+                topic_name=body.topic_name,
+                is_correct=graded["is_correct"],
+                difficulty=body.difficulty,
+                outcome=graded["outcome"],
+            )
     invalidate_recommendation_cache(student_id)
     return attempt
 
