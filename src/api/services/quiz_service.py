@@ -43,7 +43,7 @@ from sqlalchemy.orm import Session
 
 from src.config import (
     JUDGE_PREFER_INDEPENDENT, PERSONALIZED_QUIZ_MIN_ATTEMPTS,
-    PERSONALIZED_QUIZ_MIN_TOPICS, SHORT_ANSWER_PASS_MARK,
+    PERSONALIZED_QUIZ_MIN_TOPICS, QI_DEDUPE_QUIZ_CONTEXT, SHORT_ANSWER_PASS_MARK,
 )
 from src.database import crud
 from src.database.models import TopicMastery
@@ -478,6 +478,26 @@ def select_chunks_for_topic(retriever: Any, target: dict[str, Any],
             if extra["doc_id"] not in seen:
                 seen.add(extra["doc_id"])
                 chunks.append(extra)
+
+    # Drop chunks whose question unit is a non-canonical duplicate of one already here.
+    # Must happen BEFORE the cap at the bottom for it to free anything. A no-op when the
+    # question bank is absent, and it only removes redundancy — the week filter and the
+    # exam-first ordering below are untouched.
+    if QI_DEDUPE_QUIZ_CONTEXT and len(chunks) > MIN_CHUNKS:
+        try:
+            from .question_service import canonical_doc_ids_to_drop
+            from ...database.session import SessionLocal
+
+            # Quiz generation is not a request-router function, so it opens a short
+            # read-only-style session for the database-backed duplicate lookup.
+            with SessionLocal() as question_db:
+                redundant = canonical_doc_ids_to_drop(question_db, [c["doc_id"] for c in chunks])
+            if redundant:
+                trimmed = [c for c in chunks if c["doc_id"] not in redundant]
+                if len(trimmed) >= MIN_CHUNKS:
+                    chunks = trimmed
+        except Exception:  # noqa: BLE001
+            pass
 
     # Put the course's own exam material in front of the model. This reorders, it does
     # not filter or add: the retrieved set is unchanged, so the explanatory notes a

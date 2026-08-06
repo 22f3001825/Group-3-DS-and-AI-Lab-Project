@@ -1,0 +1,430 @@
+/* Doubts — the cohort-level view. Everything else in this app is scoped to one
+   student_id; this page is the first thing that aggregates across all of them. */
+
+.doubts-page {
+  padding: 28px;
+  max-width: 1160px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.spin { animation: spin 0.9s linear infinite; }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.qi-header {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.qi-header-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.qi-header-title h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.qi-header-title p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  max-width: 720px;
+}
+
+.qi-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+}
+
+.qi-stat {
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  text-align: center;
+}
+
+.qi-stat span {
+  display: block;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.qi-stat label {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.qi-stat.accent { border-color: var(--accent); }
+.qi-stat.accent span { color: var(--accent-hover); }
+
+/* ── Sections ───────────────────────────────────────────────────────────── */
+
+.qi-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.qi-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.qi-muted { color: var(--text-muted); font-weight: 400; }
+
+.qi-empty,
+.qi-empty-inline {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 720px;
+}
+
+.qi-empty-inline { padding: 12px; font-size: 13px; }
+
+.qi-loading,
+.qi-inline-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  padding: 40px;
+  justify-content: center;
+}
+
+.qi-inline-loading { padding: 14px; justify-content: flex-start; }
+
+.qi-error-panel {
+  display: flex;
+  gap: 16px;
+  padding: 24px;
+  color: var(--warning);
+  align-items: flex-start;
+}
+
+.qi-error-panel h3 { margin-bottom: 6px; }
+.qi-error-panel p { color: var(--text-secondary); font-size: 14px; margin-bottom: 10px; }
+
+.qi-error-panel code {
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+/* ── Common-doubts strip ────────────────────────────────────────────────── */
+
+.qi-doubt-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.qi-doubt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  text-align: left;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+.qi-doubt-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.qi-rank {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-hover);
+  letter-spacing: 0.5px;
+}
+
+.qi-doubt-title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.qi-doubt-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Toolbar ────────────────────────────────────────────────────────────── */
+
+.qi-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qi-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 320px;
+  padding: 6px 6px 6px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+}
+
+.qi-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.qi-search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.qi-search input::placeholder { color: var(--text-muted); }
+
+.qi-search button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.qi-search button:hover:not(:disabled) { background: var(--accent-hover); }
+.qi-search button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.qi-ghost-btn {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+}
+
+.qi-filters { display: flex; gap: 10px; }
+
+.qi-filters select {
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+.qi-filters select:focus { border-color: var(--accent); }
+
+/* ── Clusters ───────────────────────────────────────────────────────────── */
+
+.qi-cluster-list,
+.qi-unit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qi-cluster {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.qi-cluster.expanded { border-color: var(--accent); }
+
+.qi-cluster-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.qi-cluster-head:hover { background: rgba(255, 255, 255, 0.02); }
+
+.qi-cluster-title { display: flex; flex-direction: column; gap: 8px; }
+
+.qi-cluster-name { font-size: 15px; font-weight: 600; line-height: 1.35; }
+
+.qi-cluster-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.qi-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warning);
+}
+
+.qi-count.subtle { color: var(--text-muted); font-weight: 400; }
+
+.qi-cluster-body {
+  padding: 4px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Units ──────────────────────────────────────────────────────────────── */
+
+.qi-unit {
+  padding: 14px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.qi-unit-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.qi-unit-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.qi-unit-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.qi-unit-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.qi-options {
+  padding-left: 20px;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+
+.qi-options li { margin-bottom: 4px; }
+
+.qi-answer { color: var(--success); margin-bottom: 6px; }
+.qi-solution { color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap; }
+
+.qi-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--accent-hover);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.qi-link-btn:hover { text-decoration: underline; }
+
+/* ── Badges ─────────────────────────────────────────────────────────────── */
+
+.qi-source-badge,
+.qi-week-tag,
+.qi-dup-tag,
+.qi-origin-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* pq and PYQ are the exam sources — the ones the quiz generator ranks first — so
+   they read differently from faq, which holds topic explainers rather than
+   questions students actually asked. */
+.qi-source-badge.src-pq,
+.qi-source-badge.src-PYQ {
+  color: var(--warning);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.qi-source-badge.src-faq {
+  color: var(--accent-hover);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.qi-dup-tag { color: var(--text-muted); }
+.qi-origin-tag { color: var(--success); border-color: rgba(16, 185, 129, 0.35); }
+
+@media (max-width: 720px) {
+  .doubts-page { padding: 18px; }
+  .qi-toolbar { flex-direction: column; align-items: stretch; }
+  .qi-search { min-width: 0; }
+}

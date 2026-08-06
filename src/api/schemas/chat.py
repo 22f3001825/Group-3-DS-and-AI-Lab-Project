@@ -33,6 +33,16 @@ class SourceChunk(BaseModel):
     metadata: dict[str, Any]
 
 
+class RelatedQuestion(BaseModel):
+    """A canonical sibling of something the student just retrieved."""
+    unit_id: str
+    cluster_id: Optional[int] = None
+    title: str
+    source_type: str
+    week: int
+    member_count: int = 1
+
+
 class ChatResponse(BaseModel):
     answer: str
     sources: list[SourceChunk]
@@ -40,6 +50,9 @@ class ChatResponse(BaseModel):
     fallback_used: bool
     session_id: Optional[str] = None
     message_id: Optional[str] = None
+    # Defaulted, so every existing client keeps working and a missing question bank is
+    # indistinguishable from "nothing related" rather than being an error.
+    related_questions: list[RelatedQuestion] = []
 
 
 class RetrieveRequest(BaseModel):

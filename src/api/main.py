@@ -16,6 +16,7 @@ from sqlalchemy import text
 from ..database.session import Base, engine
 from .routers.chat import router as chat_router
 from .routers.learner import router as learner_router
+from .routers.questions import router as questions_router
 
 
 def init_db():
@@ -84,6 +85,7 @@ app.add_middleware(
 # Register routers
 app.include_router(chat_router)
 app.include_router(learner_router)
+app.include_router(questions_router)
 
 
 @app.get("/", tags=["Health"])

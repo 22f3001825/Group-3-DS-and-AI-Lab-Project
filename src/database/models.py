@@ -19,7 +19,7 @@ from typing import Optional
 
 from sqlalchemy import (
     Boolean, Column, DateTime, Float, ForeignKey,
-    Integer, String, Text, UniqueConstraint, JSON,
+    Integer, String, Text, UniqueConstraint, JSON, Index,
 )
 from sqlalchemy.orm import relationship
 
@@ -180,3 +180,152 @@ class TopicRecommendationEvent(Base):
     __table_args__ = (
         UniqueConstraint("student_id", "topic_id", name="uq_student_topic_recommendation"),
     )
+
+
+# ── Question Intelligence ───────────────────────────────────────────────────
+# SQLite (and, unchanged, PostgreSQL through SQLAlchemy) is the authority for the
+# question graph. Qdrant stores only embeddings and filter payloads; it is reconciled
+# through QuestionBankOutbox and is never the sole record of a unit or a draft.
+
+class QuestionBankVersion(Base):
+    __tablename__ = "question_bank_versions"
+
+    version_id = Column(String(36), primary_key=True, default=_uuid)
+    status = Column(String(20), nullable=False, default="active")  # building|active|superseded|failed
+    embedding_model = Column(String(255), nullable=False)
+    thresholds = Column(JSON, default=dict, nullable=False)
+    source_summary = Column(JSON, default=dict, nullable=False)
+    created_at = Column(DateTime, default=_now, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+
+
+class DuplicateGroup(Base):
+    __tablename__ = "question_duplicate_groups"
+
+    duplicate_group_id = Column(String(64), primary_key=True)
+    canonical_unit_id = Column(String(255), nullable=True, unique=True)
+    bank_version_id = Column(String(36), ForeignKey("question_bank_versions.version_id"), nullable=False)
+    created_at = Column(DateTime, default=_now, nullable=False)
+
+
+class ConceptCluster(Base):
+    __tablename__ = "question_concept_clusters"
+
+    cluster_id = Column(String(64), primary_key=True)
+    bank_version_id = Column(String(36), ForeignKey("question_bank_versions.version_id"), nullable=False)
+    title = Column(Text, nullable=False)
+    medoid_unit_id = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=_now, nullable=False)
+    updated_at = Column(DateTime, default=_now, onupdate=_now, nullable=False)
+
+    __table_args__ = (Index("ix_question_clusters_version", "bank_version_id"),)
+
+
+class QuestionUnit(Base):
+    __tablename__ = "question_units"
+
+    unit_id = Column(String(255), primary_key=True)
+    bank_version_id = Column(String(36), ForeignKey("question_bank_versions.version_id"), nullable=False)
+    source_type = Column(String(64), nullable=False)
+    source_file = Column(String(512), nullable=False)
+    doc_stem = Column(String(255), nullable=False)
+    week = Column(Integer, nullable=False, default=0)
+    title = Column(Text, nullable=False)
+    text = Column(Text, nullable=False)
+    options = Column(JSON, default=list, nullable=False)
+    answer = Column(Text, default="", nullable=False)
+    solution = Column(Text, default="", nullable=False)
+    origin = Column(String(32), default="corpus", nullable=False)
+    is_canonical = Column(Boolean, default=False, nullable=False)
+    duplicate_group_id = Column(String(64), ForeignKey("question_duplicate_groups.duplicate_group_id"), nullable=True)
+    cluster_id = Column(String(64), ForeignKey("question_concept_clusters.cluster_id"), nullable=True)
+    vector_status = Column(String(20), default="pending", nullable=False)  # pending|synced|failed
+    created_at = Column(DateTime, default=_now, nullable=False)
+
+    __table_args__ = (
+        Index("ix_question_units_source_week", "source_type", "week"),
+        Index("ix_question_units_cluster", "cluster_id"),
+        Index("ix_question_units_group", "duplicate_group_id"),
+    )
+
+
+class QuestionUnitChunk(Base):
+    __tablename__ = "question_unit_chunks"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    unit_id = Column(String(255), ForeignKey("question_units.unit_id", ondelete="CASCADE"), nullable=False)
+    doc_id = Column(String(255), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("unit_id", "doc_id", name="uq_question_unit_chunk"),
+        Index("ix_question_unit_chunks_doc_id", "doc_id"),
+    )
+
+
+class ClusterMember(Base):
+    __tablename__ = "question_cluster_members"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    cluster_id = Column(String(64), ForeignKey("question_concept_clusters.cluster_id", ondelete="CASCADE"), nullable=False)
+    unit_id = Column(String(255), ForeignKey("question_units.unit_id", ondelete="CASCADE"), nullable=False)
+    ordinal = Column(Integer, default=0, nullable=False)
+
+    __table_args__ = (UniqueConstraint("cluster_id", "unit_id", name="uq_question_cluster_member"),)
+
+
+class QuestionContentDraft(Base):
+    __tablename__ = "question_content_drafts"
+
+    draft_id = Column(String(64), primary_key=True)
+    origin = Column(String(16), nullable=False)
+    status = Column(String(20), nullable=False, default="staged")
+    filename = Column(String(512), nullable=True)
+    original_markdown = Column(Text, nullable=False)
+    metadata_json = Column(JSON, default=dict, nullable=False)
+    preview_json = Column(JSON, default=dict, nullable=False)
+    artifact_path = Column(String(1024), nullable=True)
+    created_at = Column(DateTime, default=_now, nullable=False)
+    expires_at = Column(DateTime, nullable=True)
+    committed_at = Column(DateTime, nullable=True)
+    last_error = Column(Text, nullable=True)
+
+    __table_args__ = (Index("ix_question_drafts_status_expiry", "status", "expires_at"),)
+
+
+class QuestionUpload(Base):
+    __tablename__ = "question_uploads"
+
+    upload_id = Column(String(36), primary_key=True, default=_uuid)
+    draft_id = Column(String(64), ForeignKey("question_content_drafts.draft_id"), nullable=False, unique=True)
+    resolved_metadata = Column(JSON, default=dict, nullable=False)
+    result_json = Column(JSON, default=dict, nullable=False)
+    created_at = Column(DateTime, default=_now, nullable=False)
+    committed_at = Column(DateTime, default=_now, nullable=False)
+
+
+class QuestionEvaluationLabel(Base):
+    __tablename__ = "question_evaluation_labels"
+
+    pair_key = Column(String(600), primary_key=True)
+    metric_kind = Column(String(32), nullable=False)
+    label = Column(Boolean, nullable=False)
+    source = Column(String(32), nullable=False)
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=_now, nullable=False)
+    updated_at = Column(DateTime, default=_now, onupdate=_now, nullable=False)
+
+
+class QuestionBankOutbox(Base):
+    __tablename__ = "question_bank_outbox"
+
+    outbox_id = Column(String(36), primary_key=True, default=_uuid)
+    operation = Column(String(16), nullable=False)  # upsert|delete
+    unit_id = Column(String(255), nullable=False)
+    payload = Column(JSON, default=dict, nullable=False)
+    status = Column(String(20), nullable=False, default="pending")  # pending|processing|synced|failed
+    retry_count = Column(Integer, nullable=False, default=0)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=_now, nullable=False)
+    processed_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (Index("ix_question_outbox_status_created", "status", "created_at"),)
