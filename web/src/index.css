@@ -1,36 +1,159 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/*
+  Two themes, one variable contract. Every colour a component needs must exist as a
+  variable here and be overridden in the light block below — a hardcoded rgba() in a
+  page stylesheet is invisible to the theme switch and will break in light mode.
+  Dark is the default: it lives on :root so an unset data-theme still renders dark.
+*/
 :root {
   /* Premium Dark Mode Color Palette */
   --bg-main: #0B0F19;         /* Deep rich dark blue/black */
   --bg-card: #131A2A;         /* Slightly lighter for cards */
   --bg-input: #1C263A;        /* Inputs and secondary panels */
-  
+
+  /* Chrome surfaces (translucent bars, sidebars, sunken panels) */
+  --panel-bg: rgba(11, 15, 25, 0.6);
+  --nav-bg: rgba(11, 15, 25, 0.85);
+  --input-bar-bg: rgba(11, 15, 25, 0.9);
+  --glass-bg: rgba(19, 26, 42, 0.7);
+  --surface-raised: rgba(255, 255, 255, 0.03);
+  --surface-hover: rgba(255, 255, 255, 0.02);
+  --surface-sunken: rgba(0, 0, 0, 0.25);
+  --chip-bg: rgba(255, 255, 255, 0.07);
+  --overlay-scrim: rgba(0, 0, 0, 0.7);
+
   --border: #2A364F;
-  --border-light: rgba(255, 255, 255, 0.1);
-  
+  --border-light: rgba(255, 255, 255, 0.08);  /* internal dividers only */
+  --panel-border: rgba(255, 255, 255, 0.1);   /* card/panel outline */
+  --shadow-panel: none;
+  --shadow-card: none;
+  --shadow-nav: none;
+
   /* Vibrant Accents */
   --accent: #6366F1;          /* Indigo 500 */
   --accent-hover: #818CF8;    /* Indigo 400 */
   --accent-glow: rgba(99, 102, 241, 0.15);
-  
+  --accent-soft: rgba(99, 102, 241, 0.15);
+  --accent-border: rgba(99, 102, 241, 0.35);
+  --accent-text: #A5B4FC;
+
+  --brand-from: #F8FAFC;
+  --brand-to: #818CF8;
+
   /* Text */
   --text-primary: #F8FAFC;    /* Slate 50 */
   --text-secondary: #94A3B8;  /* Slate 400 */
   --text-muted: #64748B;      /* Slate 500 */
-  
+
   /* Semantic Colors */
   --success: #10B981;
   --success-bg: rgba(16, 185, 129, 0.1);
+  --success-border: rgba(16, 185, 129, 0.3);
+  --success-text: #86EFAC;
   --warning: #F59E0B;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --warning-border: rgba(245, 158, 11, 0.3);
+  --warning-text: #FBBF24;
   --danger: #EF4444;
   --danger-bg: rgba(239, 68, 68, 0.1);
-  
+  --danger-border: rgba(239, 68, 68, 0.35);
+  --danger-text: #F87171;
+  --info-bg: rgba(59, 130, 246, 0.15);
+  --info-border: rgba(59, 130, 246, 0.4);
+  --info-text: #93C5FD;
+  --decay-bg: rgba(245, 158, 11, 0.2);
+  --decay-text: #FDBA74;
+  --decay-border: rgba(245, 158, 11, 0.4);
+
+  /* Code blocks */
+  --code-bg: rgba(0, 0, 0, 0.3);
+  --code-text: #E2E8F0;
+  --pre-bg: #000000;
+  --pre-text: #E2E8F0;
+
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 16px;
-  
+
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/*
+  Light theme — tokens lifted from the IITM Study portal's own stylesheet
+  (temp/Courses __ IITM Study_files/styles.*.css), not invented:
+    #F6F6F6 page (.layout)          #494F69 primary fill / #2D3243 hover (.btn-primary)
+    #FFFFFF cards, 1px #DFE4ED      #E9EBF2 primary tint (.btn-primary.btn-secondary)
+    #F2F2F2 row dividers            #EFF0F2 secondary surface (.custom-badge.default)
+    #242424 / #5D687E / #7D8698 text ramp
+    #781F1A IITM maroon, #F2E9E8 tint (.btn-accent1) — kept for the brand mark only
+    badges: success #ECFDF3/#027A48, warning #FFFAEB/#93370D, error #FEF3F2/#D92D20
+  Two inversions vs. the dark theme: --accent-hover goes *darker* than --accent
+  (it is used as a text colour on pale backgrounds), and code blocks are light —
+  the portal renders hljs as #24292E on white.
+*/
+:root[data-theme='light'] {
+  --bg-main: #F6F6F6;
+  --bg-card: #FFFFFF;
+  --bg-input: #EFF0F2;
+
+  --panel-bg: rgba(255, 255, 255, 0.9);
+  --nav-bg: rgba(255, 255, 255, 0.94);
+  --input-bar-bg: rgba(255, 255, 255, 0.96);
+  --glass-bg: rgba(255, 255, 255, 0.94);
+  --surface-raised: #FFFFFF;
+  --surface-hover: #EFF0F2;
+  --surface-sunken: #EFF0F2;
+  --chip-bg: #EFF0F2;
+  --overlay-scrim: rgba(36, 36, 36, 0.45);
+
+  --border: #DFE4ED;
+  --border-light: #F2F2F2;
+  --panel-border: #DFE4ED;
+  --shadow-panel: 0 1px 2px rgba(36, 36, 36, 0.05);
+  --shadow-card: 0 1px 2px rgba(36, 36, 36, 0.05);
+  --shadow-nav: 0 10px 24px -8px rgba(0, 0, 0, 0.1);
+
+  --accent: #494F69;
+  --accent-hover: #2D3243;
+  --accent-glow: rgba(73, 79, 105, 0.12);
+  --accent-soft: #E9EBF2;
+  --accent-border: rgba(73, 79, 105, 0.22);
+  --accent-text: #494F69;
+
+  --brand-from: #242424;
+  --brand-to: #781F1A;
+
+  --text-primary: #242424;
+  --text-secondary: #5D687E;
+  --text-muted: #7D8698;
+
+  /* The portal's solid fills (#039855 / #F79009 / #F04438) sit at ~3:1 on their own
+     tint backgrounds, and these vars are used as `color:` more often than as fills —
+     so each takes the portal's darker text step instead. */
+  --success: #027A48;
+  --success-bg: #ECFDF3;
+  --success-border: rgba(3, 152, 85, 0.28);
+  --success-text: #027A48;
+  --warning: #B54708;
+  --warning-bg: #FFFAEB;
+  --warning-border: rgba(247, 144, 9, 0.35);
+  --warning-text: #93370D;
+  --danger: #D92D20;
+  --danger-bg: #FEF3F2;
+  --danger-border: rgba(217, 45, 32, 0.28);
+  --danger-text: #D92D20;
+  --info-bg: #EFF8FF;
+  --info-border: rgba(0, 101, 255, 0.25);
+  --info-text: #0048B5;
+  --decay-bg: #FEF6EE;
+  --decay-text: #B54708;
+  --decay-border: rgba(181, 71, 8, 0.3);
+
+  --code-bg: #EFF0F2;
+  --code-text: #24292E;
+  --pre-bg: #FFFFFF;
+  --pre-text: #24292E;
 }
 
 * {
@@ -45,15 +168,17 @@ body {
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Glassmorphism Utilities */
 .glass-panel {
-  background: rgba(19, 26, 42, 0.7);
+  background: var(--glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--panel-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-panel);
 }
 
 /* Custom Scrollbar */
@@ -115,7 +240,7 @@ body {
 .btn-primary {
   background: var(--accent);
   color: white;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 4px 12px var(--accent-glow);
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
@@ -168,15 +293,16 @@ h1, h2, h3, h4 {
 .prose p { margin-bottom: 1em; }
 .prose strong { color: var(--accent-hover); }
 .prose code {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--code-bg);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.9em;
   font-family: monospace;
-  color: #E2E8F0;
+  color: var(--code-text);
 }
 .prose pre {
-  background: #000;
+  background: var(--pre-bg);
+  border: 1px solid var(--border);
   padding: 16px;
   border-radius: var(--radius-sm);
   overflow-x: auto;
@@ -185,6 +311,7 @@ h1, h2, h3, h4 {
 .prose pre code {
   background: transparent;
   padding: 0;
+  color: var(--pre-text);
 }
 .prose ul, .prose ol {
   padding-left: 24px;

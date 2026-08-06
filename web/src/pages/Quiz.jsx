@@ -365,13 +365,13 @@ export default function Quiz() {
           </div>
           {streak >= 3 && (
             <div className="streak-badge">
-              <Flame size={16} color="#F59E0B" />
+              <Flame size={16} color="var(--warning)" />
               <span>{streak} Streak!</span>
             </div>
           )}
           {correct >= 5 && correct === total && (
             <div className="streak-badge gold">
-              <Trophy size={16} color="#F59E0B" />
+              <Trophy size={16} color="var(--warning)" />
               <span>Perfect!</span>
             </div>
           )}
