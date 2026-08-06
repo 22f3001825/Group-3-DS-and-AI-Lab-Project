@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Brain, MessageSquare, Edit3, TrendingUp, Layers, ShieldCheck } from 'lucide-react';
+import { Brain, MessageSquare, Edit3, TrendingUp, Layers, Settings, ShieldCheck } from 'lucide-react';
 import { getAdminToken } from '../api/client';
 import './Navbar.css';
 
@@ -35,6 +35,10 @@ const Navbar = () => {
         <NavLink to="/progress" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <TrendingUp size={18} />
           <span>Progress</span>
+        </NavLink>
+        <NavLink to="/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+          <Settings size={18} />
+          <span>Settings</span>
         </NavLink>
         {isAdmin && (
           <NavLink to="/admin" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>

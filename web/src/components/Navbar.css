@@ -11,9 +11,12 @@
   border-top: none;
   border-left: none;
   border-right: none;
-  background: rgba(11, 15, 25, 0.85);
+  background: var(--nav-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  /* The portal floats its nav over the page with a soft drop shadow; in dark mode
+     the border alone carries the separation and --shadow-nav is none. */
+  box-shadow: var(--shadow-nav);
 }
 
 .nav-brand {
@@ -32,7 +35,7 @@
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.3px;
-  background: linear-gradient(135deg, #F8FAFC, #818CF8);
+  background: linear-gradient(135deg, var(--brand-from), var(--brand-to));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

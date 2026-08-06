@@ -1,0 +1,226 @@
+.settings-layout {
+  padding: 28px;
+  max-width: 760px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-header .page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.settings-header .page-subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.settings-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-card-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.setting-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.setting-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.setting-desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 46ch;
+}
+
+/* Switch */
+.theme-switch {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.theme-switch-track {
+  display: block;
+  width: 52px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  padding: 3px;
+  transition: var(--transition);
+}
+
+.theme-switch.on .theme-switch-track {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+
+.theme-switch:focus-visible .theme-switch-track {
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  outline: none;
+}
+
+.theme-switch-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  transform: translateX(0);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-switch.on .theme-switch-thumb {
+  transform: translateX(24px);
+}
+
+/* Side-by-side previews */
+.theme-preview-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.theme-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.theme-preview:hover {
+  border-color: var(--accent);
+}
+
+.theme-preview.active {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+
+/* The swatches are intentionally hardcoded — they are a picture of each theme, so
+   they must keep showing both palettes whichever theme is currently active. */
+.preview-swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 64px;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.preview-dark {
+  background: #0B0F19;
+  border: 1px solid #2A364F;
+}
+.preview-dark .swatch-bar { background: #6366F1; }
+.preview-dark .swatch-line { background: #2A364F; }
+
+.preview-light {
+  background: #F6F6F6;
+  border: 1px solid #DFE4ED;
+}
+.preview-light .swatch-bar { background: #494F69; }
+.preview-light .swatch-line { background: #DFE4ED; }
+
+.swatch-bar {
+  height: 8px;
+  width: 40%;
+  border-radius: 3px;
+}
+
+.swatch-line {
+  height: 6px;
+  width: 100%;
+  border-radius: 3px;
+}
+
+.swatch-line.short {
+  width: 65%;
+}
+
+.preview-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.settings-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.settings-footnote {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.settings-footnote strong {
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+@media (max-width: 600px) {
+  .setting-row { flex-direction: column; gap: 14px; }
+  .theme-preview-row { grid-template-columns: 1fr; }
+}
