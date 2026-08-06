@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Send, User, Bot, BookOpen, ChevronDown, ChevronUp, Clock, Zap, Video, Layers } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import APIClient from '../api/client';
+import RichText from '../components/RichText';
 import './Chat.css';
 
 const STUDENT_KEY = 'mlt_student_id';
@@ -63,9 +63,10 @@ function Message({ msg }) {
           <p className="user-text">{msg.content}</p>
         ) : (
           <>
-            <div className="prose assistant-text">
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
-            </div>
+            {/* `build_prompt` mandates a Math section, and the retrieved context it
+                works from is written in `\(...\)` / `\[...\]` — so answers carry the
+                same LaTeX the question bank does and need the same renderer. */}
+            <RichText className="prose assistant-text">{msg.content}</RichText>
             {msg.provider && (
               <div className="provider-tag">
                 <Zap size={11} /> via {msg.provider}

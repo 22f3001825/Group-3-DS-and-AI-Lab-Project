@@ -5,6 +5,7 @@ import {
   Copy, FileText, Loader2,
 } from 'lucide-react';
 import APIClient from '../api/client';
+import RichText from '../components/RichText';
 import './Doubts.css';
 
 /** Cluster cards, the common-doubts strip and search results all render units, so the
@@ -30,8 +31,11 @@ function UnitCard({ unit }) {
         )}
         {unit.origin === 'admin' && <span className="qi-origin-tag">admin-added</span>}
       </div>
-      <div className="qi-unit-title">{unit.title}</div>
-      <p className="qi-unit-text">{unit.text}</p>
+      {/* Everything a unit carries can contain LaTeX — the faq units are half maths by
+          volume — so title, body, options and answer all go through the same renderer
+          rather than only the body that happened to be noticed first. */}
+      <div className="qi-unit-title"><RichText inline>{unit.title}</RichText></div>
+      <RichText className="qi-unit-text">{unit.text}</RichText>
       {hasDetail && (
         <button className="qi-link-btn" onClick={() => setOpen(!open)}>
           {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -42,11 +46,17 @@ function UnitCard({ unit }) {
         <div className="qi-unit-detail">
           {(unit.options || []).length > 0 && (
             <ul className="qi-options">
-              {unit.options.map((opt, i) => <li key={i}>{opt}</li>)}
+              {unit.options.map((opt, i) => (
+                <li key={i}><RichText inline>{opt}</RichText></li>
+              ))}
             </ul>
           )}
-          {unit.answer && <div className="qi-answer"><strong>Answer:</strong> {unit.answer}</div>}
-          {unit.solution && <div className="qi-solution">{unit.solution}</div>}
+          {unit.answer && (
+            <div className="qi-answer">
+              <strong>Answer:</strong> <RichText inline>{unit.answer}</RichText>
+            </div>
+          )}
+          {unit.solution && <RichText className="qi-solution">{unit.solution}</RichText>}
         </div>
       )}
     </div>
@@ -74,7 +84,7 @@ function ClusterCard({ cluster, autoOpen }) {
     <div className={`qi-cluster ${open ? 'expanded' : ''}`} id={`cluster-${cluster.cluster_id}`}>
       <button className="qi-cluster-head" onClick={() => setOpen(!open)}>
         <div className="qi-cluster-title">
-          <span className="qi-cluster-name">{cluster.title}</span>
+          <span className="qi-cluster-name"><RichText inline>{cluster.title}</RichText></span>
           <div className="qi-cluster-meta">
             {/* Counts are deliberately never collapsed into one "size". asked_count is how
                 many times somebody asked; canonical_count is how many distinct phrasings
@@ -279,7 +289,7 @@ export default function Doubts() {
                 onClick={() => setSearchParams({ cluster: String(c.cluster_id) })}
               >
                 <span className="qi-rank">#{i + 1}</span>
-                <span className="qi-doubt-title">{c.title}</span>
+                <span className="qi-doubt-title"><RichText inline>{c.title}</RichText></span>
                 <span className="qi-doubt-meta">
                   {c.asked_count} asked · {(c.sources || []).join(', ')}
                 </span>
