@@ -136,11 +136,35 @@ npm run dev
 
 ---
 
+## 🧩 AI Question Intelligence
+
+Deduplicates and clusters the question corpus (`pq` / `faq` / `PYQ`), surfaces common doubts at
+`/doubts`, adds related-question chips to chat answers, and lets an admin contribute new material at
+`/admin` (upload a PDF, paste markdown, or compose a question) behind `ADMIN_TOKEN`.
+
+```bash
+python src/build_question_bank.py                 # build the bank into the database
+python src/evaluate_question_intelligence.py      # M1 §3.5 metrics → reports/
+python src/sync_question_vectors.py               # retry queued Qdrant work
+python tests/test_ingest_lifecycle.py             # lifecycle + failure-path checks
+```
+
+**All of its state lives in `mlt_learner.db`** — units, embeddings, clusters, drafts, uploaded PDFs,
+contributed documents and pending vector work. Nothing is written to disk at runtime; a portable copy
+is produced only on request with `python src/export_question_bank.py`.
+
+---
+
 ## 🛠️ Rebuilding the Vector Database
 
 Only needed if you add new course material:
 
 ```bash
+# 0. If admins have contributed content, write it back out first — ingest_to_qdrant
+#    deletes and recreates the collection and would otherwise drop it. (The script
+#    refuses to run until you do.)
+python src/export_question_bank.py --documents
+
 # 1. Rebuild chunks with topic_tags
 python src/prepare_rag_splits.py
 

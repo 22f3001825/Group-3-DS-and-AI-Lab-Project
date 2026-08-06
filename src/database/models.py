@@ -10,6 +10,13 @@ Tables:
   - QuizAttempt    : every quiz attempt (quiz eval + LLM-as-Judge)
   - TopicRecommendationEvent : first time a topic entered a student's study plan
                      (the pre/post split point for the quiz improvement metric)
+
+Question Intelligence (see the section header further down): QuestionBankVersion,
+DuplicateGroup, ConceptCluster, QuestionUnit, QuestionUnitChunk, ClusterMember,
+QuestionContentDraft, QuestionUpload, QuestionDocument, QuestionEvaluationLabel,
+QuestionBankOutbox. These hold every byte of runtime state that feature produces —
+drafts, uploaded PDFs, committed content, vectors, labels and pending Qdrant work — so
+nothing it does needs a file. Schema changes go through `database/migrations.py`.
 """
 from __future__ import annotations
 
@@ -18,8 +25,8 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, Float, ForeignKey,
-    Integer, String, Text, UniqueConstraint, JSON, Index,
+    Boolean, Column, DateTime, Float, ForeignKey, LargeBinary,
+    Integer, String, Text, UniqueConstraint, JSON, Index, text,
 )
 from sqlalchemy.orm import relationship
 
@@ -195,6 +202,10 @@ class QuestionBankVersion(Base):
     embedding_model = Column(String(255), nullable=False)
     thresholds = Column(JSON, default=dict, nullable=False)
     source_summary = Column(JSON, default=dict, nullable=False)
+    # Relational reads never wait on Qdrant: a version is active as soon as its rows are
+    # committed, and this records whether its vectors have caught up. Vector-similarity
+    # features filter on QuestionUnit.vector_status; browsing does not.
+    vector_status = Column(String(20), default="pending", nullable=False)  # pending|synced|degraded
     created_at = Column(DateTime, default=_now, nullable=False)
     completed_at = Column(DateTime, nullable=True)
 
@@ -240,12 +251,19 @@ class QuestionUnit(Base):
     duplicate_group_id = Column(String(64), ForeignKey("question_duplicate_groups.duplicate_group_id"), nullable=True)
     cluster_id = Column(String(64), ForeignKey("question_concept_clusters.cluster_id"), nullable=True)
     vector_status = Column(String(20), default="pending", nullable=False)  # pending|synced|failed
+    # The embedding itself, float32 little-endian bytes. Two jobs: it is the rebuild
+    # cache (keyed by text_hash, so unchanged text is never re-embedded), and it lets a
+    # Qdrant re-sync re-queue a point without an embedding run. The outbox references
+    # this rather than carrying its own copy.
+    vector = Column(LargeBinary, nullable=True)
+    text_hash = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=_now, nullable=False)
 
     __table_args__ = (
         Index("ix_question_units_source_week", "source_type", "week"),
         Index("ix_question_units_cluster", "cluster_id"),
         Index("ix_question_units_group", "duplicate_group_id"),
+        Index("ix_question_units_text_hash", "text_hash"),
     )
 
 
@@ -274,16 +292,32 @@ class ClusterMember(Base):
 
 
 class QuestionContentDraft(Base):
+    """A pending admin contribution, whole. There is no staging directory beside it.
+
+    `status` runs `staged` → `committing` → `committed`. The middle state is not
+    cosmetic: claiming it with a conditional UPDATE is what makes a double-clicked
+    commit safe, since `add_documents` appends with fresh point IDs and would otherwise
+    duplicate every vector.
+    """
+
     __tablename__ = "question_content_drafts"
 
     draft_id = Column(String(64), primary_key=True)
-    origin = Column(String(16), nullable=False)
-    status = Column(String(20), nullable=False, default="staged")
+    origin = Column(String(16), nullable=False)  # pdf|paste|compose
+    status = Column(String(20), nullable=False, default="staged")  # staged|committing|committed
     filename = Column(String(512), nullable=True)
+    # The extraction, kept for the audit trail and for "restore original"; the diff
+    # between this and `edited_markdown` is what the upload record reports as edits.
     original_markdown = Column(Text, nullable=False)
+    edited_markdown = Column(Text, nullable=True)
     metadata_json = Column(JSON, default=dict, nullable=False)
     preview_json = Column(JSON, default=dict, nullable=False)
-    artifact_path = Column(String(1024), nullable=True)
+    analysis_json = Column(JSON, default=dict, nullable=False)   # pages, ocr_used, cleaning stats
+    composed_json = Column(JSON, nullable=True)                  # origin=compose: the fields, not the rendering
+    # The uploaded PDF, held only while the draft is open so a re-extract does not need
+    # a re-upload, and NULLed at commit. Bounded by QI_UPLOAD_MAX_MB × QI_STAGING_MAX_PENDING.
+    source_blob = Column(LargeBinary, nullable=True)
+    source_media_type = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=_now, nullable=False)
     expires_at = Column(DateTime, nullable=True)
     committed_at = Column(DateTime, nullable=True)
@@ -293,14 +327,70 @@ class QuestionContentDraft(Base):
 
 
 class QuestionUpload(Base):
+    """Immutable audit record of a committed contribution. One row per draft."""
+
     __tablename__ = "question_uploads"
 
     upload_id = Column(String(36), primary_key=True, default=_uuid)
     draft_id = Column(String(64), ForeignKey("question_content_drafts.draft_id"), nullable=False, unique=True)
+    document_id = Column(String(36), ForeignKey("question_documents.document_id"), nullable=True)
     resolved_metadata = Column(JSON, default=dict, nullable=False)
     result_json = Column(JSON, default=dict, nullable=False)
+    replaced = Column(Boolean, default=False, nullable=False)
+    superseded_chunks = Column(Integer, default=0, nullable=False)
+    chars_added = Column(Integer, default=0, nullable=False)
+    chars_removed = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=_now, nullable=False)
     committed_at = Column(DateTime, default=_now, nullable=False)
+
+
+class QuestionDocument(Base):
+    """Admin-contributed course content. The database is where it lives.
+
+    Before this table the approved markdown was written to `data/cleaned/<source>/<stem>.md`
+    and that file was the only durable record; a rebuild re-read the tree. Now the row is
+    the record and `rebuild` reads disk corpus ∪ these rows.
+
+    `chunk_doc_ids` is load-bearing rather than informational: the replace path deletes
+    exactly the doc_ids this document emitted. Deriving them from `data/splits/*.jsonl`
+    (as the code did) could never work, because admin chunks were never written there —
+    so `replace=true` silently deleted nothing and duplicated the whole document.
+    """
+
+    __tablename__ = "question_documents"
+
+    document_id = Column(String(36), primary_key=True, default=_uuid)
+    # doc_id carries no directory component, so a stem must be unique across every
+    # source type — but only among ACTIVE documents. A plain unique column would make
+    # `replace` impossible: superseding keeps the old row for audit, and its stem with it.
+    stem = Column(String(255), nullable=False)
+    source_type = Column(String(64), nullable=False)
+    content_kind = Column(String(16), nullable=False)  # questions|prose
+    week = Column(Integer, nullable=False, default=0)
+    title = Column(Text, nullable=False)
+    markdown = Column(Text, nullable=False)            # the approved bytes, exactly as chunked
+    frontmatter = Column(JSON, default=dict, nullable=False)
+    topic_ids = Column(JSON, default=list, nullable=False)
+    topic_tags = Column(JSON, default=list, nullable=False)
+    lecture_ref = Column(String(255), nullable=True)
+    chunk_doc_ids = Column(JSON, default=list, nullable=False)
+    origin = Column(String(32), default="admin", nullable=False)
+    status = Column(String(20), default="active", nullable=False)  # active|superseded
+    draft_id = Column(String(64), ForeignKey("question_content_drafts.draft_id"), nullable=True)
+    created_at = Column(DateTime, default=_now, nullable=False)
+    updated_at = Column(DateTime, default=_now, onupdate=_now, nullable=False)
+    superseded_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        # Partial unique index: one active document per stem, any number of superseded
+        # ones. Enforced by the database rather than by the collision check alone, which
+        # cannot be atomic against a concurrent commit.
+        Index("uq_question_documents_active_stem", "stem", unique=True,
+              sqlite_where=text("status = 'active'"),
+              postgresql_where=text("status = 'active'")),
+        Index("ix_question_documents_status", "status"),
+        Index("ix_question_documents_source_week", "source_type", "week"),
+    )
 
 
 class QuestionEvaluationLabel(Base):
@@ -316,10 +406,21 @@ class QuestionEvaluationLabel(Base):
 
 
 class QuestionBankOutbox(Base):
+    """Durable Qdrant work, committed in the same transaction as what produced it.
+
+    Two entity types share one queue. `question_unit` carries a bank unit into
+    `mlt_question_units`; `course_chunk` carries admin-contributed retrieval chunks into
+    the live `mlt_course_bot` collection. Chunk writes are queued rather than performed
+    inline so that a commit is exactly one database transaction: a vector store that is
+    down leaves recoverable work instead of a contribution that is half applied.
+    """
+
     __tablename__ = "question_bank_outbox"
 
     outbox_id = Column(String(36), primary_key=True, default=_uuid)
     operation = Column(String(16), nullable=False)  # upsert|delete
+    entity_type = Column(String(20), nullable=False, default="question_unit")  # question_unit|course_chunk
+    # The entity key: a unit_id for question_unit rows, the document stem for course_chunk.
     unit_id = Column(String(255), nullable=False)
     payload = Column(JSON, default=dict, nullable=False)
     status = Column(String(20), nullable=False, default="pending")  # pending|processing|synced|failed

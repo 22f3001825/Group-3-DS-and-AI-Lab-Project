@@ -11,7 +11,9 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
-from ...config import QI_MIN_COMMON_DOUBT_SIZE
+from ...config import (
+    QI_MIN_COMMON_DOUBT_SIZE, QI_MIN_DISPLAY_MEMBERS, QI_MIN_TITLE_READABILITY,
+)
 from . import question_repository as repo
 
 _LOCK = threading.Lock()
@@ -62,13 +64,18 @@ def bank_is_available(db: Session) -> bool:
 
 
 def get_stats(db: Session) -> dict[str, Any]:
-    return _cached(db, ("stats",), lambda: repo.stats(db))
+    return _cached(db, ("stats",),
+                   lambda: repo.stats(db, QI_MIN_DISPLAY_MEMBERS, QI_MIN_TITLE_READABILITY))
 
 
 def list_clusters(db: Session, week: Optional[int] = None, source_type: Optional[str] = None,
-                  min_member_count: int = 1, limit: int = 50) -> list[dict[str, Any]]:
+                  min_member_count: int = QI_MIN_DISPLAY_MEMBERS,
+                  limit: int = 50) -> list[dict[str, Any]]:
+    """The browsable list. The readability gate is policy, not a caller's choice: a
+    caller allowed to turn it off would put unlabelled clusters back on the page."""
     return _cached(db, ("clusters", week, source_type, min_member_count, limit),
-                   lambda: repo.list_clusters(db, week, source_type, min_member_count, limit))
+                   lambda: repo.list_clusters(db, week, source_type, min_member_count,
+                                              limit, QI_MIN_TITLE_READABILITY))
 
 
 def get_cluster(db: Session, cluster_id: int | str) -> Optional[dict[str, Any]]:
@@ -76,7 +83,9 @@ def get_cluster(db: Session, cluster_id: int | str) -> Optional[dict[str, Any]]:
 
 
 def common_doubts(db: Session, limit: int = 10) -> list[dict[str, Any]]:
-    return _cached(db, ("common", limit), lambda: repo.common_doubts(db, QI_MIN_COMMON_DOUBT_SIZE, limit))
+    return _cached(db, ("common", limit),
+                   lambda: repo.common_doubts(db, QI_MIN_COMMON_DOUBT_SIZE, limit,
+                                              QI_MIN_TITLE_READABILITY))
 
 
 def related_to_doc_ids(db: Session, doc_ids: list[str], limit: int = 5) -> list[dict[str, Any]]:

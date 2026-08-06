@@ -30,6 +30,7 @@ histogram hides what you most need to see.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -42,14 +43,25 @@ import numpy as np
 # Same shim llm_judge.py uses, for the same reason.
 try:
     from src.prepare_rag_splits import extract_week, resolve_topic_ids, split_frontmatter
+    from src.config import (
+        QI_ASKED_SOURCE_TYPES, QI_MIN_DISPLAY_MEMBERS, QI_MIN_TITLE_READABILITY,
+    )
 except ModuleNotFoundError:  # pragma: no cover - import shim
     from prepare_rag_splits import (  # type: ignore[no-redef]
         extract_week, resolve_topic_ids, split_frontmatter,
+    )
+    from config import (  # type: ignore[no-redef]
+        QI_ASKED_SOURCE_TYPES, QI_MIN_DISPLAY_MEMBERS, QI_MIN_TITLE_READABILITY,
     )
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 CLEANED_DIR = ROOT_DIR / "data" / "cleaned"
 SPLITS_DIR = ROOT_DIR / "data" / "splits"
+# LEGACY IMPORT ONLY. Runtime persistence is relational: units, vectors, drafts, uploads
+# and evaluation labels all live in the database, and nothing in the API or the build CLI
+# reads or writes these paths. They exist so `migrate_question_bank_to_db.py` can still
+# import a bank produced before the cutover, and so `export_question_bank.py` has a
+# conventional place to write when an operator explicitly asks for a portable copy.
 BANK_DIR = ROOT_DIR / "data" / "question_bank"
 BANK_PATH = BANK_DIR / "question_bank.json"
 VECTORS_PATH = BANK_DIR / "unit_vectors.npy"
@@ -454,9 +466,23 @@ def parse_markdown(content: str, *, source_type: str, stem: str, week: int,
 
 def parse_question_units(cleaned_dir: Path | None = None,
                          source_types: Iterable[str] = ("faq", "pq", "PYQ", "discourse"),
+                         extra_documents: Iterable[dict] | None = None,
                          ) -> list[dict]:
-    """Walk data/cleaned/<source_type>/*.md and emit one unit per question."""
+    """Emit one unit per question over the corpus **and** the database's own documents.
+
+    Two inputs, deliberately: `data/cleaned/<source_type>/*.md` is the offline pipeline's
+    output and stays read-only, while `extra_documents` carries admin-contributed content
+    that now lives in `question_documents` rather than in a file. Each entry is
+    `{markdown, source_type, stem, week, source_file}` — the same four values the file
+    walk derives from a path — so both go through one parser and neither can drift.
+
+    A database document wins on stem collision: `question_documents.stem` is unique and
+    a document that replaced a corpus file must not be parsed twice.
+    """
     cleaned_dir = Path(cleaned_dir or CLEANED_DIR)
+    documents = list(extra_documents or [])
+    db_stems = {d["stem"] for d in documents}
+
     units: list[dict] = []
     for source_type in source_types:
         folder = cleaned_dir / source_type
@@ -467,6 +493,8 @@ def parse_question_units(cleaned_dir: Path | None = None,
             if not content.strip():
                 continue
             stem = md_file.stem.replace(" ", "_")
+            if stem in db_stems:
+                continue
             units.extend(parse_markdown(
                 content,
                 source_type=source_type,
@@ -474,6 +502,18 @@ def parse_question_units(cleaned_dir: Path | None = None,
                 week=extract_week(md_file),
                 source_file=f"{source_type}/{md_file.name}",
             ))
+
+    for document in documents:
+        content = document.get("markdown") or ""
+        if not content.strip():
+            continue
+        units.extend(parse_markdown(
+            content,
+            source_type=document["source_type"],
+            stem=document["stem"],
+            week=int(document.get("week") or 0),
+            source_file=document.get("source_file") or f"{document['source_type']}/{document['stem']}.md",
+        ))
     return units
 
 
@@ -543,6 +583,16 @@ def unit_embedding_text(unit: dict) -> str:
     parts = [unit.get("title", ""), unit.get("text", "")]
     parts.extend(unit.get("options") or [])
     return "\n".join(p for p in parts if p).strip()
+
+
+def unit_text_hash(unit: dict) -> str:
+    """Cache key for a unit's embedding: the model plus the exact text embedded.
+
+    Keyed on the text rather than on `unit_id` so that re-parsing, renumbering or moving
+    a question to a different file reuses the vector, and so that *editing* it cannot.
+    """
+    payload = f"{EMBED_MODEL}\x1f{unit_embedding_text(unit)}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def embed_units(units: list[dict], model_name: str = EMBED_MODEL) -> np.ndarray:
@@ -835,12 +885,17 @@ def assign_new_units(new_vectors: np.ndarray, bank_vectors: np.ndarray,
 
 # ── Titles ────────────────────────────────────────────────────────────────────
 
-def _title_readability(text: str) -> float:
+def title_readability(text: str) -> float:
     """How much of a candidate title is prose rather than OCR debris.
 
     PYQ titles routinely come back as `[x1 x2]| v:]) + 1 Vz (x1y1 + ...` — the OCR's
     rendering of a matrix. Such a string is a legal title and a useless label, and the
     only thing separating it from real prose is its character mix.
+
+    Public because it is used twice and the two uses answer different questions:
+    `pick_cluster_title` asks "which of these titles is least bad", which always returns
+    something, and `is_displayable_cluster` asks "is the best one good enough to show",
+    which is the only place that can answer no.
     """
     stripped = (text or "").strip()
     if not stripped:
@@ -889,11 +944,51 @@ def pick_cluster_title(units_in_cluster: list[dict]) -> str:
     scored = sorted(
         units_in_cluster,
         key=lambda u: (
-            -round(_title_readability(cluster_title(u)), 2),
+            -round(title_readability(cluster_title(u)), 2),
             _TITLE_SOURCE_RANK.get(u.get("source_type", ""), 3),
         ),
     )
     return cluster_title(scored[0])
+
+
+def is_displayable_cluster(cluster: dict, *, min_members: int = QI_MIN_DISPLAY_MEMBERS,
+                           min_readability: float = QI_MIN_TITLE_READABILITY) -> bool:
+    """Is this cluster worth listing to a student as a "concept group"?
+
+    Three failures the grouping itself cannot detect, because in each the clustering was
+    CORRECT and the input was not:
+
+    1. A singleton grouped nothing. It is a question with a header, and listing it under
+       a heading that promises a group is a claim the bank cannot support.
+
+    2. A cluster with no `asked` member — no faq/pq unit — is not a concept group at all.
+       PYQ unit boundaries come from the OCR's `[Extracted Question]` markers, so such a
+       cluster is either one printed question split into fragments that then re-grouped
+       (correctly, they ARE near-identical) or several questions grouped on the exam
+       scaffolding they share. Measured over the live bank, all 28 multi-member PYQ-only
+       clusters were one of those two: matrix debris, four `COMPREHENSION Based on the
+       above data...` groups, and `Question 19 640653852840 0 Type ...`. None was a
+       concept. This is the same fact the module docstring states about PYQ boundaries,
+       applied to display instead of to parsing.
+
+    3. A cluster with an unreadable title cannot be recognised, searched for or chosen,
+       whatever its membership. `title_readability` catches symbol soup; note it does NOT
+       catch alphabetic debris like `Pl 1 Xtest _ test 0 Xtest_ test 0 otherwise` (0.53,
+       comfortably above the floor) — rule 2 is what removes that, and the two are kept
+       separate because a character ratio was never going to distinguish meaningless
+       words from meaningful ones.
+
+    Takes the summary dict — `{title, member_count, asked_count}` — rather than the units,
+    so the build path and the API read path apply one rule to the same three numbers
+    instead of each growing its own. Membership, embeddings and quiz grounding are
+    unaffected: this decides listing only, and `get_cluster(id)` deliberately does not
+    consult it so an existing deep link never 404s on a policy change.
+    """
+    if int(cluster.get("member_count", 0)) < min_members:
+        return False
+    if int(cluster.get("asked_count", 0)) < 1:
+        return False
+    return title_readability(cluster.get("title") or "") >= min_readability
 
 
 # ── Chunk mapping ─────────────────────────────────────────────────────────────
@@ -1010,6 +1105,14 @@ def build_bank(units: list[dict], vectors: np.ndarray, *, duplicate_threshold,
     assignment = average_linkage_clusters(canonical_vectors, cluster_distance)
 
     group_size = {group_id: len(members) for group_id, members in enumerate(groups)}
+    # Counted per MEMBER, not per canonical: a duplicate group can span sources, and it is
+    # the individual unit's own source type that decides whether it represents somebody
+    # asking. See QI_ASKED_SOURCE_TYPES for why PYQ does not.
+    group_asked = {
+        group_id: sum(1 for idx in members
+                      if units[idx]["source_type"] in QI_ASKED_SOURCE_TYPES)
+        for group_id, members in enumerate(groups)
+    }
     clusters: dict[int, dict] = {}
     for position, row in enumerate(canonical_rows):
         cluster_id = assignment[position]
@@ -1019,6 +1122,7 @@ def build_bank(units: list[dict], vectors: np.ndarray, *, duplicate_threshold,
             "title": "",
             "canonical_count": 0,
             "member_count": 0,
+            "asked_count": 0,
             "weeks": [],
             "sources": [],
             "medoid_unit_id": unit["unit_id"],
@@ -1026,6 +1130,7 @@ def build_bank(units: list[dict], vectors: np.ndarray, *, duplicate_threshold,
         })
         cluster["canonical_count"] += 1
         cluster["member_count"] += group_size.get(unit["dup_group_id"], 1)
+        cluster["asked_count"] += group_asked.get(unit["dup_group_id"], 0)
         cluster["member_unit_ids"].append(unit["unit_id"])
         if unit["week"] not in cluster["weeks"]:
             cluster["weeks"].append(unit["week"])
@@ -1083,6 +1188,10 @@ def compute_stats(units: list[dict], clusters: list[dict]) -> dict:
         "duplicate_rate": round((len(units) - canonical_total) / len(units), 4) if units else 0.0,
         "cluster_count": len(clusters),
         "singleton_clusters": sum(1 for c in clusters if c["canonical_count"] == 1),
+        # What a student can actually browse. Reported next to cluster_count rather than
+        # replacing it: the gap between the two IS the finding — most of the bank groups
+        # nothing or cannot be labelled — and hiding it behind one number buries it.
+        "displayable_clusters": sum(1 for c in clusters if is_displayable_cluster(c)),
         "largest_member_count": max((c["member_count"] for c in clusters), default=0),
         "admin_authored_units": asserted,
         "by_source": by_source,

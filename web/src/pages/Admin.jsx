@@ -292,6 +292,7 @@ export default function Admin() {
   const [result, setResult] = useState(null);
   const [staged, setStaged] = useState([]);
   const [uploads, setUploads] = useState([]);
+  const [sync, setSync] = useState(null);
   const originalRef = useRef('');
 
   const kind = SOURCE_KINDS[meta.source_type] || 'prose';
@@ -303,6 +304,9 @@ export default function Admin() {
     if (!token) return;
     APIClient.listDrafts().then(setStaged).catch(() => setStaged([]));
     APIClient.getUploads().then(setUploads).catch(() => setUploads([]));
+    // A commit succeeds even when Qdrant is down, which is the right trade only if the
+    // resulting queue is visible somewhere other than the server log.
+    APIClient.getVectorSync().then(setSync).catch(() => setSync(null));
   }, [token]);
 
   useEffect(() => { refreshLists(); }, [refreshLists]);
@@ -419,6 +423,11 @@ export default function Admin() {
     )) return;
     const stats = await APIClient.rebuildClusters();
     setResult({ rebuild: stats });
+    refreshLists();
+  });
+
+  const retrySync = () => guard(async () => {
+    setSync(await APIClient.runVectorSync());
   });
 
   // ── Gates ─────────────────────────────────────────────────────────────────
@@ -600,8 +609,8 @@ export default function Admin() {
           <aside className="ad-side">
             <h3>Pending reviews</h3>
             <p className="ad-muted">
-              Staging lives on disk, so an interrupted review survives a browser refresh or a
-              server reload.
+              A draft is a database row, so an interrupted review survives a browser refresh,
+              a server reload, and a move to another machine.
             </p>
             {staged.length === 0 && <p className="ad-muted">Nothing pending.</p>}
             {staged.map(d => (
@@ -624,6 +633,29 @@ export default function Admin() {
                 </span>
               </div>
             ))}
+            <div className="ad-divider" />
+            <h3>Vector sync</h3>
+            {!sync && <p className="ad-muted">Unavailable.</p>}
+            {sync && (
+              <div className={`ad-sync ${sync.failed ? 'ad-sync-bad' : ''}`}>
+                <p className="ad-muted">
+                  {sync.synced} synced · {sync.pending} pending · {sync.failed} failed
+                  {sync.units_pending_vectors ? ` · ${sync.units_pending_vectors} units awaiting vectors` : ''}
+                </p>
+                {sync.failed > 0 && (
+                  <>
+                    <p className="ad-warn-text">
+                      Contributions are stored and browsable; their vectors are queued.
+                      {sync.last_error ? ` Last error: ${sync.last_error}` : ''}
+                    </p>
+                    <button className="btn btn-secondary" onClick={retrySync} disabled={busy}>
+                      <RefreshCw size={14} /> Retry queued vectors
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
             <button className="btn btn-secondary ad-rebuild" onClick={rebuild} disabled={busy}>
               <RefreshCw size={14} /> Rebuild clusters
             </button>
@@ -635,7 +667,7 @@ export default function Admin() {
             <div>
               <span className={`ad-origin origin-${draft.origin}`}>{draft.origin}</span>
               <strong className="ad-review-title">
-                {draft.resolved_metadata.stem}.md → data/cleaned/{draft.resolved_metadata.source_type}/
+                {draft.resolved_metadata.stem} → {draft.resolved_metadata.source_type} (stored)
               </strong>
             </div>
             <div className="ad-review-actions">
@@ -845,7 +877,9 @@ function ResultPanel({ result, onDismiss }) {
     <div className="ad-result">
       <Check size={18} />
       <div>
-        <strong>Committed to {result.cleaned_path}</strong>
+        <strong>
+          Committed as {result.resolved_metadata?.stem} ({result.resolved_metadata?.source_type})
+        </strong>
         <p>
           {result.chunks_added} chunks appended · {result.units_classified} units classified ·{' '}
           {result.duplicates_matched} matched an existing duplicate group ·{' '}

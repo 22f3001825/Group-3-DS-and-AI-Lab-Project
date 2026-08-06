@@ -75,7 +75,42 @@ def load_chunks() -> list[Document]:
     print(f"Loaded a total of {len(documents)} chunks.")
     return documents
 
-def main():
+def check_unexported_documents() -> list[str]:
+    """Admin-contributed documents that exist only in the database.
+
+    This script DELETES and recreates the collection, and it ingests `data/splits/`
+    only. Admin content lives in `question_documents` and its chunks were appended
+    directly, so anything not exported to `data/cleaned/` (and re-split) would be
+    silently dropped by this run. Returning a non-empty list is a hard stop.
+    """
+    try:
+        from src.api.services import question_repository as repo
+        from src.database.session import SessionLocal
+    except Exception:  # noqa: BLE001 — a stripped-down checkout can still ingest
+        return []
+
+    try:
+        with SessionLocal() as db:
+            return repo.documents_missing_from_disk(db, ROOT_DIR / "data" / "cleaned")
+    except Exception:  # noqa: BLE001 — no database yet is not a blocker
+        return []
+
+
+def main(force: bool = False):
+    missing = check_unexported_documents()
+    if missing and not force:
+        print(f"REFUSING TO RUN: {len(missing)} admin-contributed document(s) exist only in the")
+        print("database, and this script deletes and recreates the collection — they would be lost:")
+        for stem in missing[:10]:
+            print(f"  - {stem}")
+        if len(missing) > 10:
+            print(f"  ... and {len(missing) - 10} more")
+        print("\nExport them first, then re-split:")
+        print("  python src/export_question_bank.py --documents")
+        print("  python src/prepare_rag_splits.py")
+        print("Or re-run with --force to ingest without them.")
+        return
+
     print("Initialize Qdrant Client...")
     client_kwargs: dict[str, Any] = {"url": QDRANT_URL}
     if QDRANT_API_KEY:
@@ -131,4 +166,6 @@ def main():
     print(f"\nSuccess! {len(docs)} chunks successfully ingested into Qdrant Cloud!")
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    main(force="--force" in sys.argv)

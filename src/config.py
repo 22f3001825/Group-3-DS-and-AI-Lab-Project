@@ -90,9 +90,37 @@ QI_TOKEN_GUARD = True
 # grouping. 0.20 is the last cut before that runaway, and leaves 244 clusters.
 QI_CLUSTER_DISTANCE = 0.20
 
-# Minimum member_count (not canonical_count — see question_intelligence.py) for a
+# Minimum asked_count (not canonical_count — see question_intelligence.py) for a
 # cluster to appear in the common-doubts ranking.
 QI_MIN_COMMON_DOUBT_SIZE = 2
+
+# Which source types count as a doubt actually being *asked*. `PYQ` is excluded on
+# purpose. Its question boundaries are OCR artefacts: `_parse_pyq` splits on the
+# `[Extracted Question]` markers the scan emitted, and one printed question routinely
+# becomes eight units — so a PYQ cluster reporting "8 asked" is reporting scanner
+# behaviour as student demand. Those units stay in the bank and stay exam material for
+# the quiz generator; they just do not carry the "asked" number.
+QI_ASKED_SOURCE_TYPES = ("faq", "pq")
+
+
+# ── Question intelligence: what is fit to display ─────────────────────────────
+# Both gates apply to the *browsable* cluster list only. Nothing is deleted, a direct
+# GET /questions/clusters/{id} still resolves (so chat deep links never break), and the
+# quiz generator's view of the bank is untouched.
+
+# A cluster of one is a question wearing a group's UI. Listing it under the heading
+# "Concept groups" claims a grouping that was never found.
+QI_MIN_DISPLAY_MEMBERS = 2
+
+# Minimum `question_intelligence.title_readability` for a cluster to be listed — the
+# share of its title that is letters rather than OCR debris.
+#
+# This is the WEAKER of the two title gates and cannot be strengthened into the other:
+# `Pl 1 Xtest _ test 0 Xtest_ test 0 otherwise P( , Itest` scores 0.53, because it is
+# made of words, they are just meaningless. What removes that cluster is the asked_count
+# requirement in `is_displayable_cluster` — see rule 2 there. This one catches the
+# residual case of a mixed cluster that still ended up titled from a scan.
+QI_MIN_TITLE_READABILITY = 0.5
 
 # Drop retrieved chunks that are non-canonical duplicates of one already in the quiz
 # prompt, freeing budget for distinct material. A no-op when the bank is absent.
@@ -106,11 +134,14 @@ QI_UPLOAD_MAX_MB = 25
 QI_UPLOAD_MAX_PAGES = 60
 
 
-# ── Question intelligence: draft → review → commit staging ────────────────────
+# ── Question intelligence: draft → review → commit ────────────────────────────
+# A draft is a row in `question_content_drafts`, uploaded PDF included — there is no
+# staging directory. These two bound how much of that the database can be asked to hold:
+# an open draft costs at most QI_UPLOAD_MAX_MB, and expired ones are swept (blob and all)
+# whenever a new draft is created.
 
-QI_STAGING_DIR = "data/raw/uploads/staging"
 QI_STAGING_TTL_HOURS = 24       # abandoned reviews are swept when the next draft is created
-QI_STAGING_MAX_PENDING = 20     # refuse a new draft past this, so the dir cannot grow unbounded
+QI_STAGING_MAX_PENDING = 20     # refuse a new draft past this, so the table cannot grow unbounded
 QI_MARKDOWN_MAX_CHARS = 400_000  # cap on the *edited* text a commit will accept
 
 

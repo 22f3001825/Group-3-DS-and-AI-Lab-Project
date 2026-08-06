@@ -11,8 +11,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 
+from ..database.migrations import run_migrations
 from ..database.session import Base, engine
 from .routers.chat import router as chat_router
 from .routers.learner import router as learner_router
@@ -20,38 +20,16 @@ from .routers.questions import router as questions_router
 
 
 def init_db():
-    """Create DB tables on startup and safely add any new columns to existing tables."""
-    Base.metadata.create_all(bind=engine)
-    
-    # Safe SQLite column migration for TopicMastery
-    with engine.connect() as conn:
-        try:
-            res = conn.execute(text("PRAGMA table_info(topic_mastery)")).fetchall()
-            existing_cols = {row[1] for row in res}
-            if existing_cols:
-                if "elo_rating" not in existing_cols:
-                    conn.execute(text("ALTER TABLE topic_mastery ADD COLUMN elo_rating FLOAT DEFAULT 0.0"))
-                if "streak" not in existing_cols:
-                    conn.execute(text("ALTER TABLE topic_mastery ADD COLUMN streak INTEGER DEFAULT 0"))
-                if "chat_interactions" not in existing_cols:
-                    conn.execute(text("ALTER TABLE topic_mastery ADD COLUMN chat_interactions INTEGER DEFAULT 0"))
-                conn.commit()
-        except Exception as e:
-            print(f"[Startup Warning] SQLite migration check (topic_mastery): {e}")
+    """Create new tables, then apply schema migrations to existing ones.
 
-    # Safe SQLite column migration for QuizAttempt (personalized quiz generation)
-    with engine.connect() as conn:
-        try:
-            res = conn.execute(text("PRAGMA table_info(quiz_attempts)")).fetchall()
-            existing_cols = {row[1] for row in res}
-            if existing_cols:
-                if "options" not in existing_cols:
-                    conn.execute(text("ALTER TABLE quiz_attempts ADD COLUMN options JSON"))
-                if "reason" not in existing_cols:
-                    conn.execute(text("ALTER TABLE quiz_attempts ADD COLUMN reason VARCHAR(32)"))
-                conn.commit()
-        except Exception as e:
-            print(f"[Startup Warning] SQLite migration check (quiz_attempts): {e}")
+    The hand-rolled `PRAGMA table_info` blocks that used to live here are migrations
+    0001 and 0002 in `database/migrations.py`; every later column add is numbered
+    alongside them, so there is one ordered, recorded path for schema change.
+    """
+    Base.metadata.create_all(bind=engine)
+    applied = run_migrations(engine)
+    if applied:
+        print(f"[Startup] applied schema migrations: {', '.join(applied)}")
 
 
 @asynccontextmanager

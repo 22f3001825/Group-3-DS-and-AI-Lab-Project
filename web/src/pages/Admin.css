@@ -544,6 +544,24 @@
 
 .ad-rebuild { margin-top: 8px; }
 
+/* Vector sync: quiet when the queue is clean, obvious when it is not — a relational
+   commit succeeds during a Qdrant outage, so this is the only place that shows it. */
+.ad-sync {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2, transparent);
+}
+
+.ad-sync-bad {
+  border-color: var(--warning);
+}
+
+.ad-sync p { margin: 0; }
+
 @media (max-width: 1080px) {
   .ad-create-layout,
   .ad-review-grid,

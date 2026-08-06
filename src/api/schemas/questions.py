@@ -37,12 +37,15 @@ class QuestionUnit(BaseModel):
 class ClusterSummary(BaseModel):
     cluster_id: int
     title: str
-    # Two counts, never collapsed into one `size`. `canonical_count` is how many
-    # DISTINCT doubts the cluster holds; `member_count` is how many times they were
-    # asked. The common-doubts ranking uses member_count — deduplication is precisely
-    # what removes the repetition that ranking exists to surface.
+    # Three counts, never collapsed into one `size`. `canonical_count` is how many
+    # DISTINCT doubts the cluster holds; `member_count` is every unit in it; `asked_count`
+    # is the subset of those that represents somebody asking. The common-doubts ranking
+    # uses asked_count — deduplication is precisely what removes the repetition that
+    # ranking exists to surface, and member_count over-counts it from the other side by
+    # treating each OCR fragment of a past paper as another asking.
     canonical_count: int
     member_count: int
+    asked_count: int = 0
     weeks: list[int] = []
     sources: list[str] = []
     medoid_unit_id: Optional[str] = None
@@ -58,12 +61,18 @@ class BankStats(BaseModel):
     duplicate_count: int
     duplicate_rate: float
     cluster_count: int
+    # Clusters that pass the display gates (grouped something, and can be labelled).
+    # cluster_count stays reported next to it: the gap is a property of the corpus.
+    displayable_clusters: int = 0
     singleton_clusters: int
     largest_member_count: int
     admin_authored_units: int
     by_source: dict[str, Any] = {}
     thresholds: dict[str, Any] = {}
     generated_from: str = ""
+    # Relational reads never wait on Qdrant, so the bank can be fully browsable while
+    # its vectors are still catching up. Reported rather than hidden.
+    vector_status: str = "pending"
 
 
 class RelatedQuestion(BaseModel):
@@ -220,5 +229,20 @@ class UploadResult(BaseModel):
     duplicates_matched: int = 0
     clusters_joined: int = 0
     clusters_created: int = 0
-    cleaned_path: str = ""
+    # The stored document, which replaced `cleaned_path`: committed content is a
+    # `question_documents` row now, not a file under data/cleaned/.
+    document_id: str = ""
+    vector_sync: dict[str, Any] = {}
     warnings: list[str] = []
+
+
+class SyncStatus(BaseModel):
+    """Outbox health. `failed` above zero is the one thing an operator must not miss."""
+    pending: int = 0
+    failed: int = 0
+    synced: int = 0
+    oldest_unfinished_at: Optional[str] = None
+    last_error: Optional[str] = None
+    active_version_id: Optional[str] = None
+    active_version_vector_status: Optional[str] = None
+    units_pending_vectors: int = 0
