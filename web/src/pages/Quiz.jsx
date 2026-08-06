@@ -5,6 +5,7 @@ import {
   AlertTriangle, TrendingUp, TrendingDown, Lock, Sparkles,
 } from 'lucide-react';
 import APIClient from '../api/client';
+import RichText from '../components/RichText';
 import './Quiz.css';
 
 const STUDENT_KEY = 'mlt_student_id';
@@ -433,7 +434,11 @@ export default function Quiz() {
               <span className="q-counter">{index + 1} / {buffer.length}</span>
             </div>
 
-            <h2 className="question-text">{question.question_text}</h2>
+            {/* Questions are generated from the same faq/pq chunks the bank is parsed
+                from, so they inherit its LaTeX. Rendering an option changes only what is
+                drawn — `setSelected(opt)` still carries the original string, which is
+                what the server exact-matches against the options it served. */}
+            <h2 className="question-text"><RichText inline>{question.question_text}</RichText></h2>
 
             {question.question_type === 'mcq' ? (
               <div className="options-list">
@@ -453,7 +458,7 @@ export default function Quiz() {
                       disabled={!!result || grading}
                     >
                       <span className="opt-letter">{['A', 'B', 'C', 'D'][i]}</span>
-                      {opt}
+                      <RichText inline>{opt}</RichText>
                     </button>
                   );
                 })}
@@ -479,11 +484,11 @@ export default function Quiz() {
                 {question.question_type === 'short_answer' && (
                   <>
                     <span className="judge-score">Score: {Math.round((result.llm_score ?? 0) * 100)}%</span>
-                    <p>{result.feedback}</p>
-                    <p><strong>Reference answer:</strong> {result.correct_answer}</p>
+                    <RichText>{result.feedback}</RichText>
+                    <p><strong>Reference answer:</strong> <RichText inline>{result.correct_answer}</RichText></p>
                   </>
                 )}
-                <p>{result.explanation}</p>
+                <RichText>{result.explanation}</RichText>
 
                 <div className="mastery-delta">
                   {masteryDelta >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}

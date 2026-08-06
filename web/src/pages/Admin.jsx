@@ -477,9 +477,9 @@ export default function Admin() {
           <div>
             <h1>Content authoring</h1>
             <p>
-              Draft → review → commit. Creating a draft writes nothing outside its staging
-              directory; commit is the only step that touches <code>data/cleaned/</code>,
-              Qdrant and the question bank.
+              Draft → review → commit. A draft is a single database row and discarding it is
+              the whole rollback; commit is the only step that stores the document, rebuilds
+              the question bank and queues the Qdrant work.
             </p>
           </div>
         </div>

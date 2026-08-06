@@ -1,0 +1,75 @@
+/* KaTeX ships its own stylesheet and its own fonts; both are bundled by Vite from
+   node_modules, so nothing here reaches the network at runtime. */
+@import 'katex/dist/katex.min.css';
+
+.rich-text {
+  color: inherit;
+  font-size: inherit;
+  line-height: 1.65;
+}
+
+.rich-text > *:last-child { margin-bottom: 0; }
+.rich-text p { margin-bottom: 0.7em; }
+.rich-text strong { color: var(--accent-hover); }
+.rich-text ul,
+.rich-text ol { padding-left: 20px; margin-bottom: 0.7em; }
+.rich-text li { margin-bottom: 0.2em; }
+.rich-text h1,
+.rich-text h2,
+.rich-text h3 { font-size: 1em; font-weight: 600; margin-bottom: 0.4em; }
+
+.rich-text code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: monospace;
+}
+
+/* Wide content scrolls inside its own box. A long derivation is the normal case here,
+   not the exception, and without this the page itself scrolls sideways. */
+.rich-text pre,
+.rich-text .katex-display,
+.rich-text table {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.rich-text table {
+  display: block;
+  border-collapse: collapse;
+  margin-bottom: 0.7em;
+  font-size: 0.92em;
+}
+.rich-text th,
+.rich-text td {
+  border: 1px solid var(--border);
+  padding: 4px 9px;
+  text-align: left;
+}
+.rich-text th { background: var(--bg-input); font-weight: 600; }
+
+/* KaTeX sizes display math relative to the body, which is a step larger than the card
+   text it sits in — left alone, a formula outweighs the sentence introducing it. */
+.rich-text .katex { font-size: 1.02em; }
+.rich-text .katex-display {
+  margin: 0.75em 0;
+  padding: 2px 0;
+}
+
+/* Inline use: a title or an option is a single line, so the block spacing and the
+   paragraph wrapper both have to go. */
+.rich-inline p { display: inline; margin: 0; }
+.rich-inline .katex-display {
+  display: inline-block;
+  margin: 0;
+  text-align: left;
+}
+
+/* KaTeX renders an unparseable expression in red rather than throwing. That is the right
+   behaviour — OCR'd PYQ text will produce some — but the default red is an alarm colour
+   on this palette, so it is toned down to "this bit did not parse". */
+.rich-text .katex-error {
+  color: var(--text-secondary) !important;
+  border-bottom: 1px dotted var(--danger);
+}
