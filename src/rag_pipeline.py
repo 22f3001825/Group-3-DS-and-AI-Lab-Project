@@ -47,6 +47,39 @@ GROQ_MODELS: list[str] = [
     "mixtral-8x7b-32768",
 ]
 
+# Local / self-hosted OpenAI-compatible endpoint (llama.cpp, vLLM, LM Studio, Ollama, …).
+# Unlike the two hosted providers, the model list is not a fixed catalogue — whatever the
+# server has loaded is what works — so it comes from the environment.
+LOCAL_DEFAULT_MODEL = "kimi-k2"
+
+
+def get_local_models() -> list[str]:
+    """Model names to try against the local endpoint, in preference order."""
+    raw = os.getenv("LOCAL_LLM_MODELS") or os.getenv("LOCAL_LLM_MODEL") or LOCAL_DEFAULT_MODEL
+    models = [m.strip() for m in raw.split(",") if m.strip()]
+    return models or [LOCAL_DEFAULT_MODEL]
+
+
+def get_local_base_url() -> str | None:
+    """Base URL of the local OpenAI-compatible server, or None when not configured.
+
+    Setting this is what switches the provider on: with the variable absent the queue is
+    exactly the hosted Gemini/Groq one, so nothing changes for a normal deployment.
+    A bare host:port is normalised to the OpenAI `/v1` route, since that is what
+    `ChatOpenAI` appends `/chat/completions` to.
+    """
+    raw = (os.getenv("LOCAL_LLM_BASE_URL") or os.getenv("LOCAL_LLM_URL") or "").strip()
+    if not raw:
+        return None
+
+    if not raw.startswith(("http://", "https://")):
+        raw = f"http://{raw}"
+    raw = raw.rstrip("/")
+    # "http://localhost:8317" → "http://localhost:8317/v1"; an explicit path is left alone.
+    if not raw.rsplit("/", 1)[-1].startswith("v1") and raw.count("/") <= 2:
+        raw = f"{raw}/v1"
+    return raw
+
 
 # ── Multi-Key Discovery & Load Balancing ───────────────────────────────────────
 
@@ -115,6 +148,38 @@ def get_gemini_api_keys() -> list[str]:
             val = os.getenv(f"{prefix}{i}")
             if val and val.strip() and val.strip() not in keys:
                 keys.append(val.strip())
+
+    return keys
+
+
+def get_local_api_keys() -> list[str]:
+    """Keys for the local endpoint.
+
+    Deliberately narrow: the generic `apiN` sweep that Groq uses would hand unrelated
+    secrets to a local server. Many self-hosted servers ignore auth entirely, so a
+    configured base URL with no key still yields one placeholder key rather than an
+    empty pool — otherwise the provider would silently drop out of the queue.
+    """
+    keys: list[str] = []
+
+    for raw in (os.getenv("LOCAL_LLM_API_KEYS"), os.getenv("LOCAL_API_KEYS")):
+        for k in (raw or "").split(","):
+            cleaned = k.strip()
+            if cleaned and cleaned not in keys:
+                keys.append(cleaned)
+
+    for name in ("LOCAL_LLM_API_KEY", "LOCAL_API_KEY"):
+        val = os.getenv(name)
+        if val and val.strip() and val.strip() not in keys:
+            keys.append(val.strip())
+
+    for i in range(1, 21):
+        val = os.getenv(f"LOCAL_LLM_API_KEY_{i}")
+        if val and val.strip() and val.strip() not in keys:
+            keys.append(val.strip())
+
+    if not keys and get_local_base_url():
+        keys.append("not-needed")
 
     return keys
 
@@ -380,14 +445,40 @@ ANSWER
 # ── LLM Factory ──────────────────────────────────────────────────────────────
 
 def create_llm(model_name: str, provider: str, api_key: str | None = None, temperature: float = 0.2) -> Any:
-    """Instantiate a Gemini or Groq LLM for a specific model and API key.
+    """Instantiate a Gemini, Groq or local LLM for a specific model and API key.
 
     Args:
         model_name:  Exact model identifier (e.g. 'llama-3.3-70b-versatile').
-        provider:    Either 'gemini' or 'groq'.
+        provider:    One of 'gemini', 'groq', 'local'.
         api_key:     Optional explicit key; otherwise resolved from environment key pools.
         temperature: Sampling temperature.
     """
+    if provider == "local":
+        try:
+            from langchain_openai import ChatOpenAI
+        except ImportError as exc:
+            raise RuntimeError(
+                "Install langchain-openai to use a local endpoint: pip install langchain-openai"
+            ) from exc
+
+        base_url = get_local_base_url()
+        if not base_url:
+            raise RuntimeError("LOCAL_LLM_BASE_URL is not set — cannot reach a local LLM.")
+
+        local_keys = get_local_api_keys()
+        resolved_key = api_key or (local_keys[0] if local_keys else "not-needed")
+
+        return ChatOpenAI(
+            model=model_name,
+            api_key=resolved_key,
+            base_url=base_url,
+            temperature=temperature,
+            # A self-hosted model is usually the slow one in the stack; the OpenAI SDK's
+            # default 2 retries would also mask a 429 from the key-rotation logic below.
+            timeout=float(os.getenv("LOCAL_LLM_TIMEOUT", "120")),
+            max_retries=0,
+        )
+
     if provider == "groq":
         try:
             from langchain_groq import ChatGroq
@@ -429,37 +520,38 @@ def create_llm(model_name: str, provider: str, api_key: str | None = None, tempe
 
 def _build_provider_queue() -> list[tuple[str, list[str], list[str]]]:
     """Return an ordered list of (provider, [models], [available_keys]).
-    
-    Supports provider preference via LLM_PROVIDER ('groq' vs 'gemini') and
+
+    Supports provider preference via LLM_PROVIDER ('groq' | 'gemini' | 'local') and
     pools all configured API keys for automatic round-robin and multi-key failover.
+
+    The 'local' provider exists only when LOCAL_LLM_BASE_URL is set, and it is never
+    reordered ahead of a hosted provider unless it is the preferred one — a test rig
+    must not capture traffic just by being switched on.
     """
     preferred = (os.getenv("LLM_PROVIDER") or "gemini").strip().lower()
 
     gemini_keys = get_gemini_api_keys()
     groq_keys = get_groq_api_keys()
+    local_keys = get_local_api_keys() if get_local_base_url() else []
 
     gemini_entry = ("gemini", GEMINI_MODELS, gemini_keys)
     groq_entry = ("groq", GROQ_MODELS, groq_keys)
+    local_entry = ("local", get_local_models(), local_keys)
+
+    available = {
+        "gemini": gemini_entry if gemini_keys else None,
+        "groq": groq_entry if groq_keys else None,
+        "local": local_entry if local_keys else None,
+    }
+
+    # Preferred first, then the rest in a stable default order.
+    order = [preferred] + [p for p in ("gemini", "groq", "local") if p != preferred]
 
     queue: list[tuple[str, list[str], list[str]]] = []
-
-    if preferred == "groq":
-        if groq_keys:
-            queue.append(groq_entry)
-        if gemini_keys:
-            queue.append(gemini_entry)
-    else:
-        if gemini_keys:
-            queue.append(gemini_entry)
-        if groq_keys:
-            queue.append(groq_entry)
-
-    # If preferred wasn't available, include any available
-    if not queue:
-        if groq_keys:
-            queue.append(groq_entry)
-        if gemini_keys:
-            queue.append(gemini_entry)
+    for name in order:
+        entry = available.get(name)
+        if entry and entry not in queue:
+            queue.append(entry)
 
     return queue
 

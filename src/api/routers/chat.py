@@ -13,9 +13,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..dependencies import get_retriever
-from ..schemas.chat import ChatRequest, ChatResponse, RetrieveRequest, RetrieveResponse, SourceChunk
+from ..schemas.chat import (
+    ChatRequest, ChatResponse, RelatedQuestion, RetrieveRequest, RetrieveResponse, SourceChunk,
+)
 from ..services.rag_service import run_rag, run_retrieve_only
 from ..services.recommendation_service import find_topic
+from ..services import question_service
 from ...database.session import get_db
 from ...database import crud
 
@@ -90,6 +93,16 @@ async def chat(
                     topic_name=matched["name"],
                 )
 
+    # "Students also asked" — canonical siblings of the chunks that were just retrieved.
+    # Wrapped because a missing or broken question bank must never take the chat path
+    # down: the answer is the product, this is a garnish.
+    related: list[RelatedQuestion] = []
+    try:
+        doc_ids = [s["metadata"].get("doc_id", "") for s in result["sources"]]
+        related = [RelatedQuestion(**r) for r in question_service.related_to_doc_ids(db, doc_ids)]
+    except Exception:  # noqa: BLE001
+        related = []
+
     return ChatResponse(
         answer=result["answer"],
         sources=[SourceChunk(**s) for s in result["sources"]],
@@ -97,6 +110,7 @@ async def chat(
         fallback_used=result["fallback_used"],
         session_id=session_id,
         message_id=message_id,
+        related_questions=related,
     )
 
 

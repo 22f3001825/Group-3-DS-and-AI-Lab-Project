@@ -313,3 +313,53 @@
   .chat-sidebar { display: none; }
   .message-bubble { max-width: 90%; }
 }
+
+/* "Students also asked" — canonical siblings of the chunks that were just retrieved.
+   A garnish on the answer, so it sits below the sources rather than competing with them
+   and disappears silently when the question bank is unavailable. */
+.related-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.related-row .sources-label {
+  width: 100%;
+}
+
+.related-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.related-chip:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+  color: var(--text-primary);
+}
+
+.related-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 320px;
+}
+
+.related-chip em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--warning);
+}

@@ -8,10 +8,12 @@ matching the exact same setup used in run_rag.py and evaluate_rag.py.
 from __future__ import annotations
 
 import os
+import secrets
 from functools import lru_cache
 from typing import Any
 
 from dotenv import load_dotenv
+from fastapi import Header, HTTPException
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
 
@@ -35,8 +37,14 @@ def _normalize_url(url: str) -> str:
 
 
 @lru_cache(maxsize=1)
-def _build_retriever() -> Any:
-    """Build and cache the Qdrant retriever. Called once on first request."""
+def _build_vector_store() -> Any:
+    """Build and cache the Qdrant vector store. Called once on first request.
+
+    Split out of `_build_retriever` so the admin ingest path can call `add_documents()`
+    on the SAME singleton the chat path retrieves from: same dense + sparse models,
+    already resident, so an uploaded document is embedded by the existing flow into the
+    existing named vectors rather than by a second, parallel code path.
+    """
     qdrant_url = _normalize_url(os.getenv("QDRANT_URL", ""))
     qdrant_key = os.getenv("QDRANT_API_KEY")
 
@@ -56,7 +64,14 @@ def _build_retriever() -> Any:
         collection_name=COLLECTION_NAME,
         retrieval_mode=RetrievalMode.HYBRID,
     )
-    retriever = qdrant.as_retriever(search_kwargs={"k": 10})
+    print("[Startup] Vector store ready.")
+    return qdrant
+
+
+@lru_cache(maxsize=1)
+def _build_retriever() -> Any:
+    """Build and cache the Qdrant retriever. Derived from the vector-store singleton."""
+    retriever = _build_vector_store().as_retriever(search_kwargs={"k": 10})
     print("[Startup] Retriever ready.")
     return retriever
 
@@ -64,3 +79,55 @@ def _build_retriever() -> Any:
 def get_retriever() -> Any:
     """FastAPI Depends() dependency — returns the cached retriever."""
     return _build_retriever()
+
+
+def get_vector_store() -> Any:
+    """FastAPI Depends() dependency — returns the cached vector store."""
+    return _build_vector_store()
+
+
+def has_doc_id_payload_index() -> bool:
+    """Whether `metadata.doc_id` is indexed in the live collection.
+
+    `replace=true` deletes superseded points with a filter on that field, and without
+    the index Qdrant answers 400. `quiz_service._fetch_chunks_by_doc_id` swallows that
+    because context widening is optional; a delete cannot, so the commit path checks
+    here first and returns 503 naming the flag that creates it.
+    """
+    try:
+        client = _build_vector_store().client
+        schema = client.get_collection(COLLECTION_NAME).payload_schema or {}
+        return "metadata.doc_id" in schema
+    except Exception:  # noqa: BLE001
+        return False
+
+
+# ── Admin access ──────────────────────────────────────────────────────────────
+# There is no auth anywhere else in this system — `student_id` comes straight off the
+# URL path and every /learner/* handler auto-creates students. Rather than pretend
+# otherwise, admin is a single shared secret, and this docstring says so plainly.
+
+def admin_token_configured() -> bool:
+    return bool((os.getenv("ADMIN_TOKEN") or "").strip())
+
+
+def require_admin(x_admin_token: str = Header(default="")) -> str:
+    """Gate every admin endpoint on a shared secret from `.env`.
+
+    An UNCONFIGURED deployment is closed, not wide open: with `ADMIN_TOKEN` unset this
+    returns 503 rather than allowing the request. That covers the whole admin surface
+    including draft creation, not just the commit — an unauthenticated extract would let
+    anyone burn OCR minutes and fill the staging directory.
+
+    A staging record carries no per-admin identity; the shared secret is the whole
+    model, so any admin can review, edit or discard any pending draft.
+    """
+    configured = (os.getenv("ADMIN_TOKEN") or "").strip()
+    if not configured:
+        raise HTTPException(
+            status_code=503,
+            detail="Admin features are disabled: set ADMIN_TOKEN in .env and restart the API.",
+        )
+    if not secrets.compare_digest(x_admin_token or "", configured):
+        raise HTTPException(status_code=401, detail="Invalid or missing X-Admin-Token header.")
+    return configured

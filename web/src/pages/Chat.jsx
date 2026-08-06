@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Send, User, Bot, BookOpen, ChevronDown, ChevronUp, Clock, Zap, Video } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Send, User, Bot, BookOpen, ChevronDown, ChevronUp, Clock, Zap, Video, Layers } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import APIClient from '../api/client';
 import './Chat.css';
@@ -77,6 +77,18 @@ function Message({ msg }) {
                 {msg.sources.map((s, i) => <SourceChip key={i} source={s} index={i} />)}
               </div>
             )}
+            {msg.related && msg.related.length > 0 && (
+              <div className="related-row">
+                <div className="sources-label">🔗 Students also asked:</div>
+                {msg.related.map(r => (
+                  <Link key={r.unit_id} className="related-chip" to={`/doubts?cluster=${r.cluster_id}`}>
+                    <Layers size={12} />
+                    <span>{r.title}</span>
+                    {r.member_count > 1 && <em>×{r.member_count}</em>}
+                  </Link>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -149,8 +161,11 @@ export default function Chat() {
         content: result.answer,
         sources: result.sources,
         provider: result.provider_used,
+        // Defaulted server-side, so an unbuilt question bank is indistinguishable from
+        // "nothing related" rather than being an error the chat has to handle.
+        related: result.related_questions || [],
       }]);
-    } catch (err) {
+    } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: '⚠️ Could not reach the backend. Make sure FastAPI is running on port 8000.',

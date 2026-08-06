@@ -1,16 +1,42 @@
 const API_URL = 'http://localhost:8000';
 
+/** Where the admin's shared secret lives. Its presence is also what makes the /admin
+ *  link render in the navbar, so ordinary students never see the route. */
+const ADMIN_TOKEN_KEY = 'mlt_admin_token';
+
+export function getAdminToken() {
+  return localStorage.getItem(ADMIN_TOKEN_KEY) || '';
+}
+
+export function setAdminToken(token) {
+  if (token) localStorage.setItem(ADMIN_TOKEN_KEY, token);
+  else localStorage.removeItem(ADMIN_TOKEN_KEY);
+}
+
+/** Headers for an admin JSON call. Every admin endpoint needs BOTH X-Admin-Token and
+ *  Content-Type: application/json — the combination the old spread order silently broke. */
+function adminJson() {
+  return { 'X-Admin-Token': getAdminToken() };
+}
+
 class APIClient {
+  /**
+   * @param {string} endpoint
+   * @param {object} options  fetch options, plus `rawBody: true` to suppress the JSON
+   *   Content-Type default (FormData needs the browser to set its own multipart boundary).
+   */
   static async request(endpoint, options = {}) {
+    const { rawBody = false, headers: callerHeaders, ...rest } = options;
+
+    // The merge is built AFTER the rest of the options are spread. It used to be the
+    // other way round, which meant any caller passing `headers` replaced the merged
+    // object wholesale and the `...options.headers` merge was dead code — so an admin
+    // JSON call would carry X-Admin-Token but lose Content-Type and 422 on the server.
+    const headers = { ...(rawBody ? {} : { 'Content-Type': 'application/json' }), ...callerHeaders };
+
     let response;
     try {
-      response = await fetch(`${API_URL}${endpoint}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-        ...options,
-      });
+      response = await fetch(`${API_URL}${endpoint}`, { ...rest, headers });
     } catch (networkError) {
       console.error('API Request failed:', networkError);
       const error = new Error('Cannot reach the API. Is the backend running on port 8000?');
@@ -147,6 +173,121 @@ class APIClient {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+  }
+
+  // ── Question intelligence: read side (open, no token) ───────────────────────
+  // Every one of these 503s when the bank has not been built, naming the command.
+
+  static async getQuestionStats() {
+    return this.request('/questions/stats');
+  }
+
+  static async getQuestionClusters({ week = null, sourceType = null, minMemberCount = 1, limit = 50 } = {}) {
+    const params = new URLSearchParams({ min_member_count: minMemberCount, limit });
+    if (week !== null && week !== '') params.set('week', week);
+    if (sourceType) params.set('source_type', sourceType);
+    return this.request(`/questions/clusters?${params}`);
+  }
+
+  static async getCluster(clusterId) {
+    return this.request(`/questions/clusters/${clusterId}`);
+  }
+
+  static async getCommonDoubts(limit = 10) {
+    return this.request(`/questions/common-doubts?limit=${limit}`);
+  }
+
+  static async searchQuestions(query, limit = 10) {
+    return this.request(`/questions/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+  }
+
+  // ── Question intelligence: admin authoring (X-Admin-Token on all of these) ──
+  // Three ways to create a draft, one way to commit it. Phase A writes nothing
+  // outside data/raw/uploads/staging/<draft_id>/; commitDraft is the only call here
+  // that touches data/cleaned/, Qdrant or the bank.
+
+  /** Origin `pdf`. The ONLY multipart call — no explicit Content-Type, so the browser
+   *  sets the multipart boundary itself. */
+  static async extractQuestionPdf(file, metadata, allowOcr = false) {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('title', metadata.title || '');
+    form.append('source_type', metadata.source_type || '');
+    if (metadata.content_kind) form.append('content_kind', metadata.content_kind);
+    if (metadata.week !== null && metadata.week !== undefined) form.append('week', metadata.week);
+    form.append('topic_ids', (metadata.topic_ids || []).join(','));
+    if (metadata.lecture_ref) form.append('lecture_ref', metadata.lecture_ref);
+    if (metadata.source_note) form.append('source_note', metadata.source_note);
+    form.append('allow_ocr', allowOcr ? 'true' : 'false');
+
+    return this.request('/questions/extract', {
+      method: 'POST',
+      rawBody: true,
+      headers: adminJson(),
+      body: form,
+    });
+  }
+
+  /** Origin `paste`. */
+  static async createTextDraft(markdown, metadata) {
+    return this.request('/questions/drafts', {
+      method: 'POST',
+      headers: adminJson(),
+      body: JSON.stringify({ markdown, metadata }),
+    });
+  }
+
+  /** Origin `compose`. Fields in, canonical question markdown out. */
+  static async createComposedDraft(questions, metadata) {
+    return this.request('/questions/drafts/compose', {
+      method: 'POST',
+      headers: adminJson(),
+      body: JSON.stringify({ questions, metadata }),
+    });
+  }
+
+  /** Re-analyse edited text and metadata. No writes — safe to call on every edit. */
+  static async previewDraft(draftId, markdown, metadata = null) {
+    return this.request(`/questions/staged/${draftId}/preview`, {
+      method: 'POST',
+      headers: adminJson(),
+      body: JSON.stringify({ markdown, metadata }),
+    });
+  }
+
+  /** Phase B. 404 unknown id, 409 already committed or stem collision without
+   *  `replace`, 410 expired, 400 invalid text or metadata, 503 missing payload index. */
+  static async commitDraft(draftId, markdown, metadata = null, replace = false) {
+    return this.request(`/questions/staged/${draftId}/commit`, {
+      method: 'POST',
+      headers: adminJson(),
+      body: JSON.stringify({ markdown, metadata, replace }),
+    });
+  }
+
+  static async listDrafts() {
+    return this.request('/questions/staged', { headers: adminJson() });
+  }
+
+  static async getDraft(draftId) {
+    return this.request(`/questions/staged/${draftId}`, { headers: adminJson() });
+  }
+
+  /** The whole rollback for Phase A. */
+  static async discardDraft(draftId) {
+    return this.request(`/questions/staged/${draftId}`, {
+      method: 'DELETE',
+      headers: adminJson(),
+    });
+  }
+
+  static async getUploads() {
+    return this.request('/questions/uploads', { headers: adminJson() });
+  }
+
+  /** Full re-cluster. Cluster IDs are NOT preserved, so deep links go stale. */
+  static async rebuildClusters() {
+    return this.request('/questions/rebuild', { method: 'POST', headers: adminJson() });
   }
 }
 

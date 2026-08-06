@@ -9,6 +9,7 @@ langchain-community
 langchain-google-genai
 langchain-groq
 groq>=0.9.0
+langchain-openai        # only for LLM_PROVIDER=local (any OpenAI-compatible endpoint)
 
 # ── Tokenization & Embeddings ──────────────────────────────────────────────────
 tiktoken
@@ -29,6 +30,7 @@ langchain-qdrant
 # ── Backend API & Database ────────────────────────────────────────────────────
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
+python-multipart        # required by FastAPI for UploadFile (admin PDF upload)
 sqlalchemy>=2.0.0
 pydantic>=2.6.0
 python-dotenv>=1.0.0
