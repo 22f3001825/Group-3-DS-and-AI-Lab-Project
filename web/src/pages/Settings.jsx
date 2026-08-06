@@ -11,7 +11,7 @@ const Settings = () => {
       <div className="settings-header">
         <div>
           <h1 className="page-title">Settings</h1>
-          <p className="page-subtitle">Appearance preferences for this browser tab.</p>
+          <p className="page-subtitle">Appearance preferences, remembered in this browser.</p>
         </div>
       </div>
 
@@ -84,8 +84,8 @@ const Settings = () => {
         <div className="settings-note">
           <Info size={14} />
           <span>
-            This preference is not saved anywhere — it lives in the page's state only. Reloading
-            or opening a new tab starts you back on dark mode.
+            This preference is saved in your browser, so reloading or opening a new tab keeps
+            the theme you picked. It is stored per browser, not on your account.
           </span>
         </div>
       </section>
