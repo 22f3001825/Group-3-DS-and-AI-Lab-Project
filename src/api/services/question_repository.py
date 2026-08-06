@@ -19,6 +19,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ... import question_intelligence as qi
+# Thresholds arrive as arguments (the service owns policy), but this one is definitional
+# rather than tunable-per-call: it says what "asked" MEANS, and a caller that could pass
+# a different set could make two endpoints disagree about the same cluster.
+from ...config import QI_ASKED_SOURCE_TYPES
 from ...database.models import (
     ClusterMember, ConceptCluster, DuplicateGroup, QuestionBankOutbox,
     QuestionBankVersion, QuestionDocument, QuestionUnit, QuestionUnitChunk,
@@ -79,13 +83,17 @@ def _cluster_summary(db: Session, row: ConceptCluster) -> dict[str, Any]:
         "title": row.title,
         "canonical_count": len(canonical),
         "member_count": len(units),
+        # Members that represent somebody asking, as opposed to a scan boundary — this
+        # is the number the "N asked" label and the common-doubts ranking use.
+        "asked_count": sum(1 for u in units if u.source_type in QI_ASKED_SOURCE_TYPES),
         "weeks": sorted({u.week for u in units}),
         "sources": sorted({u.source_type for u in units}),
         "medoid_unit_id": row.medoid_unit_id,
     }
 
 
-def stats(db: Session) -> dict[str, Any]:
+def stats(db: Session, min_member_count: int = 1,
+          min_readability: float = 0.0) -> dict[str, Any]:
     version = require_active_version(db)
     units = db.query(QuestionUnit).filter(QuestionUnit.bank_version_id == version.version_id).all()
     clusters = db.query(ConceptCluster).filter(ConceptCluster.bank_version_id == version.version_id).all()
@@ -95,12 +103,25 @@ def stats(db: Session) -> dict[str, Any]:
         source_units = [u for u in units if u.source_type == source]
         by_source[source] = {"units": count, "canonical": sum(1 for u in source_units if u.is_canonical)}
     cluster_sizes = Counter(unit.cluster_id for unit in units if unit.cluster_id)
+    cluster_asked = Counter(unit.cluster_id for unit in units
+                            if unit.cluster_id and unit.source_type in QI_ASKED_SOURCE_TYPES)
     return {
         "unit_count": len(units),
         "canonical_count": canonical_count,
         "duplicate_count": len(units) - canonical_count,
         "duplicate_rate": (len(units) - canonical_count) / len(units) if units else 0.0,
         "cluster_count": len(clusters),
+        # How many of those a student can actually browse, under the same rule
+        # list_clusters applies. Shown alongside cluster_count, never instead of it —
+        # the header stat and the list below it disagreed before this existed.
+        "displayable_clusters": sum(
+            1 for row in clusters
+            if qi.is_displayable_cluster(
+                {"title": row.title,
+                 "member_count": cluster_sizes.get(row.cluster_id, 0),
+                 "asked_count": cluster_asked.get(row.cluster_id, 0)},
+                min_members=min_member_count, min_readability=min_readability)
+        ),
         "singleton_clusters": sum(1 for size in cluster_sizes.values() if size == 1),
         "largest_member_count": max(cluster_sizes.values(), default=0),
         "admin_authored_units": sum(1 for unit in units if unit.origin == "admin"),
@@ -112,20 +133,27 @@ def stats(db: Session) -> dict[str, Any]:
 
 
 def list_clusters(db: Session, week: Optional[int], source_type: Optional[str],
-                  min_member_count: int, limit: int) -> list[dict[str, Any]]:
+                  min_member_count: int, limit: int,
+                  min_readability: float = 0.0) -> list[dict[str, Any]]:
+    """Browsable clusters. `min_member_count` and `min_readability` are display gates —
+    they hide nothing from `get_cluster`, search, or the quiz generator."""
     version = require_active_version(db)
     rows = db.query(ConceptCluster).filter(ConceptCluster.bank_version_id == version.version_id).all()
     result = []
     for row in rows:
         value = _cluster_summary(db, row)
-        if value["member_count"] < min_member_count:
+        if not qi.is_displayable_cluster(value, min_members=min_member_count,
+                                         min_readability=min_readability):
             continue
         if week is not None and week not in value["weeks"]:
             continue
         if source_type and source_type not in value["sources"]:
             continue
         result.append(value)
-    return sorted(result, key=lambda c: (-c["member_count"], -c["canonical_count"]))[:limit]
+    # Asked first: a cluster three students asked about outranks a longer one assembled
+    # from a single scan, which sorting on member_count alone got backwards.
+    return sorted(result, key=lambda c: (-c["asked_count"], -c["member_count"],
+                                         -c["canonical_count"]))[:limit]
 
 
 def get_cluster(db: Session, cluster_id: str | int) -> Optional[dict[str, Any]]:
@@ -146,9 +174,18 @@ def get_cluster(db: Session, cluster_id: str | int) -> Optional[dict[str, Any]]:
     return value
 
 
-def common_doubts(db: Session, min_size: int, limit: int) -> list[dict[str, Any]]:
-    clusters = list_clusters(db, None, None, min_size, 10_000)
-    return sorted(clusters, key=lambda c: (-c["member_count"], -len(c["sources"]), -c["canonical_count"]))[:limit]
+def common_doubts(db: Session, min_size: int, limit: int,
+                  min_readability: float = 0.0) -> list[dict[str, Any]]:
+    """Ranked by `asked_count`, and gated on it too.
+
+    `min_size` is applied to asked_count rather than member_count, which is what keeps a
+    PYQ-only cluster out of "most-asked" entirely: its members are one scanned question
+    split by the OCR, so it was asked once at most and has no claim on the ranking.
+    """
+    clusters = list_clusters(db, None, None, 1, 10_000, min_readability)
+    ranked = [c for c in clusters if c["asked_count"] >= min_size]
+    return sorted(ranked, key=lambda c: (-c["asked_count"], -len(c["sources"]),
+                                         -c["canonical_count"]))[:limit]
 
 
 def related_to_doc_ids(db: Session, doc_ids: list[str], limit: int) -> list[dict[str, Any]]:

@@ -76,12 +76,20 @@ function ClusterCard({ cluster, autoOpen }) {
         <div className="qi-cluster-title">
           <span className="qi-cluster-name">{cluster.title}</span>
           <div className="qi-cluster-meta">
-            {/* Two counts, deliberately never collapsed into one "size". member_count is
-                how many TIMES the doubt was asked; canonical_count is how many distinct
-                phrasings survived deduplication. */}
-            <span className="qi-count" title="How many times this doubt appears in the corpus">
-              <Flame size={12} /> {cluster.member_count} asked
-            </span>
+            {/* Counts are deliberately never collapsed into one "size". asked_count is how
+                many times somebody asked; canonical_count is how many distinct phrasings
+                survived deduplication. A cluster drawn only from past papers has no
+                asked_count — its members are OCR fragments of one printed question, so
+                it says how much exam material it holds and makes no claim about demand. */}
+            {cluster.asked_count > 0 ? (
+              <span className="qi-count" title="Times this doubt was asked in the FAQs and practice sets">
+                <Flame size={12} /> {cluster.asked_count} asked
+              </span>
+            ) : (
+              <span className="qi-count subtle" title="Extracted from past papers — not a count of how many people asked">
+                {cluster.member_count} from past papers
+              </span>
+            )}
             <span className="qi-count subtle" title="Distinct doubts after deduplication">
               {cluster.canonical_count} distinct
             </span>
@@ -219,7 +227,16 @@ export default function Doubts() {
         {stats && (
           <div className="qi-stat-strip">
             <div className="qi-stat"><span>{stats.unit_count}</span><label>questions</label></div>
-            <div className="qi-stat"><span>{stats.cluster_count}</span><label>concept groups</label></div>
+            {/* The browsable count, not the raw one — this tile sits above the list and
+                promised a number the list could never show. The raw total is in the
+                tooltip rather than dropped. */}
+            <div
+              className="qi-stat"
+              title={`${stats.cluster_count} clusters exist in total; the rest either group a single question or came out of the OCR without a readable title.`}
+            >
+              <span>{stats.displayable_clusters ?? stats.cluster_count}</span>
+              <label>concept groups</label>
+            </div>
             <div className="qi-stat">
               <span>{stats.duplicate_count}</span>
               <label>duplicates folded</label>
@@ -249,7 +266,9 @@ export default function Doubts() {
         <h2 className="qi-section-title"><Flame size={15} /> Most-asked doubts</h2>
         {doubts.length === 0 ? (
           <p className="qi-empty">
-            No doubt appears more than once yet — every question in the bank is currently distinct.
+            No doubt has been asked more than once yet — every question in the FAQs and
+            practice sets is currently distinct. Past papers are not counted here: their
+            repetition is an artefact of how the scans were split, not of demand.
           </p>
         ) : (
           <div className="qi-doubt-strip">
@@ -262,7 +281,7 @@ export default function Doubts() {
                 <span className="qi-rank">#{i + 1}</span>
                 <span className="qi-doubt-title">{c.title}</span>
                 <span className="qi-doubt-meta">
-                  {c.member_count} asked · {(c.sources || []).join(', ')}
+                  {c.asked_count} asked · {(c.sources || []).join(', ')}
                 </span>
               </button>
             ))}
@@ -321,7 +340,13 @@ export default function Doubts() {
             <h2 className="qi-section-title">
               Concept groups {clusters.length > 0 && <span className="qi-muted">({clusters.length})</span>}
             </h2>
-            {clusters.length === 0 && <p className="qi-empty">No groups match these filters.</p>}
+            {clusters.length === 0 && (
+              <p className="qi-empty">
+                No group matches these filters. Groups of a single question, and groups the
+                OCR left without a readable title, are not listed — search still reaches
+                every question in the bank.
+              </p>
+            )}
             <div className="qi-cluster-list">
               {clusters.map(c => (
                 <ClusterCard

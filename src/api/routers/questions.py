@@ -32,7 +32,7 @@ from ..schemas.questions import (
 from ..services import ingest_service, question_repository, question_service
 from ..services.question_service import QuestionBankUnavailableError
 from ..services.question_vector_service import sync_outbox
-from ...config import QI_UPLOAD_MAX_MB
+from ...config import QI_MIN_DISPLAY_MEMBERS, QI_UPLOAD_MAX_MB
 from ...database.session import get_db
 
 router = APIRouter(prefix="/questions", tags=["Question Intelligence"])
@@ -67,10 +67,17 @@ def get_stats(db: Session = Depends(get_db)) -> BankStats:
 def list_clusters(
     week: Optional[int] = Query(default=None, ge=0, le=52),
     source_type: Optional[str] = Query(default=None),
-    min_member_count: int = Query(default=1, ge=1),
+    min_member_count: int = Query(default=QI_MIN_DISPLAY_MEMBERS, ge=1),
     limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ) -> list[ClusterSummary]:
+    """Browsable concept groups.
+
+    Two clusters are withheld from this list and only this list: singletons (they grouped
+    nothing) and clusters whose title is OCR debris (they cannot be read). Pass
+    `min_member_count=1` to see the singletons; the readability gate is not overridable
+    here, and neither gate affects `/clusters/{id}`, `/search` or quiz generation.
+    """
     try:
         rows = question_service.list_clusters(db, week, source_type, min_member_count, limit)
     except QuestionBankUnavailableError as exc:
@@ -81,7 +88,11 @@ def list_clusters(
 @router.get("/common-doubts", response_model=list[ClusterSummary])
 def common_doubts(limit: int = Query(default=10, ge=1, le=50),
                   db: Session = Depends(get_db)) -> list[ClusterSummary]:
-    """Clusters ranked by how many TIMES a doubt was asked (`member_count`)."""
+    """Clusters ranked by how many TIMES a doubt was asked (`asked_count`).
+
+    Not `member_count`: PYQ members are OCR-split fragments of one printed question, so
+    counting them here reported scanner behaviour as demand.
+    """
     try:
         rows = question_service.common_doubts(db, limit)
     except QuestionBankUnavailableError as exc:

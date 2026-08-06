@@ -182,8 +182,12 @@ class APIClient {
     return this.request('/questions/stats');
   }
 
-  static async getQuestionClusters({ week = null, sourceType = null, minMemberCount = 1, limit = 50 } = {}) {
-    const params = new URLSearchParams({ min_member_count: minMemberCount, limit });
+  /** `minMemberCount` is omitted unless asked for, so the server's display policy is the
+   *  one that applies — sending a default of 1 from here silently re-enabled singleton
+   *  clusters no matter what the API was configured to withhold. */
+  static async getQuestionClusters({ week = null, sourceType = null, minMemberCount = null, limit = 50 } = {}) {
+    const params = new URLSearchParams({ limit });
+    if (minMemberCount !== null) params.set('min_member_count', minMemberCount);
     if (week !== null && week !== '') params.set('week', week);
     if (sourceType) params.set('source_type', sourceType);
     return this.request(`/questions/clusters?${params}`);

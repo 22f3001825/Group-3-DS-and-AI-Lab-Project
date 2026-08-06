@@ -39,15 +39,15 @@ import numpy as np
 try:
     from src import question_intelligence as qi
     from src.config import (
-        QI_CLUSTER_DISTANCE, QI_DUPLICATE_THRESHOLD, QI_MIN_COMMON_DOUBT_SIZE,
-        QI_SOURCE_TYPES, QI_TOKEN_GUARD,
+        QI_ASKED_SOURCE_TYPES, QI_CLUSTER_DISTANCE, QI_DUPLICATE_THRESHOLD,
+        QI_MIN_COMMON_DOUBT_SIZE, QI_SOURCE_TYPES, QI_TOKEN_GUARD,
     )
 except ModuleNotFoundError:  # pragma: no cover - import shim
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from src import question_intelligence as qi
     from src.config import (
-        QI_CLUSTER_DISTANCE, QI_DUPLICATE_THRESHOLD, QI_MIN_COMMON_DOUBT_SIZE,
-        QI_SOURCE_TYPES, QI_TOKEN_GUARD,
+        QI_ASKED_SOURCE_TYPES, QI_CLUSTER_DISTANCE, QI_DUPLICATE_THRESHOLD,
+        QI_MIN_COMMON_DOUBT_SIZE, QI_SOURCE_TYPES, QI_TOKEN_GUARD,
     )
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -119,7 +119,7 @@ def ensure_payload_index() -> int:
 
 def write_report(bank: dict, warnings: list[str]) -> None:
     stats = bank["stats"]
-    clusters = sorted(bank["clusters"], key=lambda c: -c["member_count"])
+    clusters = sorted(bank["clusters"], key=lambda c: (-c["asked_count"], -c["member_count"]))
     unit_by_id = {u["unit_id"]: u for u in bank["units"]}
 
     lines = [
@@ -144,6 +144,7 @@ def write_report(bank: dict, warnings: list[str]) -> None:
         f"| Units folded into a duplicate group | {stats['duplicate_count']} |",
         f"| Duplicate rate | {stats['duplicate_rate']:.1%} |",
         f"| Clusters | {stats['cluster_count']} |",
+        f"| Clusters fit to display | {stats['displayable_clusters']} |",
         f"| Singleton clusters | {stats['singleton_clusters']} |",
         f"| Admin-authored units | {stats['admin_authored_units']} |",
         "",
@@ -160,26 +161,32 @@ def write_report(bank: dict, warnings: list[str]) -> None:
         "",
         "## Most common doubts",
         "",
-        "Ranked by **`member_count`** — how many times a doubt was asked — not by",
+        "Ranked by **`asked_count`** — how many times a doubt was asked — not by",
         "`canonical_count`. Deduplication is exactly what collapses the repetition this",
         "ranking is trying to surface, so ranking by distinct doubts would invert it.",
         "",
-        f"Clusters shown have `member_count` ≥ {QI_MIN_COMMON_DOUBT_SIZE}.",
+        f"`asked_count` counts members from {', '.join(f'`{s}`' for s in QI_ASKED_SOURCE_TYPES)} "
+        "only. `PYQ` is excluded because its unit boundaries come from the OCR's",
+        "`[Extracted Question]` markers rather than from the printed paper: one question",
+        "routinely yields eight units, and ranking on `member_count` put that scan at the",
+        "top of \"most asked\" with nobody having asked it.",
         "",
-        "| # | Cluster | Members | Distinct | Weeks | Sources |",
-        "|--:|---|--:|--:|---|---|",
+        f"Clusters shown have `asked_count` ≥ {QI_MIN_COMMON_DOUBT_SIZE}.",
+        "",
+        "| # | Cluster | Asked | Members | Distinct | Weeks | Sources |",
+        "|--:|---|--:|--:|--:|---|---|",
     ]
-    ranked = [c for c in clusters if c["member_count"] >= QI_MIN_COMMON_DOUBT_SIZE][:10]
+    ranked = [c for c in clusters if c["asked_count"] >= QI_MIN_COMMON_DOUBT_SIZE][:10]
     for rank, cluster in enumerate(ranked, start=1):
         title = cluster["title"].replace("|", "\\|")[:80]
         weeks = ", ".join(str(w) for w in cluster["weeks"])
         sources = ", ".join(f"`{s}`" for s in cluster["sources"])
         lines.append(
-            f"| {rank} | {title} | {cluster['member_count']} | "
+            f"| {rank} | {title} | {cluster['asked_count']} | {cluster['member_count']} | "
             f"{cluster['canonical_count']} | {weeks} | {sources} |"
         )
     if not ranked:
-        lines.append("| — | _no cluster reached the minimum member count_ | | | | |")
+        lines.append("| — | _no cluster reached the minimum asked count_ | | | | | |")
 
     lines += [
         "",
