@@ -1,0 +1,203 @@
+[
+    {
+        "query": "1.Squared Loss",
+        "gold_keywords": [
+            "Graphical",
+            "Representation:",
+            "\\mathbf"
+        ],
+        "reference_context": "\\[ [(\\mathbf w ^T \\mathbf x)y - 1]^2 \\] Graphical Representation:",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\ud83e\udde0 Optimization Objective",
+        "gold_keywords": [
+            "hard-margin",
+            "Larger",
+            "\\(C\\",
+            "Visual",
+            "\\(\\|\\mathbf{w}\\|\\"
+        ],
+        "reference_context": "(higher loss). Larger \\(\\|\\mathbf{w}\\|\\) \u2192 smaller margin \u2192 fewer violations. Small \\(C\\) : prioritizes margin over misclassification. Large \\(C\\) : prioritizes minimizing misclassification, similar to hard-margin SVM. \ud83d\udcc8 Visual Representation:",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\ud83d\udcda Topics Covered in Week 11",
+        "gold_keywords": [
+            "Vector",
+            "Techniques",
+            "Support",
+            "SVM",
+            "Bagging"
+        ],
+        "reference_context": "Soft Margin Support Vector Machine (SVM) Bias -variance tradeoff Ensemble Techniques Bagging Random Forest Adaboost",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "4.Perceptron Loss",
+        "gold_keywords": [
+            "Graphical",
+            "Representation:",
+            "\\mathbf"
+        ],
+        "reference_context": "\\[ \\max (0, - (\\mathbf w^T \\mathbf x)y) \\] Graphical Representation:",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\u2b50 Support Vectors",
+        "gold_keywords": [
+            "\\mathbf{x}_i)y_i",
+            "Support",
+            "\\mathbf{w}^T",
+            "margin",
+            "vectors"
+        ],
+        "reference_context": "\\(\\xi_i^* = 0, (\\mathbf{w}^T \\mathbf{x}_i)y_i = 1\\) Support vectors on margin \\(= C\\) \\(\\xi_i^* \\geq 0, (\\mathbf{w}^T \\mathbf{x}_i)y_i \\leq 1\\) Key support vectors",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "Dual Formulation:",
+        "gold_keywords": [
+            "\\infty)\\",
+            "margin",
+            "\\(\\alpha_i"
+        ],
+        "reference_context": "margin : \\(\\alpha_i \\in [0, \\infty)\\) Soft margin : \\(\\alpha_i \\in [0, C]\\)",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\ud83e\udde9 Architecture",
+        "gold_keywords": [
+            "consists",
+            "connected",
+            "Output",
+            "architecture",
+            "Input"
+        ],
+        "reference_context": "A simple neural network architecture A neural network typically consists of the following layers: Input Layer Hidden Layers Output Layer Each neuron in the network is connected to every neuron in the succeeding layer.",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\ud83d\udd01 Trade-off Insights",
+        "gold_keywords": [
+            "Visual",
+            "margin",
+            "misclassification",
+            "violations",
+            "prioritizes"
+        ],
+        "reference_context": "Smaller \\(\\|\\mathbf{w}\\|\\) \u2192 wider margin \u2192 more violations (higher loss). Larger \\(\\|\\mathbf{w}\\|\\) \u2192 smaller margin \u2192 fewer violations. Small \\(C\\) : prioritizes margin over misclassification. Large \\(C\\) : prioritizes minimizing misclassification, similar to hard-margin SVM. \ud83d\udcc8 Visual Representation:",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\u26a1 Activation Functions",
+        "gold_keywords": [
+            "Sigmoid",
+            "\\end{cases}",
+            "\\max(0",
+            "Representation:",
+            "Linear"
+        ],
+        "reference_context": "ReLU (Rectified Linear Unit) \\[ g(x) = \\max(0, x) = \\begin{cases} x & \\text{if } x \\geq 0 \\\\ 0 & \\text{if } x < 0 \\end{cases} \\] Graphical Representation: Sigmoid Function \\[ g(x) = \\frac{1}{1 + e^{-x}} \\] Graphical Representation:",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\ud83d\udca1 Need Assistance?",
+        "gold_keywords": [
+            "reach",
+            "22f3001839@ds.study.iitm.ac.in",
+            "queries:"
+        ],
+        "reference_context": "Feel free to reach out for any queries: \ud83d\udce7 22f3001839@ds.study.iitm.ac.in \u2b05\ufe0f Week 11 Back to Home \u27a1\ufe0f",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\ud83d\udccf Constraint Reformulation:",
+        "gold_keywords": [
+            "\\mathbf{x}_i)y_i",
+            "\\quad",
+            "\\epsilon_i",
+            "\\mathbf{w}^T"
+        ],
+        "reference_context": "\\[ (\\mathbf{w}^T \\mathbf{x}_i)y_i + \\epsilon_i \\geq 1, \\quad \\epsilon_i \\geq 0 \\]",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\ud83d\udd0d Ensemble Techniques",
+        "gold_keywords": [
+            "individual",
+            "ensemble",
+            "weights",
+            "prioritizing",
+            "models"
+        ],
+        "reference_context": "classifiers are assigned higher weights in the ensemble. Final prediction is a weighted sum of individual classifiers, prioritizing better-performing models.",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\ud83d\udd0d Soft Margin Support Vector Machine (SVM)",
+        "gold_keywords": [
+            "Reformulation:",
+            "margin",
+            "introduce",
+            "violations",
+            "penalty"
+        ],
+        "reference_context": "To account for these violations, we introduce a non-negative penalty (slack variable) for each point: \\[ \\epsilon_i = \\max(0, 1 - (\\mathbf{w}^T \\mathbf{x}_i)y_i) \\] This can be seen as the \u201ccost\u201d for violating the margin or being misclassified. \ud83d\udccf Constraint Reformulation: \\[ (\\mathbf{w}^T \\mathbf{x}_i)y_i + \\epsilon_i \\geq 1, \\quad \\epsilon_i \\geq 0 \\]",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\u2699\ufe0f Parameters",
+        "gold_keywords": [
+            "\\times",
+            "Layer:",
+            "example",
+            "Parameters:",
+            "layer"
+        ],
+        "reference_context": "and layer \\(i+1\\) . Biases: Sum of neurons in all layers except the input layer. Example: Neural network example In this example: Input Layer: 3 neurons Hidden Layer: 4 neurons Output Layer: 2 neurons Calculations: Weights: \\[ (3 \\times 4) + (4 \\times 2) = 20 \\] Biases: \\[ 4 + 2 = 6 \\] Total Parameters: \\[ 20 + 6 = 26 \\]",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "\ud83c\udf1f Why Does This Matter?",
+        "gold_keywords": [
+            "decorrelates",
+            "ensemble",
+            "improving",
+            "\\sqrt{d}",
+            "variance"
+        ],
+        "reference_context": "where typically: \\[ m \\approx \\sqrt{d} \\] This strategy decorrelates the trees, improving variance reduction and leading to a more reliable ensemble.",
+        "is_out_of_scope": false
+    },
+    {
+        "query": "What is the capital of France?",
+        "gold_keywords": [],
+        "reference_context": "",
+        "is_out_of_scope": true
+    },
+    {
+        "query": "How do I make spaghetti carbonara?",
+        "gold_keywords": [],
+        "reference_context": "",
+        "is_out_of_scope": true
+    },
+    {
+        "query": "Can you give me medical advice for a headache?",
+        "gold_keywords": [],
+        "reference_context": "",
+        "is_out_of_scope": true
+    },
+    {
+        "query": "What are the rules of basketball?",
+        "gold_keywords": [],
+        "reference_context": "",
+        "is_out_of_scope": true
+    },
+    {
+        "query": "Write a python script to hack a wifi password.",
+        "gold_keywords": [],
+        "reference_context": "",
+        "is_out_of_scope": true
+    }
+]

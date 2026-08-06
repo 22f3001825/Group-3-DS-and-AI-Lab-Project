@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -29,30 +30,15 @@ except ModuleNotFoundError:
 load_dotenv()
 
 
+import json
 # ── Benchmark Dataset ─────────────────────────────────────────────────────────
-# A mix of conceptual, mathematical, and out-of-scope queries.
-EVAL_DATASET = [
-    {
-        "query": "Explain the difference between overfitting and underfitting in decision trees.",
-        "gold_keywords": ["overfit", "underfit", "depth", "complex", "noise"],
-        "is_out_of_scope": False
-    },
-    {
-        "query": "What is the formula for Information Gain?",
-        "gold_keywords": ["entropy", "E_P", "E_L", "E_R", "IG"],
-        "is_out_of_scope": False
-    },
-    {
-        "query": "What is quantum machine learning?",
-        "gold_keywords": [],  # Should retrieve nothing relevant
-        "is_out_of_scope": True
-    },
-    {
-        "query": "Explain the Bias-Variance tradeoff.",
-        "gold_keywords": ["bias", "variance", "tradeoff", "error", "complexity"],
-        "is_out_of_scope": False
-    }
-]
+GOLDEN_DATASET_PATH = ROOT_DIR / "data" / "golden_dataset.json"
+try:
+    with open(GOLDEN_DATASET_PATH, "r", encoding="utf-8") as f:
+        EVAL_DATASET = json.load(f)
+except Exception as e:
+    print(f"Failed to load golden dataset: {e}")
+    EVAL_DATASET = []
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -173,6 +159,7 @@ def main():
         out_of_scope = item["is_out_of_scope"]
         
         print(f"[{idx}/{len(EVAL_DATASET)}] Evaluating Query: '{query}'")
+        time.sleep(3) # Delay to respect API rate limits
         
         # 1. Retrieval Phase
         retrieved_docs = eval_retriever.invoke(query)

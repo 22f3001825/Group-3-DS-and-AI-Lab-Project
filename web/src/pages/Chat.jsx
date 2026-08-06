@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Send, User, Bot, BookOpen, ChevronDown, ChevronUp, Clock, Zap, Video, Layers } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import APIClient from '../api/client';
 import './Chat.css';
 
@@ -64,7 +67,9 @@ function Message({ msg }) {
         ) : (
           <>
             <div className="prose assistant-text">
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {msg.content}
+              </ReactMarkdown>
             </div>
             {msg.provider && (
               <div className="provider-tag">

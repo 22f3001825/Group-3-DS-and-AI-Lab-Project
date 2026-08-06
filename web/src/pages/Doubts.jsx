@@ -4,6 +4,10 @@ import {
   Layers, Search, Flame, ChevronDown, ChevronUp, AlertTriangle,
   Copy, FileText, Loader2,
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import APIClient from '../api/client';
 import './Doubts.css';
 
@@ -30,8 +34,16 @@ function UnitCard({ unit }) {
         )}
         {unit.origin === 'admin' && <span className="qi-origin-tag">admin-added</span>}
       </div>
-      <div className="qi-unit-title">{unit.title}</div>
-      <p className="qi-unit-text">{unit.text}</p>
+      <div className="qi-unit-title">
+        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+          {unit.title}
+        </ReactMarkdown>
+      </div>
+      <div className="qi-unit-text prose">
+        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+          {unit.text}
+        </ReactMarkdown>
+      </div>
       {hasDetail && (
         <button className="qi-link-btn" onClick={() => setOpen(!open)}>
           {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -42,11 +54,30 @@ function UnitCard({ unit }) {
         <div className="qi-unit-detail">
           {(unit.options || []).length > 0 && (
             <ul className="qi-options">
-              {unit.options.map((opt, i) => <li key={i}>{opt}</li>)}
+              {unit.options.map((opt, i) => (
+                <li key={i}>
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                    {opt}
+                  </ReactMarkdown>
+                </li>
+              ))}
             </ul>
           )}
-          {unit.answer && <div className="qi-answer"><strong>Answer:</strong> {unit.answer}</div>}
-          {unit.solution && <div className="qi-solution">{unit.solution}</div>}
+          {unit.answer && (
+            <div className="qi-answer">
+              <strong>Answer:</strong>{' '}
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{ p: 'span' }}>
+                {unit.answer}
+              </ReactMarkdown>
+            </div>
+          )}
+          {unit.solution && (
+            <div className="qi-solution prose">
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {unit.solution}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
       )}
     </div>

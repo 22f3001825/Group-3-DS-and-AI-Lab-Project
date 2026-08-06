@@ -318,6 +318,7 @@ def main() -> int:
             use_token_guard=QI_TOKEN_GUARD,
         )
         version = persist_bank(db, bank, vectors)
+        version_id = version.version_id
         db.commit()
         sync = sync_outbox(db, limit=10_000) if not args.skip_sync else {"synced": 0, "failed": 0}
 
@@ -326,7 +327,7 @@ def main() -> int:
     stats = bank["stats"]
     print(f"[done] {stats['unit_count']} units -> {stats['canonical_count']} distinct doubts "
           f"-> {stats['cluster_count']} clusters (duplicate rate {stats['duplicate_rate']:.1%})")
-    print(f"       database version {version.version_id}")
+    print(f"       database version {version_id}")
     print(f"       vectors: {sync['synced']} synced, {sync['failed']} failed "
           f"(retry: python src/sync_question_vectors.py)")
     print(f"       {REPORT_PATH.relative_to(ROOT_DIR)}")
