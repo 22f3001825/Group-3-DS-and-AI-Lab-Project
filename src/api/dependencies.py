@@ -86,20 +86,26 @@ def get_vector_store() -> Any:
     return _build_vector_store()
 
 
-def has_doc_id_payload_index() -> bool:
-    """Whether `metadata.doc_id` is indexed in the live collection.
+def doc_id_payload_index_state() -> bool | None:
+    """Whether `metadata.doc_id` is indexed in the live collection — or None if unknown.
 
     `replace=true` deletes superseded points with a filter on that field, and without
     the index Qdrant answers 400. `quiz_service._fetch_chunks_by_doc_id` swallows that
     because context widening is optional; a delete cannot, so the commit path checks
     here first and returns 503 naming the flag that creates it.
+
+    The three-way answer matters: an unreachable Qdrant is *unknown*, not *absent*, and
+    a commit must not refuse with a misleading "create the index" message during an
+    outage. Queued work is the right answer there.
     """
     try:
         client = _build_vector_store().client
         schema = client.get_collection(COLLECTION_NAME).payload_schema or {}
         return "metadata.doc_id" in schema
     except Exception:  # noqa: BLE001
-        return False
+        return None
+
+
 
 
 # ── Admin access ──────────────────────────────────────────────────────────────

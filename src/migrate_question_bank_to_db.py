@@ -1,12 +1,15 @@
-"""Import the legacy file-backed question bank into the database-backed store.
+"""Import a legacy file-backed question bank into the database-backed store.
 
-This is intentionally an operator command, not API-startup behaviour. Once imported,
-the running API uses SQLite/PostgreSQL and does not depend on data/question_bank.
+LEGACY PATH. Nothing in the running system produces `data/question_bank/` any more —
+builds write a database version, and `export_question_bank.py` is how a portable copy
+is made. This script exists for a checkout that still has the old artifact, and for
+`--verify`, which compares such an artifact against what the database now holds.
 
 Usage:
     python src/migrate_question_bank_to_db.py
     python src/migrate_question_bank_to_db.py --sync-vectors
     python src/migrate_question_bank_to_db.py --replace
+    python src/migrate_question_bank_to_db.py --verify
 """
 from __future__ import annotations
 
@@ -81,18 +84,70 @@ def _import_uploads(db) -> int:
     return imported
 
 
+def _verify(db, bank: dict) -> int:
+    """Compare a legacy artifact against the active database bank.
+
+    Parity, checked rather than assumed: unit/canonical/duplicate/cluster counts and
+    per-cluster membership. Reports every mismatch instead of stopping at the first.
+    """
+    from src.api.services.question_repository import load_bank_for_evaluation
+
+    try:
+        live, _ = load_bank_for_evaluation(db)
+    except LookupError as exc:
+        print(f"[verify] {exc}")
+        return 1
+
+    problems: list[str] = []
+    file_units = {u["unit_id"] for u in bank.get("units", [])}
+    live_units = {u["unit_id"] for u in live["units"]}
+    if file_units != live_units:
+        only_file = sorted(file_units - live_units)[:5]
+        only_db = sorted(live_units - file_units)[:5]
+        problems.append(f"unit sets differ: {len(file_units)} in file, {len(live_units)} in db "
+                        f"(file-only e.g. {only_file}; db-only e.g. {only_db})")
+
+    def canonical(units):
+        return {u["unit_id"] for u in units if u.get("is_canonical")}
+
+    if canonical(bank.get("units", [])) != canonical(live["units"]):
+        problems.append("canonical members differ")
+
+    def membership(clusters):
+        return sorted(sorted(c.get("member_unit_ids", [])) for c in clusters)
+
+    if membership(bank.get("clusters", [])) != membership(live["clusters"]):
+        problems.append(f"cluster membership differs: {len(bank.get('clusters', []))} clusters in "
+                        f"file, {len(live['clusters'])} in db")
+
+    for problem in problems:
+        print(f"[verify] MISMATCH: {problem}")
+    if not problems:
+        print(f"[verify] parity holds: {len(live_units)} units, {len(live['clusters'])} clusters.")
+    return 1 if problems else 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Migrate the legacy question-bank files to SQLite/PostgreSQL.")
     parser.add_argument("--sync-vectors", action="store_true", help="also drain the Qdrant outbox")
     parser.add_argument("--replace", action="store_true", help="create a new active DB bank version even if one exists")
     parser.add_argument("--dry-run", action="store_true", help="validate inputs and print counts without writing")
+    parser.add_argument("--verify", action="store_true",
+                        help="compare the legacy artifact with the active database bank and exit")
     args = parser.parse_args()
 
     if not qi.BANK_PATH.exists():
-        print(f"No legacy bank found at {qi.BANK_PATH}. Run build_question_bank.py first.")
+        print(f"No legacy bank artifact at {qi.BANK_PATH}.")
+        print("Builds are database-backed now: `python src/build_question_bank.py` writes a "
+              "version, and `python src/export_question_bank.py --bank` writes this file.")
         return 1
     bank, vectors = qi.load_bank()
     print(f"[read] {len(bank.get('units', []))} units, {len(bank.get('clusters', []))} clusters")
+
+    if args.verify:
+        with SessionLocal() as db:
+            return _verify(db, bank)
+
     if args.dry_run:
         print(f"[dry-run] {len(vectors)} vectors would be queued for Qdrant.")
         return 0

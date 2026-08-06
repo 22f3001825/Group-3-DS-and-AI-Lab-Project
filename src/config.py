@@ -106,11 +106,14 @@ QI_UPLOAD_MAX_MB = 25
 QI_UPLOAD_MAX_PAGES = 60
 
 
-# ── Question intelligence: draft → review → commit staging ────────────────────
+# ── Question intelligence: draft → review → commit ────────────────────────────
+# A draft is a row in `question_content_drafts`, uploaded PDF included — there is no
+# staging directory. These two bound how much of that the database can be asked to hold:
+# an open draft costs at most QI_UPLOAD_MAX_MB, and expired ones are swept (blob and all)
+# whenever a new draft is created.
 
-QI_STAGING_DIR = "data/raw/uploads/staging"
 QI_STAGING_TTL_HOURS = 24       # abandoned reviews are swept when the next draft is created
-QI_STAGING_MAX_PENDING = 20     # refuse a new draft past this, so the dir cannot grow unbounded
+QI_STAGING_MAX_PENDING = 20     # refuse a new draft past this, so the table cannot grow unbounded
 QI_MARKDOWN_MAX_CHARS = 400_000  # cap on the *edited* text a commit will accept
 
 

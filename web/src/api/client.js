@@ -202,9 +202,9 @@ class APIClient {
   }
 
   // ── Question intelligence: admin authoring (X-Admin-Token on all of these) ──
-  // Three ways to create a draft, one way to commit it. Phase A writes nothing
-  // outside data/raw/uploads/staging/<draft_id>/; commitDraft is the only call here
-  // that touches data/cleaned/, Qdrant or the bank.
+  // Three ways to create a draft, one way to commit it. Phase A writes one draft row
+  // and nothing else; commitDraft is the only call here that stores the document,
+  // rebuilds the bank and queues the Qdrant work.
 
   /** Origin `pdf`. The ONLY multipart call — no explicit Content-Type, so the browser
    *  sets the multipart boundary itself. */
@@ -283,6 +283,17 @@ class APIClient {
 
   static async getUploads() {
     return this.request('/questions/uploads', { headers: adminJson() });
+  }
+
+  /** Outbox health. A relational commit succeeds even when Qdrant is unreachable, so
+   *  `failed > 0` is the one thing an operator has to be able to see. */
+  static async getVectorSync() {
+    return this.request('/questions/sync', { headers: adminJson() });
+  }
+
+  /** Retry queued vector work. Idempotent; failures stay queued with their last error. */
+  static async runVectorSync() {
+    return this.request('/questions/sync', { method: 'POST', headers: adminJson() });
   }
 
   /** Full re-cluster. Cluster IDs are NOT preserved, so deep links go stale. */

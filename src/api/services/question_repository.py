@@ -3,20 +3,28 @@
 SQLite/PostgreSQL owns the question graph.  Qdrant is synchronised by the outbox but
 is deliberately not queried for relationship data: a vector-store outage must not
 erase a student's ability to browse already-classified questions.
+
+It also owns everything the feature *produces*: unit embeddings (`QuestionUnit.vector`),
+admin-contributed content (`QuestionDocument`) and the pending Qdrant work that carries
+both to the vector store. Nothing here reads or writes a file.
 """
 from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
+import numpy as np
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from ... import question_intelligence as qi
 from ...database.models import (
     ClusterMember, ConceptCluster, DuplicateGroup, QuestionBankOutbox,
-    QuestionBankVersion, QuestionUnit, QuestionUnitChunk,
+    QuestionBankVersion, QuestionDocument, QuestionUnit, QuestionUnitChunk,
 )
+
+VECTOR_DTYPE = np.float32
 
 
 def _public_id(value: Optional[str]) -> Optional[str]:
@@ -99,6 +107,7 @@ def stats(db: Session) -> dict[str, Any]:
         "by_source": by_source,
         "thresholds": version.thresholds or {},
         "generated_from": version.embedding_model,
+        "vector_status": effective_vector_status(db, version),
     }
 
 
@@ -197,6 +206,11 @@ def persist_bank(db: Session, bank: dict[str, Any], vectors: Any, *, status: str
 
     The caller owns `db.commit()`. Existing active versions are kept for audit but marked
     superseded, making the active bank an explicit database fact rather than a filename.
+
+    The version is active for *relational* reads the moment those rows commit — browsing
+    clusters must not wait on, or be taken down by, a vector store. `vector_status`
+    records whether Qdrant has caught up, and per-unit `vector_status` is what any
+    similarity feature filters on.
     """
     for version in db.query(QuestionBankVersion).filter(QuestionBankVersion.status == "active"):
         version.status = "superseded"
@@ -205,6 +219,7 @@ def persist_bank(db: Session, bank: dict[str, Any], vectors: Any, *, status: str
         embedding_model=bank.get("embed_model", "BAAI/bge-small-en-v1.5"),
         thresholds=bank.get("thresholds", {}),
         source_summary=bank.get("stats", {}),
+        vector_status="pending",
         completed_at=_now() if status == "active" else None,
     )
     db.add(version)
@@ -238,17 +253,282 @@ def persist_bank(db: Session, bank: dict[str, Any], vectors: Any, *, status: str
             is_canonical=bool(unit.get("is_canonical")), duplicate_group_id=group_rows[old_group].duplicate_group_id,
             cluster_id=cluster_rows[old_cluster].cluster_id if old_cluster in cluster_rows else None,
         )
+        row.text_hash = qi.unit_text_hash(unit)
+        if len(vectors) > position:
+            row.vector = np.asarray(vectors[position], dtype=VECTOR_DTYPE).tobytes()
         db.add(row)
         for doc_id in unit.get("chunk_doc_ids") or []:
             db.add(QuestionUnitChunk(unit_id=row.unit_id, doc_id=doc_id))
-        vector = vectors[position].astype(float).tolist() if len(vectors) > position else []
-        db.add(QuestionBankOutbox(operation="upsert", unit_id=row.unit_id, payload={
-            "vector": vector, "unit_id": row.unit_id, "bank_version_id": version.version_id,
-            "source_type": row.source_type, "week": row.week, "cluster_id": row.cluster_id,
-            "duplicate_group_id": row.duplicate_group_id, "is_canonical": row.is_canonical, "origin": row.origin,
-        }))
+        # The payload carries the filterable facts only. The vector is read from the unit
+        # at drain time, so a synced row does not keep a second copy of every embedding
+        # and a re-sync needs no embedding run.
+        db.add(QuestionBankOutbox(
+            operation="upsert", entity_type="question_unit", unit_id=row.unit_id, payload={
+                "unit_id": row.unit_id, "bank_version_id": version.version_id,
+                "source_type": row.source_type, "week": row.week, "cluster_id": row.cluster_id,
+                "duplicate_group_id": row.duplicate_group_id, "is_canonical": row.is_canonical,
+                "origin": row.origin,
+            }))
         if row.is_canonical:
             group_rows[old_group].canonical_unit_id = row.unit_id
         if row.cluster_id:
             db.add(ClusterMember(cluster_id=row.cluster_id, unit_id=row.unit_id, ordinal=position))
     return version
+
+
+# ── Embedding cache ───────────────────────────────────────────────────────────
+
+def cached_vectors(db: Session, units: list[dict], *, refresh: bool = False) -> np.ndarray:
+    """Embed `units`, reusing vectors already stored for identical text.
+
+    This replaces the `data/question_bank/unit_vectors.npy` cache. Keyed by
+    `qi.unit_text_hash` — the embedding model plus the exact text embedded — so a
+    rebuild that re-parses the same corpus embeds nothing, and an edited question
+    embeds only itself.
+    """
+    if not units:
+        return np.zeros((0, 384), dtype=VECTOR_DTYPE)
+
+    hashes = [qi.unit_text_hash(unit) for unit in units]
+    known: dict[str, np.ndarray] = {}
+    if not refresh:
+        # Chunked IN(): SQLite caps host parameters at 999 and a corpus rebuild asks
+        # about every unit at once.
+        unique = list(dict.fromkeys(hashes))
+        for start in range(0, len(unique), 500):
+            batch = unique[start:start + 500]
+            for row in (db.query(QuestionUnit.text_hash, QuestionUnit.vector)
+                        .filter(QuestionUnit.text_hash.in_(batch),
+                                QuestionUnit.vector.isnot(None))):
+                if row.text_hash not in known and row.vector:
+                    known[row.text_hash] = np.frombuffer(row.vector, dtype=VECTOR_DTYPE)
+
+    missing = [i for i, h in enumerate(hashes) if h not in known]
+    if missing:
+        fresh = qi.embed_units([units[i] for i in missing])
+        for slot, index in enumerate(missing):
+            known[hashes[index]] = np.asarray(fresh[slot], dtype=VECTOR_DTYPE)
+
+    return np.vstack([known[h] for h in hashes]).astype(VECTOR_DTYPE)
+
+
+def embedding_cache_stats(db: Session, units: list[dict]) -> dict[str, int]:
+    """How much of a rebuild the cache would serve. Reporting only.
+
+    Counts distinct texts, not units: two identical questions in different files share
+    one embedding and are one cache entry.
+    """
+    unique = list({qi.unit_text_hash(unit) for unit in units})
+    if not unique:
+        return {"units": 0, "cached": 0, "to_embed": 0}
+    cached = 0
+    for start in range(0, len(unique), 500):
+        cached += (db.query(func.count(func.distinct(QuestionUnit.text_hash)))
+                   .filter(QuestionUnit.text_hash.in_(unique[start:start + 500]),
+                           QuestionUnit.vector.isnot(None)).scalar() or 0)
+    return {"units": len(units), "cached": cached, "to_embed": max(0, len(unique) - cached)}
+
+
+# ── Admin-contributed documents ───────────────────────────────────────────────
+
+def active_documents(db: Session) -> list[QuestionDocument]:
+    return (db.query(QuestionDocument)
+            .filter(QuestionDocument.status == "active")
+            .order_by(QuestionDocument.stem).all())
+
+
+def document_by_stem(db: Session, stem: str) -> Optional[QuestionDocument]:
+    return (db.query(QuestionDocument)
+            .filter(QuestionDocument.stem == stem,
+                    QuestionDocument.status == "active").first())
+
+
+def document_units_input(db: Session) -> list[dict[str, Any]]:
+    """Rows shaped for `qi.parse_question_units(extra_documents=...)`."""
+    return [{
+        "markdown": row.markdown,
+        "source_type": row.source_type,
+        "stem": row.stem,
+        "week": row.week,
+        "source_file": f"{row.source_type}/{row.stem}.md",
+    } for row in active_documents(db)]
+
+
+def document_chunk_index(db: Session) -> list[dict[str, Any]]:
+    """Chunk index entries for admin documents, in `qi.load_chunk_index()`'s shape.
+
+    Admin chunks are in Qdrant but were never written to `data/splits/*.jsonl`, so the
+    unit→chunk mapping would not see them. Re-splitting here is pure text work over the
+    same `split_document` the commit used, which is what keeps the doc_ids identical.
+    """
+    from ...prepare_rag_splits import split_document  # noqa: PLC0415
+
+    out: list[dict[str, Any]] = []
+    for row in active_documents(db):
+        for chunk in split_document(row.markdown, week=row.week, source_type=row.source_type,
+                                    doc_id=row.stem, topic_ids=row.topic_ids or None,
+                                    origin=row.origin):
+            out.append({
+                "doc_id": chunk.metadata.get("doc_id", ""),
+                "source_type": row.source_type,
+                "text": chunk.page_content,
+            })
+    return out
+
+
+def document_stems(db: Session) -> set[str]:
+    return {row.stem for row in db.query(QuestionDocument.stem)
+            .filter(QuestionDocument.status == "active")}
+
+
+def documents_missing_from_disk(db: Session, cleaned_dir: Any) -> list[str]:
+    """Active documents that have no counterpart under `data/cleaned/`.
+
+    Used by `ingest_to_qdrant.py`, which deletes and recreates the collection: anything
+    in this list would be silently dropped by an offline re-ingest, so the script refuses
+    until `export_question_bank.py --documents` has run.
+    """
+    from pathlib import Path  # noqa: PLC0415
+
+    root = Path(cleaned_dir)
+    return [row.stem for row in active_documents(db)
+            if not (root / row.source_type / f"{row.stem}.md").exists()]
+
+
+def units_for_export(db: Session, version: QuestionBankVersion) -> list[dict[str, Any]]:
+    """Bank units in the portable JSON shape, each carrying its raw vector bytes."""
+    rows = (db.query(QuestionUnit)
+            .filter(QuestionUnit.bank_version_id == version.version_id)
+            .order_by(QuestionUnit.unit_id).all())
+    doc_map: dict[str, list[str]] = {}
+    for link in db.query(QuestionUnitChunk):
+        doc_map.setdefault(link.unit_id, []).append(link.doc_id)
+    out = []
+    for row in rows:
+        value = _unit(row, doc_map.get(row.unit_id, []))
+        value["source_file"] = row.source_file
+        value["_vector"] = row.vector
+        out.append(value)
+    return out
+
+
+def load_bank_for_evaluation(db: Session) -> tuple[dict[str, Any], np.ndarray]:
+    """The active bank in the in-memory shape the evaluation harness works over.
+
+    Replaces `qi.load_bank()`: the harness reads the same rows the API serves, so a
+    metric can never describe a bank artifact that has drifted from what is live.
+    """
+    version = require_active_version(db)
+    units = units_for_export(db, version)
+    vectors = (np.vstack([
+        np.frombuffer(u["_vector"], dtype=VECTOR_DTYPE) if u.get("_vector")
+        else np.zeros(384, dtype=VECTOR_DTYPE)
+        for u in units
+    ]) if units else np.zeros((0, 384), dtype=VECTOR_DTYPE))
+    for unit in units:
+        unit.pop("_vector", None)
+    bank = {
+        "schema_version": qi.SCHEMA_VERSION,
+        "embed_model": version.embedding_model,
+        "thresholds": version.thresholds or {},
+        "stats": version.source_summary or {},
+        "units": units,
+        "clusters": clusters_for_export(db, version),
+    }
+    return bank, vectors
+
+
+def clusters_for_export(db: Session, version: QuestionBankVersion) -> list[dict[str, Any]]:
+    rows = (db.query(ConceptCluster)
+            .filter(ConceptCluster.bank_version_id == version.version_id)
+            .order_by(ConceptCluster.cluster_id).all())
+    out = []
+    for row in rows:
+        summary = _cluster_summary(db, row)
+        members = (db.query(QuestionUnit.unit_id)
+                   .filter(QuestionUnit.cluster_id == row.cluster_id).all())
+        summary["member_unit_ids"] = [_public_id(m.unit_id) for m in members]
+        out.append(summary)
+    return out
+
+
+# ── Outbox ────────────────────────────────────────────────────────────────────
+
+def queue_course_chunks(db: Session, *, stem: str, chunks: Iterable[Any]) -> int:
+    """Queue an append of course chunks to the retrieval collection.
+
+    Chunk writes go through the outbox for the same reason unit vectors do: the database
+    transaction is the commit, and a vector store that is down must leave recoverable
+    work rather than a half-applied contribution or a failed request that already wrote
+    part of it.
+    """
+    payload = [{"page_content": c.page_content, "metadata": dict(c.metadata)} for c in chunks]
+    if not payload:
+        return 0
+    db.add(QuestionBankOutbox(operation="upsert", entity_type="course_chunk",
+                              unit_id=stem, payload={"chunks": payload}))
+    return len(payload)
+
+
+def queue_course_chunk_delete(db: Session, *, stem: str, doc_ids: list[str]) -> int:
+    if not doc_ids:
+        return 0
+    db.add(QuestionBankOutbox(operation="delete", entity_type="course_chunk",
+                              unit_id=stem, payload={"doc_ids": list(doc_ids)}))
+    return len(doc_ids)
+
+
+def effective_vector_status(db: Session, version: Optional[QuestionBankVersion] = None) -> str:
+    """Vector sync state computed from the rows, not read from the stored column.
+
+    The column is written by a drain, so a version built before it existed — or one
+    whose queue was cleared by another process — would otherwise keep reporting a stale
+    `pending` while every unit is in fact synced. Reporting derives; the column caches.
+    """
+    version = version or active_version(db)
+    if not version:
+        return "pending"
+    pending = (db.query(func.count(QuestionUnit.unit_id))
+               .filter(QuestionUnit.bank_version_id == version.version_id,
+                       QuestionUnit.vector_status != "synced").scalar() or 0)
+    if pending == 0:
+        return "synced"
+    failed = (db.query(func.count(QuestionBankOutbox.outbox_id))
+              .filter(QuestionBankOutbox.status == "failed").scalar() or 0)
+    return "degraded" if failed else "pending"
+
+
+def outbox_status(db: Session) -> dict[str, Any]:
+    """Counts by status plus the oldest unfinished item — what an admin needs to see."""
+    counts = {status: count for status, count in
+              db.query(QuestionBankOutbox.status, func.count(QuestionBankOutbox.outbox_id))
+              .group_by(QuestionBankOutbox.status).all()}
+    unfinished = (db.query(QuestionBankOutbox)
+                  .filter(QuestionBankOutbox.status.in_(("pending", "failed", "processing")))
+                  .order_by(QuestionBankOutbox.created_at).first())
+    failed = (db.query(QuestionBankOutbox)
+              .filter(QuestionBankOutbox.status == "failed")
+              .order_by(QuestionBankOutbox.created_at.desc()).first())
+    version = active_version(db)
+    return {
+        "pending": counts.get("pending", 0) + counts.get("processing", 0),
+        "failed": counts.get("failed", 0),
+        "synced": counts.get("synced", 0),
+        "oldest_unfinished_at": unfinished.created_at.isoformat() if unfinished else None,
+        "last_error": failed.last_error if failed else None,
+        "active_version_id": version.version_id if version else None,
+        "active_version_vector_status": effective_vector_status(db, version) if version else None,
+        "units_pending_vectors": (db.query(func.count(QuestionUnit.unit_id))
+                                  .filter(QuestionUnit.bank_version_id == version.version_id,
+                                          QuestionUnit.vector_status != "synced").scalar()
+                                  if version else 0),
+    }
+
+
+def refresh_version_vector_status(db: Session) -> Optional[str]:
+    """Write the computed status back onto the active version. Caller commits."""
+    version = active_version(db)
+    if not version:
+        return None
+    version.vector_status = effective_vector_status(db, version)
+    return version.vector_status

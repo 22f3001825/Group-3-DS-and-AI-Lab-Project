@@ -64,6 +64,9 @@ class BankStats(BaseModel):
     by_source: dict[str, Any] = {}
     thresholds: dict[str, Any] = {}
     generated_from: str = ""
+    # Relational reads never wait on Qdrant, so the bank can be fully browsable while
+    # its vectors are still catching up. Reported rather than hidden.
+    vector_status: str = "pending"
 
 
 class RelatedQuestion(BaseModel):
@@ -220,5 +223,20 @@ class UploadResult(BaseModel):
     duplicates_matched: int = 0
     clusters_joined: int = 0
     clusters_created: int = 0
-    cleaned_path: str = ""
+    # The stored document, which replaced `cleaned_path`: committed content is a
+    # `question_documents` row now, not a file under data/cleaned/.
+    document_id: str = ""
+    vector_sync: dict[str, Any] = {}
     warnings: list[str] = []
+
+
+class SyncStatus(BaseModel):
+    """Outbox health. `failed` above zero is the one thing an operator must not miss."""
+    pending: int = 0
+    failed: int = 0
+    synced: int = 0
+    oldest_unfinished_at: Optional[str] = None
+    last_error: Optional[str] = None
+    active_version_id: Optional[str] = None
+    active_version_vector_status: Optional[str] = None
+    units_pending_vectors: int = 0

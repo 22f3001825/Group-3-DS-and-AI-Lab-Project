@@ -30,6 +30,7 @@ histogram hides what you most need to see.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -50,6 +51,11 @@ except ModuleNotFoundError:  # pragma: no cover - import shim
 ROOT_DIR = Path(__file__).resolve().parent.parent
 CLEANED_DIR = ROOT_DIR / "data" / "cleaned"
 SPLITS_DIR = ROOT_DIR / "data" / "splits"
+# LEGACY IMPORT ONLY. Runtime persistence is relational: units, vectors, drafts, uploads
+# and evaluation labels all live in the database, and nothing in the API or the build CLI
+# reads or writes these paths. They exist so `migrate_question_bank_to_db.py` can still
+# import a bank produced before the cutover, and so `export_question_bank.py` has a
+# conventional place to write when an operator explicitly asks for a portable copy.
 BANK_DIR = ROOT_DIR / "data" / "question_bank"
 BANK_PATH = BANK_DIR / "question_bank.json"
 VECTORS_PATH = BANK_DIR / "unit_vectors.npy"
@@ -454,9 +460,23 @@ def parse_markdown(content: str, *, source_type: str, stem: str, week: int,
 
 def parse_question_units(cleaned_dir: Path | None = None,
                          source_types: Iterable[str] = ("faq", "pq", "PYQ", "discourse"),
+                         extra_documents: Iterable[dict] | None = None,
                          ) -> list[dict]:
-    """Walk data/cleaned/<source_type>/*.md and emit one unit per question."""
+    """Emit one unit per question over the corpus **and** the database's own documents.
+
+    Two inputs, deliberately: `data/cleaned/<source_type>/*.md` is the offline pipeline's
+    output and stays read-only, while `extra_documents` carries admin-contributed content
+    that now lives in `question_documents` rather than in a file. Each entry is
+    `{markdown, source_type, stem, week, source_file}` — the same four values the file
+    walk derives from a path — so both go through one parser and neither can drift.
+
+    A database document wins on stem collision: `question_documents.stem` is unique and
+    a document that replaced a corpus file must not be parsed twice.
+    """
     cleaned_dir = Path(cleaned_dir or CLEANED_DIR)
+    documents = list(extra_documents or [])
+    db_stems = {d["stem"] for d in documents}
+
     units: list[dict] = []
     for source_type in source_types:
         folder = cleaned_dir / source_type
@@ -467,6 +487,8 @@ def parse_question_units(cleaned_dir: Path | None = None,
             if not content.strip():
                 continue
             stem = md_file.stem.replace(" ", "_")
+            if stem in db_stems:
+                continue
             units.extend(parse_markdown(
                 content,
                 source_type=source_type,
@@ -474,6 +496,18 @@ def parse_question_units(cleaned_dir: Path | None = None,
                 week=extract_week(md_file),
                 source_file=f"{source_type}/{md_file.name}",
             ))
+
+    for document in documents:
+        content = document.get("markdown") or ""
+        if not content.strip():
+            continue
+        units.extend(parse_markdown(
+            content,
+            source_type=document["source_type"],
+            stem=document["stem"],
+            week=int(document.get("week") or 0),
+            source_file=document.get("source_file") or f"{document['source_type']}/{document['stem']}.md",
+        ))
     return units
 
 
@@ -543,6 +577,16 @@ def unit_embedding_text(unit: dict) -> str:
     parts = [unit.get("title", ""), unit.get("text", "")]
     parts.extend(unit.get("options") or [])
     return "\n".join(p for p in parts if p).strip()
+
+
+def unit_text_hash(unit: dict) -> str:
+    """Cache key for a unit's embedding: the model plus the exact text embedded.
+
+    Keyed on the text rather than on `unit_id` so that re-parsing, renumbering or moving
+    a question to a different file reuses the vector, and so that *editing* it cannot.
+    """
+    payload = f"{EMBED_MODEL}\x1f{unit_embedding_text(unit)}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def embed_units(units: list[dict], model_name: str = EMBED_MODEL) -> np.ndarray:

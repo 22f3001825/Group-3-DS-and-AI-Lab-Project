@@ -4,10 +4,11 @@ Builds the AI Question Intelligence repository (Milestone 1, Objective 8).
 
 Run from the repo root, matching every other script's path convention:
 
-    python src/build_question_bank.py                 # parse → embed (or reuse cache) → build → write
-    python src/build_question_bank.py --refresh       # force re-parse and re-embed
+    python src/build_question_bank.py                 # parse → embed (or reuse cache) → build → store
+    python src/build_question_bank.py --refresh       # force re-embed, ignoring the cache
     python src/build_question_bank.py --thresholds    # print the per-source sweep, write nothing
     python src/build_question_bank.py --ensure-index  # create the metadata.doc_id payload index
+    python src/build_question_bank.py --skip-sync     # build, but leave vectors queued
 
 The live Qdrant collection is never read, rewritten or re-embedded here. `--ensure-index`
 is the one subcommand that touches Qdrant at all, and it touches *schema* rather than
@@ -16,14 +17,18 @@ reordering a single point. It lives here rather than in the API so that creating
 is a deliberate operator action rather than something a request handler does on the fly.
 
 Writes:
-  data/question_bank/question_bank.json   the deliverable artifact
-  data/question_bank/unit_vectors.npy     float32 (n, dim), row order matching `units`
+  the database  — a new active `question_bank_versions` row with its units, groups,
+                  clusters, chunk links, embeddings and queued Qdrant work
   reports/question_intelligence_report.md the build report
+
+No data artifact is written. The bank JSON and `unit_vectors.npy` this script used to
+produce are gone: units and their vectors live in `question_units`, and the embedding
+cache they doubled as is now keyed by `text_hash` in the same table. Use
+`python src/export_question_bank.py` if a portable copy is wanted.
 """
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 from datetime import datetime, timezone
@@ -47,41 +52,28 @@ except ModuleNotFoundError:  # pragma: no cover - import shim
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 REPORT_PATH = ROOT_DIR / "reports" / "question_intelligence_report.md"
-CACHE_PATH = qi.BANK_DIR / "unit_vectors.cache.npy"
-CACHE_KEY_PATH = qi.BANK_DIR / "unit_vectors.cache.json"
 COLLECTION_NAME = "mlt_course_bot"
 
 
 # ── Embedding cache ───────────────────────────────────────────────────────────
 
-def _cache_key(units: list[dict]) -> list[str]:
-    return [f"{u['unit_id']}:{hash(qi.unit_embedding_text(u)) & 0xFFFFFFFF}" for u in units]
+def embed_with_cache(db, units: list[dict], refresh: bool) -> np.ndarray:
+    """Embed, reusing vectors already stored for identical text.
 
-
-def embed_with_cache(units: list[dict], refresh: bool) -> np.ndarray:
-    """Embed, reusing the on-disk cache when the unit texts have not changed.
-
-    A few hundred units is seconds, but a rebuild during threshold calibration happens
-    often enough that paying it every time is needless.
+    The cache is `question_units.vector`, keyed by `text_hash` (the model plus the exact
+    text embedded) — the same rows the API serves from, rather than a `.npy` beside
+    them. A few hundred units is seconds, but a rebuild during threshold calibration
+    happens often enough that paying it every time is needless.
     """
-    key = _cache_key(units)
-    if not refresh and CACHE_PATH.exists() and CACHE_KEY_PATH.exists():
-        try:
-            cached_key = json.loads(CACHE_KEY_PATH.read_text(encoding="utf-8"))
-            if cached_key == key:
-                vectors = np.load(CACHE_PATH)
-                if vectors.shape[0] == len(units):
-                    print(f"[embed] reusing cached vectors for {len(units)} units")
-                    return vectors
-        except Exception as exc:  # noqa: BLE001
-            print(f"[embed] cache unusable ({type(exc).__name__}), re-embedding")
+    from src.api.services.question_repository import cached_vectors, embedding_cache_stats
 
-    print(f"[embed] embedding {len(units)} units with {qi.EMBED_MODEL} ...")
-    vectors = qi.embed_units(units)
-    qi.BANK_DIR.mkdir(parents=True, exist_ok=True)
-    np.save(CACHE_PATH, vectors)
-    CACHE_KEY_PATH.write_text(json.dumps(key), encoding="utf-8")
-    return vectors
+    if not refresh:
+        counts = embedding_cache_stats(db, units)
+        print(f"[embed] {counts['cached']} of {counts['units']} units cached; "
+              f"embedding {counts['to_embed']} with {qi.EMBED_MODEL} ...")
+    else:
+        print(f"[embed] re-embedding all {len(units)} units with {qi.EMBED_MODEL} ...")
+    return cached_vectors(db, units, refresh=refresh)
 
 
 # ── Qdrant payload index ──────────────────────────────────────────────────────
@@ -263,6 +255,8 @@ def main() -> int:
     parser.add_argument("--refresh", action="store_true", help="force re-parse and re-embed")
     parser.add_argument("--thresholds", action="store_true", help="print the per-source sweep, write nothing")
     parser.add_argument("--ensure-index", action="store_true", help="create the metadata.doc_id payload index")
+    parser.add_argument("--skip-sync", action="store_true",
+                        help="leave the new vectors queued in the outbox instead of pushing them")
     parser.add_argument("--duplicate-threshold", type=float, default=None,
                         help="override the per-source thresholds with one value")
     parser.add_argument("--cluster-distance", type=float, default=QI_CLUSTER_DISTANCE)
@@ -271,49 +265,63 @@ def main() -> int:
     if args.ensure_index:
         return ensure_payload_index()
 
-    print(f"[parse] reading {', '.join(QI_SOURCE_TYPES)} from {qi.CLEANED_DIR} ...")
-    units = qi.parse_question_units(source_types=QI_SOURCE_TYPES)
-    if not units:
-        print("No question units parsed. Check data/cleaned/ — nothing to build.")
-        return 1
-    print(f"[parse] {len(units)} question units")
-
-    vectors = embed_with_cache(units, refresh=args.refresh)
-
-    if args.thresholds:
-        print_thresholds(units, vectors)
-        return 0
-
-    print("[map] linking units to retrieval chunks ...")
-    chunks = qi.load_chunk_index()
-    qi.map_units_to_chunks(units, chunks)
-    warnings = qi.assert_unit_index_sane(units, chunks)
-    for warning in warnings:
-        print(f"[warn] {warning}")
-
-    threshold = args.duplicate_threshold if args.duplicate_threshold is not None else QI_DUPLICATE_THRESHOLD
-    print(f"[build] deduplicating at {threshold} and clustering at {args.cluster_distance} ...")
-    bank = qi.build_bank(
-        units, vectors,
-        duplicate_threshold=threshold,
-        cluster_distance=args.cluster_distance,
-        use_token_guard=QI_TOKEN_GUARD,
+    # Runtime persistence is relational, so the build needs a session from the start:
+    # the embedding cache lives in `question_units`, and admin-contributed documents are
+    # rows rather than files. Opening it here keeps a CLI build and an API rebuild
+    # reading exactly the same two inputs.
+    from src.api.services.question_repository import (  # noqa: PLC0415
+        document_chunk_index, document_units_input, persist_bank,
     )
-    # Runtime persistence is relational. The old JSON/NumPy pair is accepted only by
-    # migrate_question_bank_to_db.py for one-time legacy import; new builds write an
-    # active version plus Qdrant outbox rows into SQLite/PostgreSQL.
-    from src.api.services.question_repository import persist_bank  # noqa: PLC0415
+    from src.api.services.question_vector_service import sync_outbox  # noqa: PLC0415
+    from src.database.migrations import run_migrations  # noqa: PLC0415
     from src.database.session import Base, SessionLocal, engine  # noqa: PLC0415
+
     Base.metadata.create_all(bind=engine)
+    run_migrations(engine)
+
     with SessionLocal() as db:
+        documents = document_units_input(db)
+        print(f"[parse] reading {', '.join(QI_SOURCE_TYPES)} from {qi.CLEANED_DIR} "
+              f"plus {len(documents)} stored documents ...")
+        units = qi.parse_question_units(source_types=QI_SOURCE_TYPES, extra_documents=documents)
+        if not units:
+            print("No question units parsed. Check data/cleaned/ — nothing to build.")
+            return 1
+        print(f"[parse] {len(units)} question units")
+
+        vectors = embed_with_cache(db, units, refresh=args.refresh)
+
+        if args.thresholds:
+            print_thresholds(units, vectors)
+            return 0
+
+        print("[map] linking units to retrieval chunks ...")
+        chunks = qi.load_chunk_index() + document_chunk_index(db)
+        qi.map_units_to_chunks(units, chunks)
+        warnings = qi.assert_unit_index_sane(units, chunks)
+        for warning in warnings:
+            print(f"[warn] {warning}")
+
+        threshold = args.duplicate_threshold if args.duplicate_threshold is not None else QI_DUPLICATE_THRESHOLD
+        print(f"[build] deduplicating at {threshold} and clustering at {args.cluster_distance} ...")
+        bank = qi.build_bank(
+            units, vectors,
+            duplicate_threshold=threshold,
+            cluster_distance=args.cluster_distance,
+            use_token_guard=QI_TOKEN_GUARD,
+        )
         version = persist_bank(db, bank, vectors)
         db.commit()
+        sync = sync_outbox(db, limit=10_000) if not args.skip_sync else {"synced": 0, "failed": 0}
+
     write_report(bank, warnings)
 
     stats = bank["stats"]
     print(f"[done] {stats['unit_count']} units -> {stats['canonical_count']} distinct doubts "
           f"-> {stats['cluster_count']} clusters (duplicate rate {stats['duplicate_rate']:.1%})")
-    print(f"       database version {version.version_id} (vectors queued for mlt_question_units)")
+    print(f"       database version {version.version_id}")
+    print(f"       vectors: {sync['synced']} synced, {sync['failed']} failed "
+          f"(retry: python src/sync_question_vectors.py)")
     print(f"       {REPORT_PATH.relative_to(ROOT_DIR)}")
     return 0
 

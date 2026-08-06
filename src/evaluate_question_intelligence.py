@@ -27,15 +27,16 @@ Two statistical points that decide whether the numbers mean anything:
     non-duplicates by construction — a real assumption, so it is stated rather than
     buried. A bootstrap confidence interval is published beside every point estimate.
 
-Judged verdicts are cached in data/question_bank/dedup_seed_labels.json keyed by the
-sorted unit-id pair, so re-runs are free, reproducible without API keys, and the gold
-set grows over time. `invoke_judge` returning None means UNGRADED: such a pair is
-dropped from the denominator, never counted as a disagreement.
+Judged verdicts are cached in the `question_evaluation_labels` table, keyed by the sorted
+unit-id pair, so re-runs are free, reproducible without API keys, and the gold set grows
+over time. `invoke_judge` returning None means UNGRADED: such a pair is dropped from the
+denominator, never counted as a disagreement — and a metric with nothing judged is
+reported as NOT MEASURED rather than as 0%. `--require-judge` makes that a hard failure
+instead of a published caveat.
 """
 from __future__ import annotations
 
 import argparse
-import json
 import random
 import sys
 from datetime import datetime, timezone
@@ -45,17 +46,22 @@ import numpy as np
 
 try:
     from src import question_intelligence as qi
+    from src.api.services import question_repository as repo
     from src.config import QI_CLUSTER_DISTANCE, QI_DUPLICATE_THRESHOLD
+    from src.database.models import QuestionEvaluationLabel
+    from src.database.session import SessionLocal
     from src.llm_judge import NoJudgeAvailableError, invoke_judge, new_session
 except ModuleNotFoundError:  # pragma: no cover - import shim
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from src import question_intelligence as qi
+    from src.api.services import question_repository as repo
     from src.config import QI_CLUSTER_DISTANCE, QI_DUPLICATE_THRESHOLD
+    from src.database.models import QuestionEvaluationLabel
+    from src.database.session import SessionLocal
     from src.llm_judge import NoJudgeAvailableError, invoke_judge, new_session
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 REPORT_PATH = ROOT_DIR / "reports" / "question_intelligence_metrics.md"
-LABELS_PATH = qi.BANK_DIR / "dedup_seed_labels.json"
 
 DEDUP_TARGET = 0.85
 CLUSTER_F1_TARGET = 0.80
@@ -70,17 +76,48 @@ BOOTSTRAP_ROUNDS = 2000
 
 # ── Label cache ───────────────────────────────────────────────────────────────
 
-def load_labels() -> dict[str, dict]:
-    if LABELS_PATH.exists():
-        return json.loads(LABELS_PATH.read_text(encoding="utf-8"))
-    return {}
+class LabelStore:
+    """A dict-shaped view over `question_evaluation_labels`.
 
+    Reads are served from one query taken at start-up; writes go straight to the
+    session and are committed by `flush()`. The dict interface is deliberate — the two
+    evaluators use `.get(key)` and `store[key] = {...}` and should not care that the
+    gold set is now a table rather than a JSON file a run could clobber.
+    """
 
-def save_labels(labels: dict[str, dict]) -> None:
-    LABELS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    tmp = LABELS_PATH.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(labels, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
-    tmp.replace(LABELS_PATH)
+    def __init__(self, db):
+        self.db = db
+        self._rows: dict[str, dict] = {}
+        for row in db.query(QuestionEvaluationLabel).all():
+            self._rows[row.pair_key] = {
+                "label": bool(row.label),
+                "source": row.source,
+                "kind": row.metric_kind,
+                "pair": row.pair_key.split("|", 1),
+            }
+
+    def get(self, key: str):
+        return self._rows.get(key)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._rows
+
+    def __len__(self) -> int:
+        return len(self._rows)
+
+    def __setitem__(self, key: str, value: dict) -> None:
+        self._rows[key] = value
+        row = self.db.get(QuestionEvaluationLabel, key)
+        if row is None:
+            row = QuestionEvaluationLabel(pair_key=key)
+            self.db.add(row)
+        row.metric_kind = value.get("kind", "duplicate")
+        row.label = bool(value.get("label"))
+        row.source = value.get("source", "judge")
+        row.note = value.get("note")
+
+    def flush(self) -> None:
+        self.db.commit()
 
 
 def pair_key(a: str, b: str) -> str:
@@ -175,6 +212,20 @@ def _verdict(value: float, target: float, judged: int) -> str:
     if judged == 0:
         return "not measured"
     return "MET" if value >= target else "below target"
+
+
+def _measured(value: float, judged: int) -> str:
+    """A percentage, or an em dash when nothing was judged.
+
+    Printing `0.0%` next to a `≥ 80%` target for a metric that was never measured is
+    the one reporting failure this harness must not commit: it reads as a catastrophic
+    result rather than as an absent one.
+    """
+    return _fmt_pct(value) if judged else "—"
+
+
+def _measured_ci(ci: list[float], judged: int) -> str:
+    return f"{_fmt_pct(ci[0])}–{_fmt_pct(ci[1])}" if judged else "—"
 
 
 # ── Deduplication precision ───────────────────────────────────────────────────
@@ -378,6 +429,10 @@ def evaluate_clusters(bank: dict, vectors: np.ndarray, labels: dict, per_stratum
 
 # ── Report ────────────────────────────────────────────────────────────────────
 
+def _cluster_judged(clusters: dict) -> int:
+    return sum(clusters.get("sampled", {}).values())
+
+
 def write_report(bank: dict, dedup: dict, clusters: dict) -> None:
     stats = bank["stats"]
     pooled = dedup["by_source"].get("pooled", {"precision": 0.0, "judged": 0, "ci": [0, 0]})
@@ -393,13 +448,13 @@ def write_report(bank: dict, dedup: dict, clusters: dict) -> None:
         "| Metric | Target | Measured | 95% CI | Verdict |",
         "|---|--:|--:|---|---|",
         f"| Deduplication precision (pooled) | ≥ {_fmt_pct(DEDUP_TARGET)} | "
-        f"{_fmt_pct(pooled['precision'])} | "
-        f"{_fmt_pct(pooled['ci'][0])}–{_fmt_pct(pooled['ci'][1])} | "
+        f"{_measured(pooled['precision'], pooled['judged'])} | "
+        f"{_measured_ci(pooled['ci'], pooled['judged'])} | "
         f"{_verdict(pooled['precision'], DEDUP_TARGET, pooled['judged'])} |",
         f"| Cluster pairwise F1 | ≥ {_fmt_pct(CLUSTER_F1_TARGET)} | "
-        f"{_fmt_pct(clusters['f1'])} | "
-        f"{_fmt_pct(clusters['f1_ci'][0])}–{_fmt_pct(clusters['f1_ci'][1])} | "
-        f"{_verdict(clusters['f1'], CLUSTER_F1_TARGET, sum(clusters['sampled'].values()))} |",
+        f"{_measured(clusters['f1'], _cluster_judged(clusters))} | "
+        f"{_measured_ci(clusters['f1_ci'], _cluster_judged(clusters))} | "
+        f"{_verdict(clusters['f1'], CLUSTER_F1_TARGET, _cluster_judged(clusters))} |",
         "",
         f"Judge independence rung: **{clusters.get('judge') or dedup.get('judge')}**. "
         "An ungraded pair is dropped from the denominator, never scored as a disagreement.",
@@ -445,12 +500,17 @@ def write_report(bank: dict, dedup: dict, clusters: dict) -> None:
             f"| {name} | {clusters['population'].get(name, 0)} | "
             f"{clusters['sampled'].get(name, 0)} | {clusters['weights'].get(name, 0)} |"
         )
+    judged_pairs = _cluster_judged(clusters)
     lines += [
         "",
-        f"- Precision **{_fmt_pct(clusters['precision'])}** · "
-        f"Recall **{_fmt_pct(clusters['recall'])}** · "
-        f"F1 **{_fmt_pct(clusters['f1'])}** "
-        f"(95% CI {_fmt_pct(clusters['f1_ci'][0])}–{_fmt_pct(clusters['f1_ci'][1])})",
+        (f"- Precision **{_fmt_pct(clusters['precision'])}** · "
+         f"Recall **{_fmt_pct(clusters['recall'])}** · "
+         f"F1 **{_fmt_pct(clusters['f1'])}** "
+         f"(95% CI {_fmt_pct(clusters['f1_ci'][0])}–{_fmt_pct(clusters['f1_ci'][1])})"
+         if judged_pairs else
+         "- **Not measured.** No pair in any stratum received a verdict, so there is no "
+         "estimate to report — not an estimate of zero. Seed labels into "
+         "`question_evaluation_labels`, or re-run with a reachable judge."),
         f"- Ungraded pairs dropped: {clusters['ungraded']}",
         "",
         "## Bank under test",
@@ -468,9 +528,10 @@ def write_report(bank: dict, dedup: dict, clusters: dict) -> None:
         "- **PYQ is OCR output.** Its question boundaries are not recoverable, so each",
         "  extracted block is one unit and its cluster titles are frequently unusable even",
         "  when the grouping is right.",
-        "- **The judge is an LLM, not ground truth.** Verdicts are cached in",
-        "  `data/question_bank/dedup_seed_labels.json` and can be hand-corrected; the",
-        "  cache is consulted first, so corrections persist and re-runs are free.",
+        "- **The judge is an LLM, not ground truth.** Verdicts are cached in the",
+        "  `question_evaluation_labels` table and can be hand-corrected (`source` marks a",
+        "  human label); the cache is consulted first, so corrections persist and re-runs",
+        "  are free and reproducible without API keys.",
     ]
 
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -485,43 +546,63 @@ def main() -> int:
     parser.add_argument("--per-stratum", type=int, default=20, help="cluster pairs per stratum")
     parser.add_argument("--offline", action="store_true",
                         help="use only cached labels; make no LLM calls")
+    parser.add_argument("--require-judge", action="store_true",
+                        help="fail instead of publishing a report with an unmeasured metric")
     args = parser.parse_args()
 
-    if not qi.BANK_PATH.exists():
-        print("No question bank found. Run: python src/build_question_bank.py")
-        return 1
-
-    bank, vectors = qi.load_bank()
-    labels = load_labels()
-    rng = random.Random(20260806)
-
-    session = None
-    if not args.offline:
+    with SessionLocal() as db:
         try:
-            session = new_session()
-        except NoJudgeAvailableError as exc:
-            print(f"[judge] unavailable ({exc}); falling back to cached labels only.")
+            bank, vectors = repo.load_bank_for_evaluation(db)
+        except LookupError as exc:
+            print(f"{exc}")
+            return 1
 
-    print("[dedup] sampling flagged duplicate pairs ...")
-    dedup = evaluate_dedup(bank, vectors, labels, args.pairs, session, rng)
+        labels = LabelStore(db)
+        print(f"[labels] {len(labels)} cached verdicts in question_evaluation_labels")
+        rng = random.Random(20260806)
 
-    print("[cluster] sampling stratified concept pairs ...")
-    cluster_session = None
-    if not args.offline:
-        try:
-            cluster_session = new_session()
-        except NoJudgeAvailableError:
-            cluster_session = None
-    clusters = evaluate_clusters(bank, vectors, labels, args.per_stratum, cluster_session, rng)
+        session = None
+        if not args.offline:
+            try:
+                session = new_session()
+            except NoJudgeAvailableError as exc:
+                if args.require_judge:
+                    print(f"[judge] unavailable ({exc}); --require-judge is set, so nothing "
+                          "was written.")
+                    return 2
+                print(f"[judge] unavailable ({exc}); falling back to cached labels only.")
 
-    save_labels(labels)
-    write_report(bank, dedup, clusters)
+        print("[dedup] sampling flagged duplicate pairs ...")
+        dedup = evaluate_dedup(bank, vectors, labels, args.pairs, session, rng)
+
+        print("[cluster] sampling stratified concept pairs ...")
+        cluster_session = None
+        if not args.offline:
+            try:
+                cluster_session = new_session()
+            except NoJudgeAvailableError:
+                cluster_session = None
+        clusters = evaluate_clusters(bank, vectors, labels, args.per_stratum, cluster_session, rng)
+        labels.flush()
 
     pooled = dedup["by_source"].get("pooled", {"precision": 0.0, "judged": 0})
+    cluster_judged = _cluster_judged(clusters)
+
+    if args.require_judge and (not pooled["judged"] or not cluster_judged):
+        print("[abort] --require-judge: "
+              f"{pooled['judged']} dedup and {cluster_judged} cluster pairs were judged. "
+              "No report written — an unmeasured metric must not be published as a number.")
+        return 2
+
+    write_report(bank, dedup, clusters)
+
     print(f"[done] dedup precision {pooled['precision']:.1%} over {pooled['judged']} judged pairs "
-          f"(target {DEDUP_TARGET:.0%})")
+          f"(target {DEDUP_TARGET:.0%})" if pooled["judged"] else
+          "[done] dedup precision NOT MEASURED (no pair was judged)")
     print(f"       cluster F1 {clusters['f1']:.1%} "
-          f"[{clusters['f1_ci'][0]:.1%}, {clusters['f1_ci'][1]:.1%}] (target {CLUSTER_F1_TARGET:.0%})")
+          f"[{clusters['f1_ci'][0]:.1%}, {clusters['f1_ci'][1]:.1%}] (target {CLUSTER_F1_TARGET:.0%})"
+          if cluster_judged else
+          "       cluster F1 NOT MEASURED (no pair was judged)")
     print(f"       {REPORT_PATH.relative_to(ROOT_DIR)}")
     return 0
 
