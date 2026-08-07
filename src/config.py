@@ -8,6 +8,16 @@ Secrets and connection details do NOT belong here; those live in `.env`.
 from __future__ import annotations
 
 
+# ── Authentication ────────────────────────────────────────────────────────────
+
+# How long a backend-issued session JWT stays valid. There is no refresh endpoint: a 401
+# sends the browser back to /login, where Google One Tap re-authenticates without a click
+# if the user's Google session is still alive. Everything else about sign-in (client ID,
+# signing secret, admin allowlist, domain restriction) is a secret or a deployment
+# detail and lives in `.env`.
+AUTH_JWT_TTL_HOURS = 168   # 7 days
+
+
 # ── Personalized quiz gate ────────────────────────────────────────────────────
 
 # A student must complete this many *graded* quiz questions before the personalized

@@ -1,9 +1,14 @@
 """
 api/dependencies.py
-Shared FastAPI dependencies — most importantly the Qdrant retriever singleton.
+Shared FastAPI dependencies — the Qdrant retriever singleton, and who is asking.
 
 The retriever is created ONCE at application startup and reused across all requests,
 matching the exact same setup used in run_rag.py and evaluate_rag.py.
+
+Identity lives here too: `get_current_student` turns the bearer token into a `Student`
+row, `assert_self_or_admin` pins a `{student_id}` path parameter to it, and
+`require_admin` gates the authoring surface. See `services/auth_service.py` for the
+sign-in flow those three sit on top of.
 """
 from __future__ import annotations
 
@@ -13,9 +18,12 @@ from functools import lru_cache
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import Header, HTTPException
+from fastapi import Depends, Header, HTTPException
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
+from sqlalchemy.orm import Session
+
+from ..database.session import get_db
 
 load_dotenv()
 
@@ -108,32 +116,120 @@ def doc_id_payload_index_state() -> bool | None:
 
 
 
-# ── Admin access ──────────────────────────────────────────────────────────────
-# There is no auth anywhere else in this system — `student_id` comes straight off the
-# URL path and every /learner/* handler auto-creates students. Rather than pretend
-# otherwise, admin is a single shared secret, and this docstring says so plainly.
+# ── Identity ──────────────────────────────────────────────────────────────────
+# Every learner-scoped endpoint reads WHO from the bearer token, never from the URL.
+# `assert_self_or_admin` is what pins the path parameter to that identity.
+#
+# `auth_service` is imported inside the function bodies below on purpose. It pulls in
+# PyJWT, and both `tests/test_ingest_lifecycle.py` and `src/evaluate_quiz.py` import this
+# module at top level for entirely unrelated reasons — a module-level `import jwt` here
+# would make both fail to import outright on a machine that has not installed it yet.
 
-def admin_token_configured() -> bool:
-    return bool((os.getenv("ADMIN_TOKEN") or "").strip())
+def _bearer(authorization: str) -> str:
+    scheme, _, token = (authorization or "").partition(" ")
+    if scheme.lower() != "bearer" or not token.strip():
+        raise HTTPException(
+            status_code=401,
+            detail="Sign in with Google: this endpoint needs an Authorization: Bearer <token> header.",
+        )
+    return token.strip()
 
 
-def require_admin(x_admin_token: str = Header(default="")) -> str:
-    """Gate every admin endpoint on a shared secret from `.env`.
+def get_current_student(
+    authorization: str = Header(default=""),
+    db: Session = Depends(get_db),
+) -> Any:
+    """The authenticated `Student` row, or an error that says which kind of no it is.
 
-    An UNCONFIGURED deployment is closed, not wide open: with `ADMIN_TOKEN` unset this
-    returns 503 rather than allowing the request. That covers the whole admin surface
-    including draft creation, not just the commit — an unauthenticated extract would let
-    anyone burn OCR minutes and fill the staging directory.
+    503 unconfigured · 401 missing/malformed/expired token or an id with no row ·
+    403 deactivated.
 
-    A staging record carries no per-admin identity; the shared secret is the whole
-    model, so any admin can review, edit or discard any pending draft.
+    Plain `def`, not `async def`. `get_db` is a sync generator, so FastAPI already runs
+    dependencies in its threadpool even for the `async def` chat handlers; making this
+    `async` would put a blocking SQLite read on the event loop on every single request.
     """
-    configured = (os.getenv("ADMIN_TOKEN") or "").strip()
-    if not configured:
+    from .services import auth_service  # noqa: PLC0415
+
+    token = _bearer(authorization)
+    try:
+        return auth_service.student_from_token(db, token)
+    except auth_service.AuthNotConfiguredError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except auth_service.AccountDisabledError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except auth_service.InvalidCredentialError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+def assert_self_or_admin(path_student_id: str, current: Any) -> str:
+    """Pin a `{student_id}` path parameter to the token's identity. Returns the id to use.
+
+    `"me"` resolves to the caller. Anything else must match, unless the caller is an
+    admin. A mismatch is a loud 403 rather than a silent substitution of the token's own
+    id: a client that addresses the wrong profile should fail visibly instead of quietly
+    reading and writing someone else's — including its own, which is the bug that hides.
+    """
+    if path_student_id == "me" or path_student_id == current.student_id:
+        return current.student_id
+    if getattr(current, "is_admin", False):
+        return path_student_id
+    raise HTTPException(
+        status_code=403,
+        detail="You can only access your own learner profile.",
+    )
+
+
+# ── Admin access ──────────────────────────────────────────────────────────────
+
+def require_admin(
+    authorization: str = Header(default=""),
+    x_admin_token: str = Header(default=""),
+    db: Session = Depends(get_db),
+) -> Any:
+    """Gate every admin endpoint on EITHER an identified admin or the shared secret.
+
+    Two mechanisms, deliberately:
+
+    - **Bearer token** — the normal path. `Student.is_admin` is read from the database
+      row rather than from a JWT claim, so revoking someone (drop them from
+      `ADMIN_EMAILS`, or deactivate them) takes effect on their next request instead of
+      whenever their week-long token happens to expire. Returns the `Student`.
+    - **`X-Admin-Token`** — the ops/scripts fallback. It carries no identity, so any
+      admin is every admin; that is the whole reason the bearer path exists. Returns
+      `None`, and every call site discards the value anyway.
+
+    An UNCONFIGURED deployment is closed: with neither `JWT_SECRET` nor `ADMIN_TOKEN`
+    set this is 503, not open. That covers the whole admin surface including draft
+    creation — an unauthenticated extract would let anyone burn OCR minutes.
+    """
+    from .services import auth_service  # noqa: PLC0415
+
+    configured_secret = (os.getenv("ADMIN_TOKEN") or "").strip()
+    bearer_available = auth_service.auth_configured()
+
+    if not configured_secret and not bearer_available:
         raise HTTPException(
             status_code=503,
-            detail="Admin features are disabled: set ADMIN_TOKEN in .env and restart the API.",
+            detail="Admin features are disabled: configure Google sign-in (GOOGLE_CLIENT_ID + "
+                   "JWT_SECRET, with your address in ADMIN_EMAILS) or set ADMIN_TOKEN in .env, "
+                   "then restart the API.",
         )
-    if not secrets.compare_digest(x_admin_token or "", configured):
-        raise HTTPException(status_code=401, detail="Invalid or missing X-Admin-Token header.")
-    return configured
+
+    if configured_secret and x_admin_token and secrets.compare_digest(x_admin_token, configured_secret):
+        return None
+
+    if (authorization or "").strip():
+        student = get_current_student(authorization=authorization, db=db)
+        if not student.is_admin:
+            raise HTTPException(
+                status_code=403,
+                detail="This account is not an administrator. Add its address to ADMIN_EMAILS "
+                       "in .env and sign in again.",
+            )
+        return student
+
+    raise HTTPException(
+        status_code=401,
+        detail="Admin access needs a signed-in administrator (Authorization: Bearer) or a "
+               "valid X-Admin-Token header.",
+    )

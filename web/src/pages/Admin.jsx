@@ -3,7 +3,8 @@ import {
   ShieldCheck, Upload, ClipboardPaste, ListPlus, FileText, Layers, RefreshCw,
   RotateCcw, Trash2, Check, AlertTriangle, Plus, X, Loader2, Info,
 } from 'lucide-react';
-import APIClient, { getAdminToken, setAdminToken } from '../api/client';
+import APIClient from '../api/client';
+import { useAuth } from '../auth/auth-context';
 import './Admin.css';
 
 /* Mirrors QI_ADMIN_SOURCE_TYPES in src/config.py. The value is not cosmetic: pq/PYQ are
@@ -267,8 +268,10 @@ function QuestionEditor({ index, question, onChange, onRemove, canRemove }) {
 }
 
 export default function Admin() {
-  const [token, setToken] = useState(getAdminToken());
-  const [tokenDraft, setTokenDraft] = useState(getAdminToken());
+  // There is no token panel here any more. Reaching this page at all means RequireAdmin
+  // saw `is_admin` on the signed-in student, and the same bearer token carries every
+  // call below — the shared secret survives only as an ops/curl fallback on the server.
+  const { student } = useAuth();
   const [topics, setTopics] = useState([]);
   const [tab, setTab] = useState('pdf');
   const [meta, setMeta] = useState(EMPTY_META);
@@ -301,13 +304,12 @@ export default function Admin() {
   useEffect(() => { APIClient.getTopics().then(setTopics).catch(() => setTopics([])); }, []);
 
   const refreshLists = useCallback(() => {
-    if (!token) return;
     APIClient.listDrafts().then(setStaged).catch(() => setStaged([]));
     APIClient.getUploads().then(setUploads).catch(() => setUploads([]));
     // A commit succeeds even when Qdrant is down, which is the right trade only if the
     // resulting queue is visible somewhere other than the server log.
     APIClient.getVectorSync().then(setSync).catch(() => setSync(null));
-  }, [token]);
+  }, []);
 
   useEffect(() => { refreshLists(); }, [refreshLists]);
 
@@ -319,12 +321,6 @@ export default function Admin() {
   // The paste tab holds the only copy of something a human typed, so it survives a
   // reload until the draft is created. The other two origins have a file or a form.
   useEffect(() => { sessionStorage.setItem('mlt_admin_paste', pasted); }, [pasted]);
-
-  const saveToken = () => {
-    setAdminToken(tokenDraft.trim());
-    setToken(tokenDraft.trim());
-    setError(null);
-  };
 
   const enterReview = (preview) => {
     setDraft(preview);
@@ -439,36 +435,6 @@ export default function Admin() {
   const zeroUnitsMatters = resolvedKind === 'questions' && unitCount === 0;
   const commitBlocked = busy || !analysisIsCurrent || (zeroUnitsMatters && !confirmZero);
 
-  if (!token) {
-    return (
-      <div className="admin-page">
-        <div className="ad-token-gate glass-panel">
-          <ShieldCheck size={26} color="var(--accent)" />
-          <h2>Admin access</h2>
-          <p>
-            Admin is a single shared secret — <code>ADMIN_TOKEN</code> in the server&apos;s
-            <code>.env</code>, sent as <code>X-Admin-Token</code>. There is no other auth
-            in this system and this does not pretend otherwise. With the variable unset,
-            every admin endpoint returns 503.
-          </p>
-          <div className="ad-token-row">
-            <input
-              className="input"
-              type="password"
-              value={tokenDraft}
-              placeholder="X-Admin-Token"
-              onChange={e => setTokenDraft(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && saveToken()}
-            />
-            <button className="btn btn-primary" onClick={saveToken} disabled={!tokenDraft.trim()}>
-              Unlock
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="admin-page">
       <header className="ad-header">
@@ -483,9 +449,9 @@ export default function Admin() {
             </p>
           </div>
         </div>
-        <button className="btn btn-ghost" onClick={() => { setAdminToken(''); setToken(''); }}>
-          Sign out
-        </button>
+        <span className="ad-signed-in" title={student?.email || ''}>
+          <ShieldCheck size={14} /> {student?.name || student?.email}
+        </span>
       </header>
 
       {error && (
@@ -841,7 +807,8 @@ function errorHeadline(error) {
   if (error.code === 'draft_expired') return 'Draft expired';
   if (error.code === 'missing_payload_index') return 'Missing Qdrant payload index';
   switch (error.status) {
-    case 401: return 'Invalid admin token';
+    case 401: return 'Your session has expired';
+    case 403: return 'This account is not an administrator';
     case 400: return 'Rejected';
     case 409: return 'Conflict';
     case 410: return 'Draft expired';

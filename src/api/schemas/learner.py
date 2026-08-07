@@ -11,15 +11,17 @@ from pydantic import BaseModel, Field, model_validator
 
 # ── Student ───────────────────────────────────────────────────────────────────
 
-class StudentCreate(BaseModel):
-    student_id: str = Field(..., min_length=1, description="Unique student identifier")
-    name: str = Field(..., min_length=1)
-    email: Optional[str] = None
-
+# There is no StudentCreate. Rows are created by POST /auth/google from verified Google
+# claims; a body-supplied `student_id` + `email` was an index squat waiting to happen.
 
 class StudentUpdate(BaseModel):
+    """Name only — Google owns the address that authenticates the row."""
+
     name: Optional[str] = None
-    email: Optional[str] = None
+
+
+class StudentStatusUpdate(BaseModel):
+    is_active: bool
 
 
 class StudentResponse(BaseModel):
@@ -27,6 +29,11 @@ class StudentResponse(BaseModel):
     name: str
     email: Optional[str]
     created_at: datetime
+    picture_url: Optional[str] = None
+    is_admin: bool = False
+    is_active: bool = True
+    last_login_at: Optional[datetime] = None
+    login_count: int = 0
 
     class Config:
         from_attributes = True

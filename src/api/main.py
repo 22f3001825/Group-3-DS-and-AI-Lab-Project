@@ -14,9 +14,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ..database.migrations import run_migrations
 from ..database.session import Base, engine
+from .routers.auth import router as auth_router
 from .routers.chat import router as chat_router
 from .routers.learner import router as learner_router
 from .routers.questions import router as questions_router
+from .services.auth_service import cors_origins
 
 
 def init_db():
@@ -51,16 +53,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Allow frontend
+# Allow the frontend — named origins, not `*`.
+#
+# `allow_credentials=False` is correct rather than a downgrade: the session token travels
+# in an Authorization header, not a cookie, so the browser never needs to be told to send
+# credentials cross-origin. Headers are enumerated for the same reason `*` went: a wildcard
+# there is what let any page on the internet script this API in a logged-in user's browser.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=cors_origins(),
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Admin-Token"],
 )
 
 # Register routers
+app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(learner_router)
 app.include_router(questions_router)

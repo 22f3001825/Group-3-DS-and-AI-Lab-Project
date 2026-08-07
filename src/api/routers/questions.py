@@ -2,9 +2,11 @@
 api/routers/questions.py
 Question Intelligence — read endpoints plus the admin authoring path.
 
-Read endpoints are open (the Doubts page is for students and instructors alike). Every
-authoring endpoint is admin-gated by `require_admin`, which returns 503 when ADMIN_TOKEN
-is unset so an unconfigured deployment is closed rather than wide open.
+Read endpoints need a signed-in student — the Doubts page they back is behind login like
+everything else. Every authoring endpoint is admin-gated by `require_admin`, which accepts
+either an identified admin (a bearer token whose `Student.is_admin` is true) or the legacy
+shared `X-Admin-Token`, and returns 503 when neither mechanism is configured, so an
+unconfigured deployment is closed rather than wide open.
 
 There are three ways to create a draft and exactly ONE way to commit it. Two of the
 three make a single-shot path tempting — the admin wrote the text, so what is there to
@@ -23,7 +25,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_retriever, get_vector_store, require_admin
+from ..dependencies import get_current_student, get_retriever, get_vector_store, require_admin
 from ..schemas.questions import (
     BankStats, ClusterDetail, ClusterSummary, CommitRequest, ComposeDraftRequest,
     CreateDraftRequest, DraftPreview, PreviewRequest, QuestionUnit, StagedDraft,
@@ -33,6 +35,7 @@ from ..services import ingest_service, question_repository, question_service
 from ..services.question_service import QuestionBankUnavailableError
 from ..services.question_vector_service import sync_outbox
 from ...config import QI_MIN_DISPLAY_MEMBERS, QI_UPLOAD_MAX_MB
+from ...database.models import Student
 from ...database.session import get_db
 
 router = APIRouter(prefix="/questions", tags=["Question Intelligence"])
@@ -56,7 +59,8 @@ def _ingest_error(exc: ingest_service.IngestError) -> HTTPException:
 # ── Read side ─────────────────────────────────────────────────────────────────
 
 @router.get("/stats", response_model=BankStats)
-def get_stats(db: Session = Depends(get_db)) -> BankStats:
+def get_stats(db: Session = Depends(get_db),
+              _: Student = Depends(get_current_student)) -> BankStats:
     try:
         return BankStats(**question_service.get_stats(db))
     except QuestionBankUnavailableError as exc:
@@ -70,6 +74,7 @@ def list_clusters(
     min_member_count: int = Query(default=QI_MIN_DISPLAY_MEMBERS, ge=1),
     limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
+    _: Student = Depends(get_current_student),
 ) -> list[ClusterSummary]:
     """Browsable concept groups.
 
@@ -87,7 +92,8 @@ def list_clusters(
 
 @router.get("/common-doubts", response_model=list[ClusterSummary])
 def common_doubts(limit: int = Query(default=10, ge=1, le=50),
-                  db: Session = Depends(get_db)) -> list[ClusterSummary]:
+                  db: Session = Depends(get_db),
+                  _: Student = Depends(get_current_student)) -> list[ClusterSummary]:
     """Clusters ranked by how many TIMES a doubt was asked (`asked_count`).
 
     Not `member_count`: PYQ members are OCR-split fragments of one printed question, so
@@ -106,6 +112,7 @@ def search(
     limit: int = Query(default=10, ge=1, le=50),
     retriever: Any = Depends(get_retriever),
     db: Session = Depends(get_db),
+    _: Student = Depends(get_current_student),
 ) -> list[QuestionUnit]:
     try:
         hits = question_service.search(db, q, retriever, limit)
@@ -115,7 +122,8 @@ def search(
 
 
 @router.get("/clusters/{cluster_id}", response_model=ClusterDetail)
-def get_cluster(cluster_id: int, db: Session = Depends(get_db)) -> ClusterDetail:
+def get_cluster(cluster_id: int, db: Session = Depends(get_db),
+                _: Student = Depends(get_current_student)) -> ClusterDetail:
     try:
         cluster = question_service.get_cluster(db, cluster_id)
     except QuestionBankUnavailableError as exc:
@@ -139,7 +147,7 @@ def extract_pdf(
     source_note: Optional[str] = Form(default=None),
     allow_ocr: bool = Form(default=False),
     db: Session = Depends(get_db),
-    _: str = Depends(require_admin),
+    _: Any = Depends(require_admin),
 ) -> DraftPreview:
     """Origin `pdf`. Writes one draft row and nothing else — no file, anywhere.
 
@@ -172,7 +180,7 @@ def extract_pdf(
 @router.post("/drafts", response_model=DraftPreview)
 def create_text_draft(request: CreateDraftRequest,
                       db: Session = Depends(get_db),
-                      _: str = Depends(require_admin)) -> DraftPreview:
+                      _: Any = Depends(require_admin)) -> DraftPreview:
     """Origin `paste`. No file handling, and `process_dataset` is never imported."""
     try:
         return DraftPreview(**ingest_service.create_draft(
@@ -184,7 +192,7 @@ def create_text_draft(request: CreateDraftRequest,
 @router.post("/drafts/compose", response_model=DraftPreview)
 def create_composed_draft(request: ComposeDraftRequest,
                           db: Session = Depends(get_db),
-                          _: str = Depends(require_admin)) -> DraftPreview:
+                          _: Any = Depends(require_admin)) -> DraftPreview:
     """Origin `compose`. Fields in, canonical question markdown out."""
     try:
         return DraftPreview(**ingest_service.compose(
@@ -197,13 +205,13 @@ def create_composed_draft(request: ComposeDraftRequest,
 
 @router.get("/staged", response_model=list[StagedDraft])
 def list_staged(db: Session = Depends(get_db),
-                _: str = Depends(require_admin)) -> list[StagedDraft]:
+                _: Any = Depends(require_admin)) -> list[StagedDraft]:
     return [StagedDraft(**d) for d in ingest_service.list_drafts(db)]
 
 
 @router.get("/staged/{draft_id}", response_model=DraftPreview)
 def get_staged(draft_id: str, db: Session = Depends(get_db),
-               _: str = Depends(require_admin)) -> DraftPreview:
+               _: Any = Depends(require_admin)) -> DraftPreview:
     """Lets a review survive a browser refresh, an API restart, or another machine."""
     try:
         return DraftPreview(**ingest_service.get_draft(db, draft_id))
@@ -214,7 +222,7 @@ def get_staged(draft_id: str, db: Session = Depends(get_db),
 @router.post("/staged/{draft_id}/preview", response_model=DraftPreview)
 def preview_staged(draft_id: str, request: PreviewRequest,
                    db: Session = Depends(get_db),
-                   _: str = Depends(require_admin)) -> DraftPreview:
+                   _: Any = Depends(require_admin)) -> DraftPreview:
     """Re-analyse edited text and metadata. No PDF parse, no OCR, no embedding.
 
     The edit is kept on the draft row, so the review survives a crash; nothing about
@@ -232,7 +240,7 @@ def preview_staged(draft_id: str, request: PreviewRequest,
 def commit_staged(draft_id: str, request: CommitRequest,
                   vector_store: Any = Depends(get_vector_store),
                   db: Session = Depends(get_db),
-                  _: str = Depends(require_admin)) -> UploadResult:
+                  _: Any = Depends(require_admin)) -> UploadResult:
     """The only endpoint that changes stored content, and it does so in one transaction."""
     try:
         return UploadResult(**ingest_service.commit(
@@ -245,7 +253,7 @@ def commit_staged(draft_id: str, request: CommitRequest,
 
 @router.delete("/staged/{draft_id}")
 def delete_staged(draft_id: str, db: Session = Depends(get_db),
-                  _: str = Depends(require_admin)) -> dict:
+                  _: Any = Depends(require_admin)) -> dict:
     """Discard a review. This one call is the whole rollback for Phase A."""
     try:
         ingest_service.discard_draft(db, draft_id)
@@ -258,14 +266,14 @@ def delete_staged(draft_id: str, db: Session = Depends(get_db),
 
 @router.get("/uploads")
 def list_uploads(db: Session = Depends(get_db),
-                 _: str = Depends(require_admin)) -> list[dict]:
+                 _: Any = Depends(require_admin)) -> list[dict]:
     """Contribution history, from `question_uploads`."""
     return ingest_service.list_uploads(db)
 
 
 @router.get("/sync", response_model=SyncStatus)
 def sync_status(db: Session = Depends(get_db),
-                _: str = Depends(require_admin)) -> SyncStatus:
+                _: Any = Depends(require_admin)) -> SyncStatus:
     """Outbox health.
 
     A relational commit succeeds even when Qdrant is unreachable, which is the right
@@ -277,7 +285,7 @@ def sync_status(db: Session = Depends(get_db),
 @router.post("/sync", response_model=SyncStatus)
 def run_sync(limit: int = Query(default=500, ge=1, le=5000),
              db: Session = Depends(get_db),
-             _: str = Depends(require_admin)) -> SyncStatus:
+             _: Any = Depends(require_admin)) -> SyncStatus:
     """Drain the outbox now. Idempotent; failures stay queued with their last error."""
     sync_outbox(db, limit=limit)
     return SyncStatus(**question_repository.outbox_status(db))
@@ -286,7 +294,7 @@ def run_sync(limit: int = Query(default=500, ge=1, le=5000),
 @router.post("/rebuild", response_model=BankStats)
 def rebuild(refresh_vectors: bool = Query(default=False),
             db: Session = Depends(get_db),
-            _: str = Depends(require_admin)) -> BankStats:
+            _: Any = Depends(require_admin)) -> BankStats:
     """Full re-cluster — the drift escape hatch. Cluster IDs are NOT preserved.
 
     Reads the corpus tree and every stored document. `refresh_vectors=true` bypasses the

@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User, RefreshCw, BookOpen, CheckCircle, AlertTriangle,
-  Clock, ArrowRight, Brain, Target, Award, Sparkles, MessageSquare, Zap
+  Clock, ArrowRight, Brain, Target, Award, Sparkles, MessageSquare
 } from 'lucide-react';
 import APIClient from '../api/client';
+import { useAuth } from '../auth/auth-context';
 import './Progress.css';
-
-const STUDENT_KEY = 'mlt_student_id';
 
 function MasteryProgressBar({ score }) {
   const pct = Math.round(score * 100);
@@ -40,8 +39,10 @@ function getStatusBadge(status) {
 
 export default function Progress() {
   const navigate = useNavigate();
-  const [studentId, setStudentId] = useState(() => localStorage.getItem(STUDENT_KEY) || 'student_001');
-  const [input, setInput] = useState(studentId);
+  // Identity comes from the session. The "Change ID" box that used to live in this
+  // header was the whole of the old access control — typing any id read that person's
+  // profile — and the server now refuses a path id that is not the caller's.
+  const { studentId, student } = useAuth();
   const [profile, setProfile] = useState(null);
   const [recommendations, setRecommendations] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -49,15 +50,11 @@ export default function Progress() {
   const [loaded, setLoaded] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState(null);
 
-  useEffect(() => {
-    if (studentId) {
-      loadDashboard(studentId, false);
-    }
-  }, []);
-
-  const loadDashboard = async (sid, forceRefresh = false) => {
+  const loadDashboard = useCallback(async (sid, forceRefresh = false) => {
+    // The full-page spinner is for the initial load; a forced refresh only spins its
+    // own button so the dashboard underneath stays readable.
     if (forceRefresh) setRefreshing(true);
-    else if (!loaded) setLoading(true);
+    else setLoading(true);
 
     try {
       const [profData, recData] = await Promise.all([
@@ -73,16 +70,11 @@ export default function Progress() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
-  const handleLoad = (e) => {
-    e.preventDefault();
-    const sid = input.trim();
-    if (!sid) return;
-    setStudentId(sid);
-    localStorage.setItem(STUDENT_KEY, sid);
-    loadDashboard(sid, false);
-  };
+  useEffect(() => {
+    if (studentId) loadDashboard(studentId, false);
+  }, [studentId, loadDashboard]);
 
   const handleForceRefresh = () => {
     if (studentId) {
@@ -114,18 +106,9 @@ export default function Progress() {
           </p>
         </div>
         <div className="header-controls">
-          <form onSubmit={handleLoad} className="student-form">
-            <input
-              className="input"
-              placeholder="Student ID"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              style={{ width: 160 }}
-            />
-            <button className="btn btn-secondary" type="submit" disabled={loading || refreshing}>
-              <User size={15} /> Change ID
-            </button>
-          </form>
+          <span className="progress-account">
+            <User size={15} /> {student?.name || student?.email || 'Signed in'}
+          </span>
           <button
             className="btn btn-primary"
             onClick={handleForceRefresh}
@@ -149,9 +132,9 @@ export default function Progress() {
         </div>
       ) : !loaded ? (
         <div className="progress-empty glass-panel">
-          <User size={48} color="var(--text-muted)" />
-          <h3>Enter Your Student ID</h3>
-          <p>Type your student ID above and click <strong>Load Profile</strong> to view your adaptive roadmap.</p>
+          <AlertTriangle size={48} color="var(--text-muted)" />
+          <h3>Could not load your profile</h3>
+          <p>Make sure the FastAPI backend is running on port 8000, then hit <strong>Refresh Plan</strong>.</p>
         </div>
       ) : (
         <>

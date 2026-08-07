@@ -44,12 +44,43 @@ def _uuid() -> str:
 # ── Student ───────────────────────────────────────────────────────────────────
 
 class Student(Base):
+    """One row per Google account. `student_id` IS the Google `sub` claim.
+
+    Google's `sub` is the only identifier it promises is stable and never reused, so it
+    is the primary key rather than a column beside one — an email changes, a name changes,
+    a `sub` does not. Rows predating Google sign-in keep their hand-made ids and simply
+    have no way to log in.
+
+    `is_admin` is derived from ADMIN_EMAILS at every login rather than being granted once,
+    so revocation is a config change plus a re-login. Authorization is read from this row
+    on every request and is deliberately NOT carried in the JWT: a demotion or a
+    deactivation must take effect on the next request, not at token expiry.
+    """
+
     __tablename__ = "students"
 
     student_id  = Column(String, primary_key=True, default=_uuid)
     name        = Column(String(255), nullable=False)
     email       = Column(String(255), unique=True, nullable=True)
-    created_at  = Column(DateTime, default=_now, nullable=False)
+    created_at  = Column(DateTime, default=_now, nullable=False)   # also the sign-up time
+
+    # ── Google identity (migration 0009) ──
+    given_name     = Column(String(255), nullable=True)
+    family_name    = Column(String(255), nullable=True)
+    picture_url    = Column(String(512), nullable=True)
+    # Login gate: Google will happily mint a token for an address it has not verified.
+    email_verified = Column(Boolean, default=False, nullable=False)
+    # The `hd` claim, which is what the domain allowlist checks first — the email suffix
+    # is only the fallback, because a Workspace account can carry a vanity address.
+    hosted_domain  = Column(String(255), nullable=True)
+
+    is_admin       = Column(Boolean, default=False, nullable=False)
+    # Flipped by PATCH /learner/{id}/status. A deactivated student keeps every row they
+    # produced and simply cannot authenticate: get_current_student 403s.
+    is_active      = Column(Boolean, default=True, nullable=False)
+    last_login_at  = Column(DateTime, nullable=True)
+    login_count    = Column(Integer, default=0, nullable=False)
+    updated_at     = Column(DateTime, nullable=True)   # refreshed when Google's claims change
 
     # Relationships
     sessions        = relationship("ChatSession",  back_populates="student", cascade="all, delete-orphan")

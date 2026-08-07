@@ -2,8 +2,14 @@
 api/routers/chat.py
 Chat and retrieval endpoints with automated learner topic exploration tracking.
 
-POST /chat     — full RAG: retrieve + LLM answer, optionally persist to DB & track topics
+POST /chat     — full RAG: retrieve + LLM answer, persist to DB & track topics
 POST /retrieve — retrieve only (no LLM), for debugging
+
+Both handlers require a signed-in student, and `student_id` comes from the token rather
+than the request body. One consequence is worth stating: persistence used to be opt-in
+(the client chose whether to send an id), and is now unconditional. Every answered
+question is recorded and every detected topic increments `chat_interactions` — which is
+what makes the "explored" signal on the Progress page reflect actual use.
 """
 from __future__ import annotations
 
@@ -12,7 +18,8 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..dependencies import get_retriever
+from ..dependencies import get_current_student, get_retriever
+from ...database.models import Student
 from ..schemas.chat import (
     ChatRequest, ChatResponse, RelatedQuestion, RetrieveRequest, RetrieveResponse, SourceChunk,
 )
@@ -30,6 +37,7 @@ async def chat(
     request: ChatRequest,
     retriever: Any = Depends(get_retriever),
     db: Session = Depends(get_db),
+    current: Student = Depends(get_current_student),
 ) -> ChatResponse:
     """
     Full RAG endpoint.
@@ -40,6 +48,7 @@ async def chat(
     `request.history` carries the client's recent turns so follow-up questions resolve; only
     the current question is persisted, exactly as before.
     """
+    student_id = current.student_id
     try:
         result = run_rag(
             request.question,
@@ -53,45 +62,44 @@ async def chat(
     session_id: Optional[str] = request.session_id
     message_id: Optional[str] = None
 
-    # Persist to DB if student_id is provided
-    if request.student_id:
-        crud.get_or_create_student(db, request.student_id)
+    # A continued session must belong to the caller; otherwise this would be a way to
+    # append messages to someone else's transcript by guessing an id.
+    if session_id:
+        session = crud.get_chat_session(db, session_id)
+        if not session or (session.student_id != student_id and not current.is_admin):
+            raise HTTPException(status_code=404, detail="Session not found.")
+    else:
+        session = crud.create_chat_session(db, student_id=student_id)
+        session_id = session.session_id
 
-        # Auto-create session if none given
-        if not session_id:
-            session = crud.create_chat_session(db, student_id=request.student_id)
-            session_id = session.session_id
+    crud.add_chat_message(
+        db,
+        session_id=session_id,
+        role="user",
+        content=request.question,
+        student_id=student_id,
+    )
+    assistant_msg = crud.add_chat_message(
+        db,
+        session_id=session_id,
+        role="assistant",
+        content=result["answer"],
+        student_id=student_id,
+        topics_detected=result["topics_detected"],
+        provider_used=result["provider_used"],
+    )
+    message_id = assistant_msg.message_id
 
-        # Save user message
-        crud.add_chat_message(
-            db,
-            session_id=session_id,
-            role="user",
-            content=request.question,
-            student_id=request.student_id,
-        )
-        # Save assistant message
-        assistant_msg = crud.add_chat_message(
-            db,
-            session_id=session_id,
-            role="assistant",
-            content=result["answer"],
-            student_id=request.student_id,
-            topics_detected=result["topics_detected"],
-            provider_used=result["provider_used"],
-        )
-        message_id = assistant_msg.message_id
-
-        # Auto-track topics explored in chat
-        for t_name in result.get("topics_detected", []):
-            matched = find_topic(t_name)
-            if matched:
-                crud.record_chat_topic_interaction(
-                    db,
-                    student_id=request.student_id,
-                    topic_id=matched["id"],
-                    topic_name=matched["name"],
-                )
+    # Auto-track topics explored in chat — the "explored" signal the recommender reads.
+    for t_name in result.get("topics_detected", []):
+        matched = find_topic(t_name)
+        if matched:
+            crud.record_chat_topic_interaction(
+                db,
+                student_id=student_id,
+                topic_id=matched["id"],
+                topic_name=matched["name"],
+            )
 
     # "Students also asked" — canonical siblings of the chunks that were just retrieved.
     # Wrapped because a missing or broken question bank must never take the chat path
@@ -118,6 +126,7 @@ async def chat(
 async def retrieve_only(
     request: RetrieveRequest,
     retriever: Any = Depends(get_retriever),
+    _: Student = Depends(get_current_student),
 ) -> RetrieveResponse:
     """
     Debug endpoint — retrieves chunks without calling the LLM.
