@@ -25,7 +25,6 @@ const Settings = () => {
       <div className="settings-header">
         <div>
           <h1 className="page-title">Settings</h1>
-          <p className="page-subtitle">Your account, and appearance preferences remembered in this browser.</p>
         </div>
       </div>
 
@@ -55,16 +54,7 @@ const Settings = () => {
         <dl className="account-facts">
           <div><dt>Member since</dt><dd>{formatDate(student?.created_at)}</dd></div>
           <div><dt>Last sign-in</dt><dd>{formatDate(student?.last_login_at)}</dd></div>
-          <div><dt>Sign-ins</dt><dd>{student?.login_count ?? 0}</dd></div>
         </dl>
-
-        <div className="settings-note">
-          <Info size={14} />
-          <span>
-            Signed in with Google. Your name, email and picture come from your Google account
-            and are refreshed each time you sign in.
-          </span>
-        </div>
 
         <button type="button" className="btn btn-ghost account-signout" onClick={signOut}>
           <LogOut size={15} /> Sign out
@@ -137,13 +127,7 @@ const Settings = () => {
           </button>
         </div>
 
-        <div className="settings-note">
-          <Info size={14} />
-          <span>
-            This preference is saved in your browser, so reloading or opening a new tab keeps
-            the theme you picked. It is stored per browser, not on your account.
-          </span>
-        </div>
+
       </section>
 
       <p className="settings-footnote">Active theme: <strong>{theme}</strong></p>

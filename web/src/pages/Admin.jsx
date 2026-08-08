@@ -56,7 +56,6 @@ function MetadataForm({ meta, onChange, topics, disabled, errorField }) {
             placeholder="Week 5 Practice Set"
             onChange={e => set({ title: e.target.value })}
           />
-          <small>Slugified into the file stem and every chunk&apos;s doc_id prefix.</small>
         </label>
 
         <label className={`ad-field ${errorField === 'source_type' ? 'has-error' : ''}`}>
@@ -71,11 +70,6 @@ function MetadataForm({ meta, onChange, topics, disabled, errorField }) {
               <option key={st} value={st}>{st} — {kind}</option>
             ))}
           </select>
-          <small>
-            {SOURCE_KINDS[meta.source_type] === 'questions'
-              ? 'Exam material: ranked ahead of explanatory sources in every quiz prompt.'
-              : 'Explanatory material: contributes chunks, and no question units by design.'}
-          </small>
         </label>
       </div>
 
@@ -115,10 +109,6 @@ function MetadataForm({ meta, onChange, topics, disabled, errorField }) {
           Taxonomy topics <em>optional</em>
           {meta.topic_ids.length > 0 && <b className="ad-chosen">{meta.topic_ids.length} selected</b>}
         </span>
-        <small>
-          The first place in this system where a chunk&apos;s concept tags are asserted rather
-          than derived from its week. Leave empty to fall back to the week&apos;s full tag list.
-        </small>
         <input
           className="input ad-topic-filter"
           value={topicFilter}
@@ -443,9 +433,7 @@ export default function Admin() {
           <div>
             <h1>Content authoring</h1>
             <p>
-              Draft → review → commit. A draft is a single database row and discarding it is
-              the whole rollback; commit is the only step that stores the document, rebuilds
-              the question bank and queues the Qdrant work.
+              Draft → review → commit.
             </p>
           </div>
         </div>
@@ -489,11 +477,7 @@ export default function Admin() {
 
             {tab === 'pdf' && (
               <div className="ad-tab-body">
-                <p className="ad-hint">
-                  Extraction is the one step here whose output is likely to be wrong and
-                  expensive when it is. It runs in the phase that writes nothing, so a bad
-                  parse costs a discarded directory.
-                </p>
+                
                 <input
                   type="file"
                   accept="application/pdf,.pdf"
@@ -574,10 +558,6 @@ export default function Admin() {
 
           <aside className="ad-side">
             <h3>Pending reviews</h3>
-            <p className="ad-muted">
-              A draft is a database row, so an interrupted review survives a browser refresh,
-              a server reload, and a move to another machine.
-            </p>
             {staged.length === 0 && <p className="ad-muted">Nothing pending.</p>}
             {staged.map(d => (
               <button key={d.draft_id} className="ad-staged-row" onClick={() => resumeDraft(d.draft_id)}>

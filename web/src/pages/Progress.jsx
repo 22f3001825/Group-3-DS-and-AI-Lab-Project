@@ -102,7 +102,7 @@ export default function Progress() {
         <div>
           <h1 className="page-title">📊 Learning Intelligence &amp; Mastery</h1>
           <p className="page-subtitle">
-            Elo-based Knowledge Tracing (Pelánek 2016) &amp; Adaptive Gap Remediation
+            Elo-based Knowledge Tracing &amp; Adaptive Gap Remediation
           </p>
         </div>
         <div className="header-controls">

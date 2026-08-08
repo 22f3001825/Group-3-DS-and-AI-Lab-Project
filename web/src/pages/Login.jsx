@@ -61,8 +61,7 @@ export default function Login() {
           <h1>MLT Assistant</h1>
         </div>
         <p className="login-sub">
-          Your study assistant for the IIT Madras BS Degree Machine Learning Techniques
-          course. Sign in with Google to keep your progress, mastery and quiz history.
+          Your study assistant for the IIT Madras BS Degree.
         </p>
 
         {!GOOGLE_CLIENT_ID ? (
@@ -108,10 +107,7 @@ export default function Login() {
           </div>
         )}
 
-        <ul className="login-points">
-          <li><Sparkles size={14} /> Answers cited to lecture material, with timestamps</li>
-          <li><ShieldCheck size={14} /> Your quiz history and mastery stay on your account</li>
-        </ul>
+        
       </div>
     </div>
   );
