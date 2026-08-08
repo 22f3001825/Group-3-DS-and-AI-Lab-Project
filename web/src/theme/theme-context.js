@@ -2,17 +2,18 @@ import { createContext, useContext } from 'react';
 
 /*
   Theme preference is persisted in localStorage under THEME_STORAGE_KEY. Every new
-  session/refresh reads the stored preference, defaulting to 'dark' if none is found
+  session/refresh reads the stored preference, defaulting to 'light' if none is found
   (or if the stored value is not one this app renders — see normalizeTheme).
 
-  The stylesheet keys off data-theme on <html>: absent/"dark" = the dark palette in
-  :root, "light" = the override block. index.html sets that attribute from the same
-  key before React mounts, so a light-mode reload does not flash dark.
+  The stylesheet keys off data-theme on <html>: "dark" (and an absent attribute) = the
+  dark palette in :root, "light" = the override block. Since light is now the default,
+  index.html must write the attribute explicitly from the same key before React mounts —
+  otherwise a first visit paints dark until React sets it.
 
   The context and the hook live in this non-component module so ThemeProvider.jsx
   can stay component-only (satisfying Vite fast refresh rules).
 */
-export const DEFAULT_THEME = 'dark';
+export const DEFAULT_THEME = 'light';
 export const THEME_STORAGE_KEY = 'theme';
 export const THEMES = ['dark', 'light'];
 

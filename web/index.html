@@ -7,15 +7,16 @@
     <meta name="description" content="RAG study assistant for the IIT Madras BS Degree MLT course." />
     <title>MLT Assistant</title>
     <script>
-      // Apply the stored theme before first paint, otherwise a light-mode reload
-      // flashes the dark palette until React mounts. Key must match
-      // THEME_STORAGE_KEY in src/theme/theme-context.js.
+      // Apply the stored theme before first paint, otherwise the dark palette on
+      // :root flashes until React mounts. Light is the default (DEFAULT_THEME), so
+      // only an explicit 'dark' opts in. Key must match THEME_STORAGE_KEY in
+      // src/theme/theme-context.js.
       (function () {
         try {
           var t = localStorage.getItem('theme');
-          document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+          document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
         } catch (e) {
-          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.setAttribute('data-theme', 'light');
         }
       })();
     </script>
