@@ -3,7 +3,8 @@ import {
   ShieldCheck, Upload, ClipboardPaste, ListPlus, FileText, Layers, RefreshCw,
   RotateCcw, Trash2, Check, AlertTriangle, Plus, X, Loader2, Info,
 } from 'lucide-react';
-import APIClient, { getAdminToken, setAdminToken } from '../api/client';
+import APIClient from '../api/client';
+import { useAuth } from '../auth/auth-context';
 import './Admin.css';
 
 /* Mirrors QI_ADMIN_SOURCE_TYPES in src/config.py. The value is not cosmetic: pq/PYQ are
@@ -55,7 +56,6 @@ function MetadataForm({ meta, onChange, topics, disabled, errorField }) {
             placeholder="Week 5 Practice Set"
             onChange={e => set({ title: e.target.value })}
           />
-          <small>Slugified into the file stem and every chunk&apos;s doc_id prefix.</small>
         </label>
 
         <label className={`ad-field ${errorField === 'source_type' ? 'has-error' : ''}`}>
@@ -70,11 +70,6 @@ function MetadataForm({ meta, onChange, topics, disabled, errorField }) {
               <option key={st} value={st}>{st} — {kind}</option>
             ))}
           </select>
-          <small>
-            {SOURCE_KINDS[meta.source_type] === 'questions'
-              ? 'Exam material: ranked ahead of explanatory sources in every quiz prompt.'
-              : 'Explanatory material: contributes chunks, and no question units by design.'}
-          </small>
         </label>
       </div>
 
@@ -114,10 +109,6 @@ function MetadataForm({ meta, onChange, topics, disabled, errorField }) {
           Taxonomy topics <em>optional</em>
           {meta.topic_ids.length > 0 && <b className="ad-chosen">{meta.topic_ids.length} selected</b>}
         </span>
-        <small>
-          The first place in this system where a chunk&apos;s concept tags are asserted rather
-          than derived from its week. Leave empty to fall back to the week&apos;s full tag list.
-        </small>
         <input
           className="input ad-topic-filter"
           value={topicFilter}
@@ -267,8 +258,10 @@ function QuestionEditor({ index, question, onChange, onRemove, canRemove }) {
 }
 
 export default function Admin() {
-  const [token, setToken] = useState(getAdminToken());
-  const [tokenDraft, setTokenDraft] = useState(getAdminToken());
+  // There is no token panel here any more. Reaching this page at all means RequireAdmin
+  // saw `is_admin` on the signed-in student, and the same bearer token carries every
+  // call below — the shared secret survives only as an ops/curl fallback on the server.
+  const { student } = useAuth();
   const [topics, setTopics] = useState([]);
   const [tab, setTab] = useState('pdf');
   const [meta, setMeta] = useState(EMPTY_META);
@@ -301,13 +294,12 @@ export default function Admin() {
   useEffect(() => { APIClient.getTopics().then(setTopics).catch(() => setTopics([])); }, []);
 
   const refreshLists = useCallback(() => {
-    if (!token) return;
     APIClient.listDrafts().then(setStaged).catch(() => setStaged([]));
     APIClient.getUploads().then(setUploads).catch(() => setUploads([]));
     // A commit succeeds even when Qdrant is down, which is the right trade only if the
     // resulting queue is visible somewhere other than the server log.
     APIClient.getVectorSync().then(setSync).catch(() => setSync(null));
-  }, [token]);
+  }, []);
 
   useEffect(() => { refreshLists(); }, [refreshLists]);
 
@@ -319,12 +311,6 @@ export default function Admin() {
   // The paste tab holds the only copy of something a human typed, so it survives a
   // reload until the draft is created. The other two origins have a file or a form.
   useEffect(() => { sessionStorage.setItem('mlt_admin_paste', pasted); }, [pasted]);
-
-  const saveToken = () => {
-    setAdminToken(tokenDraft.trim());
-    setToken(tokenDraft.trim());
-    setError(null);
-  };
 
   const enterReview = (preview) => {
     setDraft(preview);
@@ -439,36 +425,6 @@ export default function Admin() {
   const zeroUnitsMatters = resolvedKind === 'questions' && unitCount === 0;
   const commitBlocked = busy || !analysisIsCurrent || (zeroUnitsMatters && !confirmZero);
 
-  if (!token) {
-    return (
-      <div className="admin-page">
-        <div className="ad-token-gate glass-panel">
-          <ShieldCheck size={26} color="var(--accent)" />
-          <h2>Admin access</h2>
-          <p>
-            Admin is a single shared secret — <code>ADMIN_TOKEN</code> in the server&apos;s
-            <code>.env</code>, sent as <code>X-Admin-Token</code>. There is no other auth
-            in this system and this does not pretend otherwise. With the variable unset,
-            every admin endpoint returns 503.
-          </p>
-          <div className="ad-token-row">
-            <input
-              className="input"
-              type="password"
-              value={tokenDraft}
-              placeholder="X-Admin-Token"
-              onChange={e => setTokenDraft(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && saveToken()}
-            />
-            <button className="btn btn-primary" onClick={saveToken} disabled={!tokenDraft.trim()}>
-              Unlock
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="admin-page">
       <header className="ad-header">
@@ -477,15 +433,13 @@ export default function Admin() {
           <div>
             <h1>Content authoring</h1>
             <p>
-              Draft → review → commit. A draft is a single database row and discarding it is
-              the whole rollback; commit is the only step that stores the document, rebuilds
-              the question bank and queues the Qdrant work.
+              Draft → review → commit.
             </p>
           </div>
         </div>
-        <button className="btn btn-ghost" onClick={() => { setAdminToken(''); setToken(''); }}>
-          Sign out
-        </button>
+        <span className="ad-signed-in" title={student?.email || ''}>
+          <ShieldCheck size={14} /> {student?.name || student?.email}
+        </span>
       </header>
 
       {error && (
@@ -523,11 +477,7 @@ export default function Admin() {
 
             {tab === 'pdf' && (
               <div className="ad-tab-body">
-                <p className="ad-hint">
-                  Extraction is the one step here whose output is likely to be wrong and
-                  expensive when it is. It runs in the phase that writes nothing, so a bad
-                  parse costs a discarded directory.
-                </p>
+                
                 <input
                   type="file"
                   accept="application/pdf,.pdf"
@@ -608,10 +558,6 @@ export default function Admin() {
 
           <aside className="ad-side">
             <h3>Pending reviews</h3>
-            <p className="ad-muted">
-              A draft is a database row, so an interrupted review survives a browser refresh,
-              a server reload, and a move to another machine.
-            </p>
             {staged.length === 0 && <p className="ad-muted">Nothing pending.</p>}
             {staged.map(d => (
               <button key={d.draft_id} className="ad-staged-row" onClick={() => resumeDraft(d.draft_id)}>
@@ -841,7 +787,8 @@ function errorHeadline(error) {
   if (error.code === 'draft_expired') return 'Draft expired';
   if (error.code === 'missing_payload_index') return 'Missing Qdrant payload index';
   switch (error.status) {
-    case 401: return 'Invalid admin token';
+    case 401: return 'Your session has expired';
+    case 403: return 'This account is not an administrator';
     case 400: return 'Rejected';
     case 409: return 'Conflict';
     case 410: return 'Draft expired';

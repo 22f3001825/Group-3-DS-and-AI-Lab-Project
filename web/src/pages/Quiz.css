@@ -409,3 +409,17 @@
   .quiz-layout { grid-template-columns: 1fr; height: auto; }
   .quiz-sidebar { display: none; }
 }
+
+/* The signed-in account, where the editable student-ID box used to be. */
+.quiz-account {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

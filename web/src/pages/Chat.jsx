@@ -3,9 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { Send, User, Bot, BookOpen, ChevronDown, ChevronUp, Clock, Zap, Video, Layers } from 'lucide-react';
 import APIClient from '../api/client';
 import RichText from '../components/RichText';
+import { useAuth } from '../auth/auth-context';
 import './Chat.css';
-
-const STUDENT_KEY = 'mlt_student_id';
 
 // Messages sent back as conversation memory — 3 exchanges, matching CHAT_MEMORY_TURNS in
 // src/config.py. The server trims to its own limit regardless; this just avoids uploading
@@ -110,6 +109,9 @@ function TypingIndicator() {
 
 export default function Chat() {
   const location = useLocation();
+  // One source of identity for the whole app. There is no editable student-ID box any
+  // more: the server takes the id from the bearer token and ignores anything else.
+  const { student } = useAuth();
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -120,8 +122,6 @@ export default function Chat() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [studentId, setStudentId] = useState(() => localStorage.getItem(STUDENT_KEY) || 'student_001');
-  const [editingId, setEditingId] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -133,12 +133,6 @@ export default function Chat() {
       setInput(location.state.initialPrompt);
     }
   }, [location.state]);
-
-  const handleSetId = (e) => {
-    e.preventDefault();
-    localStorage.setItem(STUDENT_KEY, studentId.trim());
-    setEditingId(false);
-  };
 
   const sendMessage = async () => {
     const question = input.trim();
@@ -156,7 +150,7 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      const result = await APIClient.chat(question, studentId || null, null, history);
+      const result = await APIClient.chat(question, null, history);
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: result.answer,
@@ -196,27 +190,10 @@ export default function Chat() {
       {/* Sidebar */}
       <aside className="chat-sidebar glass-panel">
         <div className="sidebar-section">
-          <h3 className="sidebar-title">👤 Session</h3>
-          {editingId ? (
-            <form onSubmit={handleSetId} className="id-form">
-              <input
-                className="input"
-                placeholder="Student ID"
-                value={studentId}
-                onChange={e => setStudentId(e.target.value)}
-                autoFocus
-              />
-              <button className="btn btn-primary" type="submit" style={{ width: '100%' }}>Save</button>
-            </form>
-          ) : (
-            <div className="student-id-display" onClick={() => setEditingId(true)}>
-              {studentId ? (
-                <><User size={14} /> <span>{studentId}</span></>
-              ) : (
-                <span className="text-muted">Click to set Student ID</span>
-              )}
-            </div>
-          )}
+          <h3 className="sidebar-title">👤 Signed in</h3>
+          <div className="student-id-display">
+            <User size={14} /> <span>{student?.name || student?.email || 'Student'}</span>
+          </div>
         </div>
 
         <div className="sidebar-section">

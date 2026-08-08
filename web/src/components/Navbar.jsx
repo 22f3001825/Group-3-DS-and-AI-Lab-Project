@@ -1,17 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { Brain, MessageSquare, Edit3, TrendingUp, Layers, Settings, ShieldCheck } from 'lucide-react';
-import { getAdminToken } from '../api/client';
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import {
+  Brain, MessageSquare, Edit3, TrendingUp, Layers, Settings, ShieldCheck, LogOut, User,
+} from 'lucide-react';
+import { useAuth } from '../auth/auth-context';
 import './Navbar.css';
 
 const Navbar = () => {
-  // The /admin link renders only when a token is stored, so ordinary students never see
-  // it. Re-checked on navigation because signing in or out happens on the Admin page
-  // itself and localStorage does not fire an event for the tab that wrote it.
-  const location = useLocation();
-  const [isAdmin, setIsAdmin] = useState(Boolean(getAdminToken()));
+  // Identity is context now, not a localStorage re-read on every navigation: the old
+  // getAdminToken() poll existed only because signing in happened on the Admin page and
+  // localStorage fires no event in the tab that wrote it.
+  const { isAuthenticated, isAdmin, student, signOut } = useAuth();
 
-  useEffect(() => { setIsAdmin(Boolean(getAdminToken())); }, [location]);
+  // The login page is its own thing — no navigation to offer until there is a session.
+  if (!isAuthenticated) return null;
 
   return (
     <nav className="navbar glass-panel">
@@ -40,12 +42,33 @@ const Navbar = () => {
           <Settings size={18} />
           <span>Settings</span>
         </NavLink>
+        {/* Gated on the server's answer (`Student.is_admin`), not on anything stored
+            locally — so the link disappears on the next request after a demotion. */}
         {isAdmin && (
           <NavLink to="/admin" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <ShieldCheck size={18} />
             <span>Admin</span>
           </NavLink>
         )}
+      </div>
+
+      <div className="nav-account">
+        <NavLink to="/settings" className="nav-avatar-link" title={student?.email || ''}>
+          {student?.picture_url ? (
+            <img
+              className="nav-avatar"
+              src={student.picture_url}
+              alt=""
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <span className="nav-avatar nav-avatar-fallback"><User size={15} /></span>
+          )}
+          <span className="nav-account-name">{student?.name || 'Account'}</span>
+        </NavLink>
+        <button className="nav-signout" onClick={signOut} title="Sign out">
+          <LogOut size={16} />
+        </button>
       </div>
     </nav>
   );

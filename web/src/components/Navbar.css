@@ -78,3 +78,80 @@
     padding: 8px 12px;
   }
 }
+
+/* ── Account cluster ──────────────────────────────────────────────────────────
+   Avatar, name and sign-out. The image is Google's CDN URL from the `picture`
+   claim; referrerPolicy="no-referrer" on the <img> is what stops lh3 answering
+   403 for some accounts. */
+
+.nav-account {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-avatar-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 6px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  max-width: 190px;
+  transition: var(--transition);
+}
+
+.nav-avatar-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-input);
+}
+
+.nav-avatar {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+}
+
+.nav-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.nav-account-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-signout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.nav-signout:hover {
+  color: var(--danger-text);
+  background: var(--danger-bg);
+}
+
+@media (max-width: 860px) {
+  .nav-account-name { display: none; }
+  .nav-avatar-link { padding: 5px; }
+}

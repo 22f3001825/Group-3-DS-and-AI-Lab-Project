@@ -36,24 +36,12 @@
   gap: 8px;
   padding: 10px 12px;
   background: var(--bg-input);
-  border: 1px dashed var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  cursor: pointer;
   color: var(--text-secondary);
   font-size: 14px;
-  transition: var(--transition);
-}
-.student-id-display:hover {
-  border-color: var(--accent);
-  color: var(--text-primary);
 }
 .text-muted { color: var(--text-muted); font-size: 13px; }
-
-.id-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
 
 .suggestions {
   display: flex;

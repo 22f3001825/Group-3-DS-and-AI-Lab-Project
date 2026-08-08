@@ -16,7 +16,8 @@ class ChatTurn(BaseModel):
 class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1, description="Student's question")
     top_k: int = Field(default=5, ge=1, le=20, description="Number of chunks to retrieve")
-    student_id: Optional[str] = Field(default=None, description="Optional student ID for saving history")
+    # No student_id. Identity is the bearer token's, so a client cannot write into
+    # another learner's history by naming them.
     session_id: Optional[str] = Field(default=None, description="Optional session ID to continue a conversation")
     # Short-term memory for follow-up questions, oldest first. This cap is only a payload
     # guard — `rag_pipeline.format_history` trims to CHAT_MEMORY_TURNS and condenses each

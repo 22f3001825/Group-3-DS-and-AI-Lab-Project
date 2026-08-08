@@ -20,7 +20,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.database.crud import (
-    get_or_create_student, get_topic_mastery_for_student, record_recommendation_event,
+    get_topic_mastery_for_student, record_recommendation_event,
 )
 from src.database.models import ChatMessage, QuizAttempt, TopicMastery
 from src.rag_pipeline import generate_llm_response

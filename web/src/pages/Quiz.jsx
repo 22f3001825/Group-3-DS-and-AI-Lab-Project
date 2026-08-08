@@ -6,9 +6,9 @@ import {
 } from 'lucide-react';
 import APIClient from '../api/client';
 import RichText from '../components/RichText';
+import { useAuth } from '../auth/auth-context';
 import './Quiz.css';
 
-const STUDENT_KEY = 'mlt_student_id';
 const BATCH_SIZE = 3;
 
 function ScoreCircle({ correct, total }) {
@@ -74,11 +74,14 @@ function SourceChip({ source }) {
 
 export default function Quiz() {
   const location = useLocation();
+  // The signed-in account, not a localStorage string a student could retype into
+  // somebody else's progress. `studentId` is still sent in the path; the server refuses
+  // any value but this one.
+  const { studentId, student } = useAuth();
   const [topics, setTopics] = useState([]);
   const [topicId, setTopicId] = useState(() => location.state?.topicId || '');
   const [difficulty, setDifficulty] = useState('auto');
   const [questionType, setQuestionType] = useState('mcq');
-  const [studentId, setStudentId] = useState(() => localStorage.getItem(STUDENT_KEY) || 'student_001');
 
   const [buffer, setBuffer] = useState([]);
   const [index, setIndex] = useState(0);
@@ -322,15 +325,7 @@ export default function Quiz() {
       <aside className="quiz-sidebar glass-panel">
         <div className="sidebar-section">
           <h3 className="sidebar-title">👤 Student</h3>
-          <div className="form-group">
-            <label className="form-label">STUDENT ID</label>
-            <input
-              className="input"
-              placeholder="e.g. student_001"
-              value={studentId}
-              onChange={(e) => { setStudentId(e.target.value); localStorage.setItem(STUDENT_KEY, e.target.value); }}
-            />
-          </div>
+          <p className="quiz-account">{student?.name || student?.email || 'Signed in'}</p>
         </div>
 
         {/* Before unlocking, the topic quiz is the way in — and the way to unlock. */}

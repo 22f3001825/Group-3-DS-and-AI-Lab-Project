@@ -139,6 +139,38 @@ def _m0008_documents_unique_per_active_stem(conn: Connection) -> None:
     ))
 
 
+def _m0009_students_google_identity(conn: Connection) -> None:
+    """Google profile claims, the admin flag, the active flag and login stats.
+
+    The backfill is guarded rather than unconditional. `tests/test_ingest_lifecycle.py`
+    builds its temp database with `create_all` and *then* runs migrations, so every
+    column below already exists and `_add_column` no-ops — but a bare UPDATE would still
+    run and rewrite rows the test just wrote. Snapshot the columns first and only touch
+    the ones this migration genuinely added.
+    """
+    before = _columns(conn, "students")
+    if not before:
+        return  # fresh database: create_all made the table with these columns already
+
+    _add_column(conn, "students", "given_name", "VARCHAR(255)")
+    _add_column(conn, "students", "family_name", "VARCHAR(255)")
+    _add_column(conn, "students", "picture_url", "VARCHAR(512)")
+    _add_column(conn, "students", "email_verified", "BOOLEAN NOT NULL DEFAULT 0")
+    _add_column(conn, "students", "hosted_domain", "VARCHAR(255)")
+    _add_column(conn, "students", "is_admin", "BOOLEAN NOT NULL DEFAULT 0")
+    _add_column(conn, "students", "is_active", "BOOLEAN NOT NULL DEFAULT 1")
+    _add_column(conn, "students", "last_login_at", "DATETIME")
+    _add_column(conn, "students", "login_count", "INTEGER NOT NULL DEFAULT 0")
+    _add_column(conn, "students", "updated_at", "DATETIME")
+
+    # SQLite's ADD COLUMN ... DEFAULT already fills existing rows, so this only catches a
+    # database that was hand-patched with a nullable version of the same column.
+    for column, value in (("email_verified", "0"), ("is_admin", "0"),
+                          ("is_active", "1"), ("login_count", "0")):
+        if column not in before:
+            conn.execute(text(f"UPDATE students SET {column} = {value} WHERE {column} IS NULL"))
+
+
 MIGRATIONS: list[tuple[str, str, Callable[[Connection], None]]] = [
     ("0001", "topic_mastery: elo_rating, streak, chat_interactions", _m0001_topic_mastery_elo),
     ("0002", "quiz_attempts: options, reason", _m0002_quiz_attempt_generation),
@@ -148,6 +180,7 @@ MIGRATIONS: list[tuple[str, str, Callable[[Connection], None]]] = [
     ("0006", "question_bank_versions: vector_status", _m0006_version_vector_status),
     ("0007", "question_bank_outbox: entity_type", _m0007_outbox_entity_type),
     ("0008", "question_documents: unique stem per ACTIVE row", _m0008_documents_unique_per_active_stem),
+    ("0009", "students: google profile, admin flag, login stats", _m0009_students_google_identity),
 ]
 
 

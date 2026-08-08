@@ -14,35 +14,22 @@
 
 .spin { animation: spin 0.9s linear infinite; }
 
-/* ── Token gate ─────────────────────────────────────────────────────────── */
+/* The signed-in administrator, where the shared-secret gate used to be. Access is
+   decided by RequireAdmin and re-checked on every request, so this is a label. */
 
-.ad-token-gate {
-  max-width: 560px;
-  margin: 60px auto;
-  padding: 32px;
-  text-align: center;
+.ad-signed-in {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 7px;
+  padding: 7px 13px;
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
 }
-
-.ad-token-gate p {
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-.ad-token-gate code {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-family: monospace;
-  font-size: 12px;
-  margin: 0 2px;
-}
-
-.ad-token-row { display: flex; gap: 10px; width: 100%; }
 
 /* ── Header ─────────────────────────────────────────────────────────────── */
 

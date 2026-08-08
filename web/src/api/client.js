@@ -1,22 +1,42 @@
-const API_URL = 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-/** Where the admin's shared secret lives. Its presence is also what makes the /admin
- *  link render in the navbar, so ordinary students never see the route. */
-const ADMIN_TOKEN_KEY = 'mlt_admin_token';
+/** The session JWT from POST /auth/google. It is the ONLY credential this app sends —
+ *  admin calls included, since the server reads `is_admin` off the student row. */
+export const TOKEN_STORAGE_KEY = 'mlt_auth_token';
 
-export function getAdminToken() {
-  return localStorage.getItem(ADMIN_TOKEN_KEY) || '';
+/** Fired on a 401 so AuthProvider can clear the session and route to /login. */
+export const UNAUTHORIZED_EVENT = 'mlt:unauthorized';
+
+export function getToken() {
+  try {
+    return localStorage.getItem(TOKEN_STORAGE_KEY) || '';
+  } catch {
+    return '';   // strict privacy modes throw rather than returning null
+  }
 }
 
-export function setAdminToken(token) {
-  if (token) localStorage.setItem(ADMIN_TOKEN_KEY, token);
-  else localStorage.removeItem(ADMIN_TOKEN_KEY);
+export function setToken(token) {
+  try {
+    if (token) localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    else localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch (error) {
+    console.warn('Failed to persist the session token:', error);
+  }
 }
 
-/** Headers for an admin JSON call. Every admin endpoint needs BOTH X-Admin-Token and
- *  Content-Type: application/json — the combination the old spread order silently broke. */
-function adminJson() {
-  return { 'X-Admin-Token': getAdminToken() };
+/* The event is deduped across a tick. Progress.jsx fires getLearnerProfile and
+   getRecommendations in parallel, so an expired token produces two 401s within a
+   millisecond of each other and, without this, two navigations to /login. */
+let unauthorizedPending = false;
+
+function announceUnauthorized(endpoint) {
+  // Only 401, and never from /auth/* — a failed sign-in must not trigger the "your
+  // session ended, sign in again" path, which would loop the login page against itself.
+  if (endpoint.startsWith('/auth/')) return;
+  if (unauthorizedPending) return;
+  unauthorizedPending = true;
+  window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+  setTimeout(() => { unauthorizedPending = false; }, 0);
 }
 
 class APIClient {
@@ -30,9 +50,15 @@ class APIClient {
 
     // The merge is built AFTER the rest of the options are spread. It used to be the
     // other way round, which meant any caller passing `headers` replaced the merged
-    // object wholesale and the `...options.headers` merge was dead code — so an admin
-    // JSON call would carry X-Admin-Token but lose Content-Type and 422 on the server.
-    const headers = { ...(rawBody ? {} : { 'Content-Type': 'application/json' }), ...callerHeaders };
+    // object wholesale and the `...options.headers` merge was dead code — so a JSON call
+    // would carry its own header but lose Content-Type and 422 on the server.
+    // Authorization goes in first so a caller could override it, but nothing does.
+    const token = getToken();
+    const headers = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(rawBody ? {} : { 'Content-Type': 'application/json' }),
+      ...callerHeaders,
+    };
 
     let response;
     try {
@@ -61,21 +87,42 @@ class APIClient {
       error.detail = detail;
       if (isObject && detail.code) error.code = detail.code;
       console.error('API Request failed:', error);
+      // 401 means the session is gone; 403 means it is fine and this call is not allowed.
+      // Signing an admin out because they touched a forbidden endpoint is the bug here.
+      if (response.status === 401) announceUnauthorized(endpoint);
       throw error;
     }
 
     return await response.json();
   }
 
+  // ── Auth ────────────────────────────────────────────────────────────────────
+
+  /** Trade Google's ID token for this API's session JWT.
+   *  `credential` is `credentialResponse.credential` from <GoogleLogin> — the ID token,
+   *  not an OAuth access token. */
+  static async loginWithGoogle(credential) {
+    return this.request('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ credential }),
+    });
+  }
+
+  /** Who the stored token belongs to, read fresh from the server. Used to restore a
+   *  session on mount, which is also how an admin demotion becomes visible. */
+  static async getMe() {
+    return this.request('/auth/me');
+  }
+
   // Chat
   // `history` is short-term memory for follow-ups: recent {role, content} turns, oldest
   // first. The server trims it and condenses each answer, so send the raw turns.
-  static async chat(question, studentId = null, sessionId = null, history = []) {
+  // No student id: the server takes identity from the bearer token.
+  static async chat(question, sessionId = null, history = []) {
     return this.request('/chat', {
       method: 'POST',
       body: JSON.stringify({
         question,
-        student_id: studentId,
         session_id: sessionId,
         top_k: 5,
         history,
@@ -175,7 +222,8 @@ class APIClient {
     });
   }
 
-  // ── Question intelligence: read side (open, no token) ───────────────────────
+  // ── Question intelligence: read side ────────────────────────────────────────
+  // Signed-in students only (the Doubts page is behind login like everything else).
   // Every one of these 503s when the bank has not been built, naming the command.
 
   static async getQuestionStats() {
@@ -205,7 +253,9 @@ class APIClient {
     return this.request(`/questions/search?q=${encodeURIComponent(query)}&limit=${limit}`);
   }
 
-  // ── Question intelligence: admin authoring (X-Admin-Token on all of these) ──
+  // ── Question intelligence: admin authoring ─────────────────────────────────
+  // No special header: the same bearer token carries these, and the server checks
+  // `Student.is_admin` on the row rather than trusting anything the client sends.
   // Three ways to create a draft, one way to commit it. Phase A writes one draft row
   // and nothing else; commitDraft is the only call here that stores the document,
   // rebuilds the bank and queues the Qdrant work.
@@ -227,7 +277,6 @@ class APIClient {
     return this.request('/questions/extract', {
       method: 'POST',
       rawBody: true,
-      headers: adminJson(),
       body: form,
     });
   }
@@ -236,7 +285,6 @@ class APIClient {
   static async createTextDraft(markdown, metadata) {
     return this.request('/questions/drafts', {
       method: 'POST',
-      headers: adminJson(),
       body: JSON.stringify({ markdown, metadata }),
     });
   }
@@ -245,7 +293,6 @@ class APIClient {
   static async createComposedDraft(questions, metadata) {
     return this.request('/questions/drafts/compose', {
       method: 'POST',
-      headers: adminJson(),
       body: JSON.stringify({ questions, metadata }),
     });
   }
@@ -254,7 +301,6 @@ class APIClient {
   static async previewDraft(draftId, markdown, metadata = null) {
     return this.request(`/questions/staged/${draftId}/preview`, {
       method: 'POST',
-      headers: adminJson(),
       body: JSON.stringify({ markdown, metadata }),
     });
   }
@@ -264,45 +310,43 @@ class APIClient {
   static async commitDraft(draftId, markdown, metadata = null, replace = false) {
     return this.request(`/questions/staged/${draftId}/commit`, {
       method: 'POST',
-      headers: adminJson(),
       body: JSON.stringify({ markdown, metadata, replace }),
     });
   }
 
   static async listDrafts() {
-    return this.request('/questions/staged', { headers: adminJson() });
+    return this.request('/questions/staged');
   }
 
   static async getDraft(draftId) {
-    return this.request(`/questions/staged/${draftId}`, { headers: adminJson() });
+    return this.request(`/questions/staged/${draftId}`);
   }
 
   /** The whole rollback for Phase A. */
   static async discardDraft(draftId) {
     return this.request(`/questions/staged/${draftId}`, {
       method: 'DELETE',
-      headers: adminJson(),
     });
   }
 
   static async getUploads() {
-    return this.request('/questions/uploads', { headers: adminJson() });
+    return this.request('/questions/uploads');
   }
 
   /** Outbox health. A relational commit succeeds even when Qdrant is unreachable, so
    *  `failed > 0` is the one thing an operator has to be able to see. */
   static async getVectorSync() {
-    return this.request('/questions/sync', { headers: adminJson() });
+    return this.request('/questions/sync');
   }
 
   /** Retry queued vector work. Idempotent; failures stay queued with their last error. */
   static async runVectorSync() {
-    return this.request('/questions/sync', { method: 'POST', headers: adminJson() });
+    return this.request('/questions/sync', { method: 'POST' });
   }
 
   /** Full re-cluster. Cluster IDs are NOT preserved, so deep links go stale. */
   static async rebuildClusters() {
-    return this.request('/questions/rebuild', { method: 'POST', headers: adminJson() });
+    return this.request('/questions/rebuild', { method: 'POST' });
   }
 }
 

@@ -49,9 +49,28 @@ def get_student_by_email(db: Session, email: str) -> Optional[Student]:
 
 
 def get_or_create_student(db: Session, student_id: str, name: str = "Student") -> Student:
+    """Auto-create by id. NOT for request paths — identity comes from the Google token.
+
+    Kept for `src/evaluate_quiz.py`, which invents a synthetic student per run and has
+    nothing to authenticate. Every API handler that used to call this now resolves the
+    student through `assert_self_or_admin` instead, so an unknown id 404s rather than
+    silently minting a profile.
+    """
     student = get_student(db, student_id)
     if not student:
         student = create_student(db, student_id=student_id, name=name)
+    return student
+
+
+def set_student_active(db: Session, student_id: str, is_active: bool) -> Optional[Student]:
+    """The writer behind PATCH /learner/{id}/status. Nothing the student produced is touched."""
+    student = get_student(db, student_id)
+    if not student:
+        return None
+    student.is_active = is_active
+    student.updated_at = _now()
+    db.commit()
+    db.refresh(student)
     return student
 
 

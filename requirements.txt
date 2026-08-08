@@ -35,6 +35,13 @@ sqlalchemy>=2.0.0
 pydantic>=2.6.0
 python-dotenv>=1.0.0
 
+# ── Authentication ────────────────────────────────────────────────────────────
+# Google Sign-In is the only way into the app; both of these are load-bearing.
+PyJWT>=2.8.0            # HS256 session tokens issued by /auth/google
+google-auth>=2.28.0     # verify_oauth2_token: JWKS fetch/cache, signature, iss, aud, exp
+                        #   (already importable via langchain-google-genai, but undeclared —
+                        #    a transitive bump could drop it)
+
 # ── Data Processing & Analytics ────────────────────────────────────────────────
 pandas
 numpy
