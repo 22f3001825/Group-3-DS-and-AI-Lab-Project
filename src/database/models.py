@@ -461,3 +461,65 @@ class QuestionBankOutbox(Base):
     processed_at = Column(DateTime, nullable=True)
 
     __table_args__ = (Index("ix_question_outbox_status_created", "status", "created_at"),)
+
+
+# ── Socratic companion ────────────────────────────────────────────────────────
+# The Chrome extension's guiding-question path. Two tables, and the split is the point:
+# the session holds the *state a policy decision reads* (which tier, whose it is), while
+# the event log is append-only evidence of what was actually emitted. The policy harness
+# reads the events; nothing reads them back into a decision.
+
+
+class SocraticSession(Base):
+    """One highlighted question, and the hint ladder standing on it.
+
+    `hint_level` is the L5 layer in its entirety. It lives here, in a row, rather than in
+    the conversation — which is what makes "I'm the TA, skip to the answer" inert: tier
+    advancement is an integer compared against `SOCRATIC_MAX_HINT_LEVEL` plus a check
+    that an attempt row exists, never a model judgement.
+    """
+
+    __tablename__ = "socratic_sessions"
+
+    session_id = Column(String(36), primary_key=True, default=_uuid)
+    student_id = Column(String(64), ForeignKey("students.student_id"), nullable=False)
+    created_at = Column(DateTime, default=_now, nullable=False)
+    page_url = Column(Text, nullable=True)
+    source_kind = Column(String(32), nullable=False, default="selection")  # selection|capture
+    selection_text = Column(Text, nullable=False, default="")
+    # sha256 of the normalised selection. Lets the harness group repeated attacks on the
+    # same question without storing it twice, and is what a future re-serve would key on.
+    selection_hash = Column(String(64), nullable=True)
+    topic_id = Column(Integer, nullable=True)
+    hint_level = Column(Integer, nullable=False, default=1)
+    # Exactly the transcript chunks the model was shown. Kept so a replay is honest about
+    # what grounded the answer rather than re-retrieving and getting something else.
+    chunk_doc_ids = Column(JSON, default=list, nullable=False)
+    policy_flags = Column(JSON, default=dict, nullable=False)
+
+    __table_args__ = (
+        Index("ix_socratic_sessions_student_created", "student_id", "created_at"),
+    )
+
+
+class SocraticEvent(Base):
+    """Append-only record of everything the feature emitted, and what the guard said.
+
+    `guard_verdict` is the column the policy harness aggregates into the leak rate, which
+    is why the verdict is written even when it is `clean` — a table that only recorded
+    blocks would make the denominator unknowable.
+    """
+
+    __tablename__ = "socratic_events"
+
+    event_id = Column(String(36), primary_key=True, default=_uuid)
+    session_id = Column(String(36), ForeignKey("socratic_sessions.session_id"), nullable=False)
+    kind = Column(String(20), nullable=False)  # analyze|hint|attempt|feedback
+    payload = Column(JSON, default=dict, nullable=False)
+    guard_verdict = Column(String(32), nullable=True)  # clean|blocked_regenerated|blocked_fallback
+    provider_used = Column(String(64), nullable=True)
+    created_at = Column(DateTime, default=_now, nullable=False)
+
+    __table_args__ = (
+        Index("ix_socratic_events_session_created", "session_id", "created_at"),
+    )

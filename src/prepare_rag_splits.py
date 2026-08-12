@@ -141,6 +141,66 @@ _TEXT_SPLITTER = RecursiveCharacterTextSplitter(
 )
 
 
+# ── Lecture timestamps ────────────────────────────────────────────────────────
+# The `### Timestamp:` header rule above already puts a *start* time on every section it
+# splits. What the Socratic segment cards need is a **range** and a numeric form, and a
+# range can only be computed while the whole document is in hand — the end of a section
+# is the start of the next one. That is why this runs on `md_splits`, before the length
+# splitter, rather than anywhere downstream: the ordering is still document order there,
+# and every derived chunk inherits what is stamped here.
+
+_TIMESTAMP_RE = re.compile(r"^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})$")
+
+
+def timestamp_to_seconds(value) -> int | None:
+    """`MM:SS` (or `H:MM:SS`) → seconds. None if it is not a timestamp.
+
+    The corpus is entirely `MM:SS` today and its longest stamp is 35:54, but the hour
+    group costs one regex branch and stops a future 1:05:33 from parsing as 65 seconds.
+    """
+    match = _TIMESTAMP_RE.match(str(value or "").strip())
+    if not match:
+        return None
+    hours, minutes, seconds = match.groups()
+    return int(hours or 0) * 3600 + int(minutes) * 60 + int(seconds)
+
+
+def _stamp_timestamp_ranges(md_splits) -> None:
+    """Give each markdown section a start and an end time, in place.
+
+    A no-op for documents with no `### Timestamp:` headers — every non-transcript source,
+    plus the four transcripts whose markers did not survive conversion. Those keep exactly
+    the metadata they had before, which is what makes this change additive.
+    """
+    starts: list[str | None] = []
+    carried: str | None = None
+    for split in md_splits:
+        stamp = str(split.metadata.get("timestamp") or "").strip() or None
+        if stamp:
+            carried = stamp
+        # Text before the first header belongs to the start of the lecture. It is real
+        # content (the professor's opening) and dropping it from the range would make
+        # ~684 chunks unaddressable.
+        starts.append(carried or ("00:00" if any(
+            s.metadata.get("timestamp") for s in md_splits) else None))
+
+    for i, split in enumerate(md_splits):
+        start = starts[i]
+        if start is None:
+            continue
+        end = None
+        for j in range(i + 1, len(starts)):
+            if starts[j] and starts[j] != start:
+                end = starts[j]
+                break
+        split.metadata["timestamp_start"] = start
+        split.metadata["timestamp_start_sec"] = timestamp_to_seconds(start)
+        # The last section has no successor and a lecture's duration is not recorded
+        # anywhere in the corpus. None means "runs to the end", not zero.
+        split.metadata["timestamp_end"] = end
+        split.metadata["timestamp_end_sec"] = timestamp_to_seconds(end) if end else None
+
+
 def split_document(content: str, *, week: int, source_type: str, doc_id: str,
                    topic_ids=None, origin: str | None = None):
     """Split one document into metadata-carrying chunks.
@@ -170,12 +230,20 @@ def split_document(content: str, *, week: int, source_type: str, doc_id: str,
     topic_tags = resolve_topic_ids(topic_ids) or get_topic_tags(week)
 
     md_splits = _MARKDOWN_SPLITTER.split_text(body)
+    _stamp_timestamp_ranges(md_splits)
     chunks = _TEXT_SPLITTER.split_documents(md_splits)
 
     for i, chunk in enumerate(chunks):
         chunk.metadata['week'] = week
         chunk.metadata['source_type'] = source_type
         chunk.metadata['doc_id'] = f"{doc_id}_chunk_{i}"
+        # The document a chunk came from, stamped rather than re-derived. `doc_id` minus
+        # its `_chunk_N` suffix is the same string, but three call sites were about to
+        # re-parse it, and it is what keys `src/lecture_index.json` together with `week`
+        # (the stem alone is not unique — `Lecture_1` exists in weeks 9-12).
+        # Unconditional, unlike the timestamps: four transcripts carry no headers at all,
+        # and without this their chunks could never be grouped into a lecture segment.
+        chunk.metadata['lecture_id'] = doc_id
         chunk.metadata['topic_tags'] = topic_tags
         if origin:
             # Lets every admin contribution be found (and undone) with one filter.

@@ -23,11 +23,14 @@ from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
 from sqlalchemy.orm import Session
 
+from ..config import course_collection_name
 from ..database.session import get_db
 
 load_dotenv()
 
-COLLECTION_NAME = "mlt_course_bot"
+# One definition, six consumers — see `config.course_collection_name`. Read at import,
+# so switching collections is an `.env` edit plus a restart.
+COLLECTION_NAME = course_collection_name()
 
 
 def _normalize_url(url: str) -> str:
@@ -84,9 +87,49 @@ def _build_retriever() -> Any:
     return retriever
 
 
+@lru_cache(maxsize=1)
+def _build_transcript_retriever() -> Any:
+    """The Socratic path's retriever: lecture transcripts only.
+
+    This is layer L2 of the no-answer policy, not a preference. Half of `pq` and 42% of
+    `PYQ` chunks carry a literal answer/solution section; transcripts are at 2.5% and
+    those are conversational. Filtering at the vector store means the answer key is never
+    in the model's context in the first place, so no jailbreak of the model can retrieve
+    what was never sent.
+
+    Derived from the SAME `_build_vector_store()` singleton as `_build_retriever`, so
+    this costs no second copy of BGE-small + BM25 and an admin-contributed document is
+    visible to both. `get_retriever()` is deliberately untouched: the chat path must keep
+    citing notes, FAQs and past papers.
+
+    **This fails open without the payload index.** Qdrant answers 400 on a filtered search
+    over an unindexed field, which surfaces as an exception rather than an empty result —
+    so `ingest_to_qdrant.ensure_payload_indexes` creates `metadata.source_type` and the
+    verification step asserts it exists.
+    """
+    from qdrant_client import models as qmodels  # noqa: PLC0415
+
+    from ..config import SOCRATIC_RETRIEVAL_K, SOCRATIC_SOURCE_TYPES  # noqa: PLC0415
+
+    source_filter = qmodels.Filter(must=[qmodels.FieldCondition(
+        key="metadata.source_type",
+        match=qmodels.MatchAny(any=list(SOCRATIC_SOURCE_TYPES)),
+    )])
+    retriever = _build_vector_store().as_retriever(
+        search_kwargs={"k": SOCRATIC_RETRIEVAL_K, "filter": source_filter}
+    )
+    print(f"[Startup] Transcript retriever ready (source_type in {list(SOCRATIC_SOURCE_TYPES)}).")
+    return retriever
+
+
 def get_retriever() -> Any:
     """FastAPI Depends() dependency — returns the cached retriever."""
     return _build_retriever()
+
+
+def get_transcript_retriever() -> Any:
+    """FastAPI Depends() dependency — the source-filtered retriever for /socratic/*."""
+    return _build_transcript_retriever()
 
 
 def get_vector_store() -> Any:

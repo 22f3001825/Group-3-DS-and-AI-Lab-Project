@@ -52,7 +52,12 @@ except ModuleNotFoundError:  # pragma: no cover - import shim
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 REPORT_PATH = ROOT_DIR / "reports" / "question_intelligence_report.md"
-COLLECTION_NAME = "mlt_course_bot"
+try:
+    from src.config import course_collection_name
+except ModuleNotFoundError:  # run as `python src/<name>.py`, so src/ is sys.path[0]
+    from config import course_collection_name
+
+COLLECTION_NAME = course_collection_name()
 
 
 # ── Embedding cache ───────────────────────────────────────────────────────────

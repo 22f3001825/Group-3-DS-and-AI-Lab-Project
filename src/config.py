@@ -7,6 +7,34 @@ Secrets and connection details do NOT belong here; those live in `.env`.
 """
 from __future__ import annotations
 
+import os
+
+
+# ── Which Qdrant collection is live ───────────────────────────────────────────
+
+COURSE_COLLECTION_DEFAULT = "mlt_course_bot"
+
+
+def course_collection_name() -> str:
+    """The retrieval collection every read path uses. `QDRANT_COLLECTION` overrides it.
+
+    This exists so a re-ingest does not have to be destructive. `ingest_to_qdrant.py`
+    deletes and recreates its target, which for years meant taking the live collection
+    down for the length of a full re-embed and having nothing to roll back to. Building
+    the new one under a second name and then pointing the app at it makes the cutover a
+    one-line `.env` change, and the rollback the same change in reverse.
+
+    The name was previously hardcoded in six modules (`dependencies`, `ingest_to_qdrant`,
+    `build_question_bank`, `run_rag`, `evaluate_rag`, `test_retrieval`), which is exactly
+    the kind of duplication that makes a cutover error-prone — one of them gets missed and
+    a single script keeps reading the old data. They all call this now.
+
+    Read per call rather than at import so a harness can set the variable and get the
+    change; the module-level `COLLECTION_NAME` constants that consume it are still
+    import-time, so the API needs a restart to switch.
+    """
+    return (os.getenv("QDRANT_COLLECTION") or "").strip() or COURSE_COLLECTION_DEFAULT
+
 
 # ── Authentication ────────────────────────────────────────────────────────────
 
@@ -171,3 +199,55 @@ QI_ADMIN_DEFAULT_SOURCE = "pq"
 # the first person to try the feature does not have to make a taxonomy decision before
 # they can save two sentences; a course team with a convention should turn it on.
 QI_REQUIRE_TOPIC_IDS = False
+
+
+# ── Socratic companion: what the model may read ───────────────────────────────
+# The Chrome extension's guiding-question path. The first constant here is the whole
+# no-answer argument in one line, so it gets the long comment.
+
+# Retrieval for /socratic/* is restricted to these source types. `transcripts` alone is
+# not a preference — it is layer L2 of the no-answer policy. Half of `pq` and 42% of
+# `PYQ` chunks contain a literal answer/solution section; transcripts are at 2.5% and
+# those are conversational ("the answer is yes"), not answer keys. Reading only lectures
+# removes ~93% of the answer-key surface mechanically, which is what replaced the runtime
+# redaction pass an earlier design needed.
+#
+# Adding a source here re-opens that surface. `faq` and the two notes folders are only
+# ~3% marker-bearing and would be the least-bad additions if week-6 coverage ever has to
+# be bought (it has no transcripts at all), but they carry no timestamps, so their cards
+# cannot deep link and the feature's headline stops working for them.
+SOCRATIC_SOURCE_TYPES = ("transcripts",)
+
+# Chunks pulled per analyze call, before they are merged into segments. Higher than the
+# chat retriever's k=10 because the filter discards nothing client-side — every hit is
+# already a transcript — and adjacent chunks collapse into one card.
+SOCRATIC_RETRIEVAL_K = 12
+
+# Cards shown. Beyond a handful the panel stops being a signpost and becomes a reading
+# list, which is the failure mode this feature exists to fix.
+SOCRATIC_MAX_SEGMENTS = 4
+
+# Per-segment description cap. One line, not a paragraph: it says what the lecture covers
+# so the student can decide whether to watch, and a longer budget invites the model to
+# start explaining the concept instead — which is the drift L3/L4 then have to catch.
+SOCRATIC_SEGMENT_DESC_CHARS = 220
+
+# Taxonomy candidates handed to the model for the closed-set concept pick.
+SOCRATIC_TOPIC_SHORTLIST = 5
+
+# Hint tiers: 1 = concept + segments, 2 = guiding question, 3 = targeted nudge. There is
+# deliberately no tier that reveals, so raising this does not unlock an answer — it just
+# repeats tier 3.
+SOCRATIC_MAX_HINT_LEVEL = 3
+
+# Tier 3 requires a recorded attempt. This is the difference between a hint ladder and a
+# ratchet the student can spin without thinking: the counter cannot advance to the last
+# rung until they have committed to an answer.
+SOCRATIC_REQUIRE_ATTEMPT_FOR_TIER3 = True
+
+# Longest selection accepted. A highlighted question is a sentence or three; anything
+# past this is a whole page and retrieves noise.
+SOCRATIC_MAX_SELECTION_CHARS = 2000
+
+# Largest PNG the screenshot-OCR endpoint accepts, in megabytes.
+SOCRATIC_CAPTURE_MAX_MB = 8

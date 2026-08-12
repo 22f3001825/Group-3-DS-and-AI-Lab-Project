@@ -171,6 +171,21 @@ def _m0009_students_google_identity(conn: Connection) -> None:
             conn.execute(text(f"UPDATE students SET {column} = {value} WHERE {column} IS NULL"))
 
 
+def _m0010_socratic_sessions_and_events(conn: Connection) -> None:
+    """Tables for the Chrome extension's Socratic path.
+
+    Unlike 0001-0009 these are whole tables, not columns, so on a fresh database
+    `create_all` has already made them and this is a no-op. It exists for the databases
+    that predate the feature, and it creates them through the SQLAlchemy models rather
+    than hand-written DDL so the two definitions cannot drift.
+    """
+    from .models import SocraticEvent, SocraticSession  # noqa: PLC0415
+
+    for model in (SocraticSession, SocraticEvent):
+        if not _table_exists(conn, model.__tablename__):
+            model.__table__.create(bind=conn)
+
+
 MIGRATIONS: list[tuple[str, str, Callable[[Connection], None]]] = [
     ("0001", "topic_mastery: elo_rating, streak, chat_interactions", _m0001_topic_mastery_elo),
     ("0002", "quiz_attempts: options, reason", _m0002_quiz_attempt_generation),
@@ -181,6 +196,7 @@ MIGRATIONS: list[tuple[str, str, Callable[[Connection], None]]] = [
     ("0007", "question_bank_outbox: entity_type", _m0007_outbox_entity_type),
     ("0008", "question_documents: unique stem per ACTIVE row", _m0008_documents_unique_per_active_stem),
     ("0009", "students: google profile, admin flag, login stats", _m0009_students_google_identity),
+    ("0010", "socratic_sessions + socratic_events", _m0010_socratic_sessions_and_events),
 ]
 
 
