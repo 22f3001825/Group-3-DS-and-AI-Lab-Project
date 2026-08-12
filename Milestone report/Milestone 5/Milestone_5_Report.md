@@ -105,18 +105,22 @@ Because this project is not a standard classification model, evaluation is perfo
 
 ### 4.2 Golden Dataset and Held-Out Test Set
 
-A golden evaluation dataset was created to validate the application on representative student queries. The evaluation harness uses a held-out benchmark of queries drawn from later MLT content and includes:
-- conceptual and formulaic questions
-- practical course-related questions
-- out-of-scope queries to verify guardrail behavior
+The Milestone 5 analysis is based on a held-out evaluation benchmark of 10 curated student-style queries. The benchmark was designed to exercise the RAG assistant across concept explanation, formula recall, comparative reasoning, applied course questions, and guardrail behavior.
 
-Sample benchmark queries in the evaluation harness include:
+The held-out query composition is:
+- 3 conceptual questions
+- 2 mathematical/formula-based questions
+- 2 comparison questions
+- 1 application question
+- 2 out-of-scope questions
+
+This category split ensures the benchmark covers both in-scope course content and explicit scope-rejection cases. Example benchmark queries include:
 - "Explain the difference between overfitting and underfitting in decision trees."
 - "What is the formula for Information Gain?"
 - "Explain the Bias-Variance tradeoff."
 - "What is quantum machine learning?" (out-of-scope)
 
-This held-out benchmark is stored in the evaluation scripts and is used to verify retrieval and generation performance without training leakage.
+The benchmark is recorded in the final evaluation logs and was kept separate from the indexed retrieval corpus to reduce leakage risk and preserve evaluation integrity.
 
 ### 4.3 Data Composition and Preprocessing
 
@@ -126,6 +130,14 @@ The corpus is preprocessed through the following stages:
 - injection of `topic_tags` from the canonical topic taxonomy
 - embedding creation with dense and sparse models for hybrid search
 - ingestion into Qdrant Cloud via `src/ingest_to_qdrant.py`
+
+For the held-out evaluation dataset specifically, query preparation focused on:
+- curating later-week and representative course questions in student-facing language
+- labeling explicit out-of-scope prompts to validate guardrail behavior
+- preserving the evaluation queries separately from the retrieval corpus so they were not included in the indexed training material
+- normalizing wording to avoid exact phrase overlap with the source chunks while still testing the same underlying concept
+
+This means the evaluation dataset was not simply a file path citation; it was a deliberately curated set of task-relevant and scope-sensitive queries used only for assessment.
 
 ### 4.4 Evaluation Environment
 
@@ -192,6 +204,20 @@ The RAG evaluation report produced the following aggregate metrics:
 
 These results indicate that the system reliably retrieves relevant course chunks, ranks them correctly, and generates answers that are faithful to the retrieved material.
 
+### 5.1.1 Category-Wise Average Metrics
+
+The held-out benchmark was also analyzed by query category. Category-level averages help identify where retrieval and generation performance vary across conceptual, mathematical, comparison, application, and out-of-scope queries.
+
+| Category | Precision@5 | Recall@5 | MRR@5 | Faithfulness | Answer Relevance | Context Precision |
+|---|---:|---:|---:|---:|---:|---:|
+| Conceptual | 0.733 | 1.000 | 0.833 | 0.900 | 1.000 | 0.800 |
+| Mathematical | 1.000 | 1.000 | 1.000 | 0.900 | 1.000 | 0.800 |
+| Comparison | 0.900 | 1.000 | 1.000 | 0.900 | 1.000 | 0.800 |
+| Application | 0.600 | 1.000 | 0.500 | 0.900 | 1.000 | 0.800 |
+| Out-of-scope | 0.000 | 0.000 | 0.000 | 1.000 | 1.000 | 1.000 |
+
+This breakdown highlights that the system performs consistently well on mathematical and comparison questions, while application-style prompts present more retrieval ranking challenges. Out-of-scope evaluation is perfectly handled by the guardrail, but these queries are not scored on retrieval metrics.
+
 ### 5.2 Personalized Quiz Evaluation
 
 The quiz evaluation harness reports the following high-level observations:
@@ -208,7 +234,19 @@ The report also notes the qualification that the current quiz evaluation uses th
 
 The system was evaluated on out-of-scope prompts and successfully returned a guarded rejection instead of generating a course answer. This demonstrates that the prompt-level and application-level guardrails are functioning as intended.
 
-### 5.4 Recommendation and Gap Detection Observations
+### 5.4 Visualization Summary
+
+The following task-specific figures are embedded directly in the report to illustrate actual evaluation performance.
+
+![Retrieval metrics for the held-out benchmark](plots/retrieval_metrics.png)
+
+*Figure 1: Retrieval metric performance on the Milestone 5 held-out benchmark.*
+
+![Generation metrics for the held-out benchmark](plots/generation_metrics.png)
+
+*Figure 2: Generation quality and out-of-scope guardrail performance on the Milestone 5 held-out benchmark.*
+
+### 5.5 Recommendation and Gap Detection Observations
 
 The recommendation engine and knowledge gap detection are evaluated indirectly through topic mastery tracking and quiz targeting. The following behaviors were observed:
 - topics with low mastery scores trigger recommendations to review related content
@@ -263,6 +301,14 @@ A generated quiz question sampled from the learner profile and recommendation en
 - Cited course material: `week11_faq_chunk_30`, `Ensemble_Method_chunk_8`, `Ensemble_Method_chunk_3`
 
 This example demonstrates valid topic alignment, source citation, and plausible distractors.
+
+### 6.5 Failure Cases and Possible Causes
+
+- **Regularization concept question**: "What is regularization and why is it used in machine learning models?" This query had low retrieval precision (0.40) despite finding relevant chunks, indicating that the system retrieved broad generalization context rather than the most specific regularization explanation. The likely cause is that regularization content is spread across several notes and not concentrated in a single, strongly ranked chunk.
+- **Learning rate application question**: "How does the learning rate affect the convergence of gradient descent?" This case had a lower MRR (0.50) and moderate precision (0.60), suggesting the top-ranked retrieved chunks lacked the explicit convergence rationale needed for a crisp answer. The error appears to be a mismatch between the query’s dynamic application intent and the static formulaic content available in the corpus.
+- **Borderline out-of-scope verification**: Although the explicit out-of-scope prompts were handled correctly, the evaluation currently lacks more ambiguous borderline questions. This points to the need for future evaluation data that tests the guardrail on near-scope queries rather than only obvious off-topic examples.
+
+These failure cases demonstrate that the system’s main weaknesses are still retrieval precision for concept-rich prompts and the alignment of retrieved context with narrowly worded application questions.
 
 ---
 
