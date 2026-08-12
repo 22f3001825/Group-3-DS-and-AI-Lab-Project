@@ -4,7 +4,9 @@
   Two themes, one variable contract. Every colour a component needs must exist as a
   variable here and be overridden in the light block below — a hardcoded rgba() in a
   page stylesheet is invisible to the theme switch and will break in light mode.
-  Dark is the default: it lives on :root so an unset data-theme still renders dark.
+  The dark palette lives on :root, so an unset data-theme renders dark — but light is
+  the app's default theme (DEFAULT_THEME), and both index.html and ThemeProvider always
+  write data-theme explicitly, so :root alone is never what a user sees.
 */
 :root {
   /* Premium Dark Mode Color Palette */

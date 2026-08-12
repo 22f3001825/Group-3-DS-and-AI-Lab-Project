@@ -1,0 +1,53 @@
+# The working tree is ~2.5 GB. Almost none of it belongs in the build context.
+
+# Local virtualenv (1.85 GB) — the image installs its own from requirements-api.txt
+env/
+venv/
+.venv/
+ENV/
+
+# 234 MB of Chrome profile left over from the scraper work
+chrome_debug_user_data/
+discourse_scraper/chrome_debug_user_data/
+
+.git/
+.gitignore
+
+# Source PDFs (139 MB). Nothing the API serves reads data/raw — only the offline
+# pipeline does. data/cleaned and data/splits ARE copied by the Dockerfile.
+data/raw/
+data/processed/
+data/evaluation/
+data/question_bank/
+
+# Node build inputs/outputs — stage 1 runs `npm ci` and `npm run build` itself. A copied
+# node_modules would be the wrong platform (Windows host → linux image) and a copied dist
+# would be the stale localhost:8000 bundle.
+web/node_modules/
+web/dist/
+web/.vite/
+
+# Secrets and local state. The .env reaches the server over scp, not through the image;
+# baking it in would put every API key into an image layer.
+.env
+web/.env
+*.db
+*.db-wal
+*.db-shm
+
+# Deliverables and scratch — not runtime inputs
+Milestone report/
+plots/
+experiment_logs/
+reports/
+tests/
+youtube-genai/
+discourse_exporter/
+*.md
+!README.md
+
+__pycache__/
+*.py[cod]
+.idea/
+.vscode/
+.claude/

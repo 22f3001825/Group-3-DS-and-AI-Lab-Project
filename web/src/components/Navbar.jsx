@@ -30,9 +30,12 @@ const Navbar = () => {
           <Edit3 size={18} />
           <span>Quiz</span>
         </NavLink>
+        {/* Label is "Question Bank", route is still /doubts: the page is a browsable
+            collection, and "Doubts" read like a place to *ask* one — which is Chat.
+            The route is left alone so chat's related-question deep links stay valid. */}
         <NavLink to="/doubts" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <Layers size={18} />
-          <span>Doubts</span>
+          <span>Question Bank</span>
         </NavLink>
         <NavLink to="/progress" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <TrendingUp size={18} />

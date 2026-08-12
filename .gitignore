@@ -56,6 +56,20 @@ Discourse_scrapper/state.json
 
 # Environment Variables
 .env
+# Real per-environment files. The *.example templates below are deliberately re-included:
+# they document the required shape and carry no secrets.
+.env.*
+!.env.staging.example
+!.env_example
+
+# Deployment state on a server checkout: the live SQLite DB and its nightly backups.
+# Never committed — it holds real learner data.
+state/
+
+# CLIProxyAPI: the real config carries the proxy's api-keys, and cliproxy/ holds the
+# provider OAuth credentials. deploy/cliproxy.config.example.yaml documents the shape.
+deploy/cliproxy.config.yaml
+cliproxy/
 
 # SQLite Database (auto-generated at runtime)
 *.db

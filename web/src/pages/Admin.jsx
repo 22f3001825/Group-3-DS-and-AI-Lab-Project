@@ -249,7 +249,7 @@ function QuestionEditor({ index, question, onChange, onRemove, canRemove }) {
           className="input"
           rows={2}
           value={question.solution || ''}
-          placeholder="Worked explanation — parsed into the bank and surfaced on the Doubts page"
+          placeholder="Worked explanation — parsed into the bank and surfaced on the Question Bank page"
           onChange={e => onChange({ ...question, solution: e.target.value })}
         />
       </label>

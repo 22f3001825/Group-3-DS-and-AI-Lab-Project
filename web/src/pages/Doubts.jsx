@@ -230,8 +230,8 @@ export default function Doubts() {
         <div className="qi-header-title">
           <Layers size={22} color="var(--accent)" />
           <div>
-            <h1>Common Doubts</h1>
-            <p>Deduplicated and concept-grouped questions from the course FAQs, practice sets and past papers.</p>
+            <h1>AI Question Intelligence</h1>
+            <p>Common doubts from the course FAQs, practice sets and past papers — deduplicated and grouped by concept.</p>
           </div>
         </div>
         {stats && (
