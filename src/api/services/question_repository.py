@@ -220,6 +220,46 @@ def related_to_doc_ids(db: Session, doc_ids: list[str], limit: int) -> list[dict
     return out
 
 
+def answers_for_doc_ids(db: Session, doc_ids: list[str]) -> list[dict[str, Any]]:
+    """The known answers of every question unit whose chunks are in `doc_ids`.
+
+    This is the denylist behind the Socratic guard's L4 check: the exact strings that
+    must not appear in anything the extension shows a student. It reads the `answer` and
+    `solution` columns `question_intelligence._parse_pq` separated out at build time, so
+    the check is a text match against ground truth rather than a judgement about whether
+    a reply "gave too much away".
+
+    **It must be called with UNFILTERED retrieval hits.** The Socratic path retrieves
+    transcripts only, and a transcript chunk is never a question unit's chunk — so
+    passing that result here returns `[]`, the denylist is empty, and L4 silently passes
+    everything with no error and a green test suite. `socratic_service` therefore runs a
+    second, unfiltered retrieval whose text is never shown to the model and whose only
+    products are this denylist and the related-questions links.
+
+    Unlike its sibling `related_to_doc_ids`, a missing bank version is not an error: no
+    question bank means no known answers, which is a weaker guard but not a broken one.
+    """
+    if not doc_ids or not active_version(db):
+        return []
+    rows = (db.query(QuestionUnit).join(QuestionUnitChunk)
+            .filter(QuestionUnitChunk.doc_id.in_(doc_ids)).all())
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        if row.unit_id in seen:
+            continue
+        seen.add(row.unit_id)
+        if not (row.answer or "").strip() and not (row.solution or "").strip():
+            continue
+        out.append({
+            "unit_id": _public_id(row.unit_id),
+            "answer": row.answer or "",
+            "solution": row.solution or "",
+            "options": row.options or [],
+        })
+    return out
+
+
 def canonical_doc_ids_to_drop(db: Session, doc_ids: list[str]) -> set[str]:
     if not active_version(db) or not doc_ids:
         return set()

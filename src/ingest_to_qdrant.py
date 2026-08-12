@@ -50,7 +50,12 @@ if not QDRANT_URL:
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 SPLITS_DIR = ROOT_DIR / "data" / "splits"
-COLLECTION_NAME = "mlt_course_bot"
+try:
+    from src.config import course_collection_name
+except ModuleNotFoundError:  # run as `python src/<name>.py`, so src/ is sys.path[0]
+    from config import course_collection_name
+
+COLLECTION_NAME = course_collection_name()
 
 def load_chunks() -> list[Document]:
     """Loads all train, val, and test JSONL chunks into LangChain Documents."""
@@ -96,7 +101,61 @@ def check_unexported_documents() -> list[str]:
         return []
 
 
-def main(force: bool = False):
+def ensure_payload_indexes(client) -> list[str]:
+    """Create the keyword payload indexes the filtered read paths need.
+
+    Called at the end of `main()` rather than left as a manual step, because this script
+    recreates the collection from scratch — a re-ingest that forgot them would silently
+    break two features at once:
+
+    - `metadata.source_type` backs the Socratic transcript-only retriever. Qdrant answers
+      400 on a filtered search over an unindexed field, and the caller sees an exception
+      rather than an empty result — so the layer fails *open* if this is missing, which is
+      why it is created here and asserted in verification.
+    - `metadata.doc_id` backs `quiz_service._fetch_chunks_by_doc_id` (hard-tier context
+      widening) and the `replace=true` delete in the admin ingest path. The former
+      degrades silently without it; the latter refuses to run.
+
+    Returns the fields it created. Idempotent: an existing index is left alone.
+    """
+    from qdrant_client import models as qmodels
+
+    created: list[str] = []
+    try:
+        schema = client.get_collection(COLLECTION_NAME).payload_schema or {}
+    except Exception as exc:  # noqa: BLE001
+        print(f"  [Index] Could not read payload schema ({type(exc).__name__}) — skipping.")
+        return created
+
+    for field in ("metadata.source_type", "metadata.doc_id"):
+        if field in schema:
+            print(f"  [Index] {field} already indexed.")
+            continue
+        try:
+            client.create_payload_index(
+                collection_name=COLLECTION_NAME,
+                field_name=field,
+                field_schema=qmodels.PayloadSchemaType.KEYWORD,
+            )
+            created.append(field)
+            print(f"  [Index] Created keyword index on {field}.")
+        except Exception as exc:  # noqa: BLE001
+            print(f"  [Index] FAILED to create {field}: {type(exc).__name__}: {exc}")
+    return created
+
+
+def main(force: bool = False, collection: str | None = None):
+    """Ingest `data/splits/` into `collection`, recreating it.
+
+    `collection` defaults to whatever `QDRANT_COLLECTION` says is live. Passing a
+    *different* name is the non-destructive path: the new collection is built and indexed
+    alongside the running one, nothing is deleted, and the cutover is a `.env` edit plus a
+    restart — with the previous collection still sitting there as the rollback.
+    """
+    global COLLECTION_NAME
+    if collection:
+        COLLECTION_NAME = collection
+
     missing = check_unexported_documents()
     if missing and not force:
         print(f"REFUSING TO RUN: {len(missing)} admin-contributed document(s) exist only in the")
@@ -165,7 +224,18 @@ def main(force: bool = False):
     
     print(f"\nSuccess! {len(docs)} chunks successfully ingested into Qdrant Cloud!")
 
-if __name__ == "__main__":
-    import sys
+    print("\nEnsuring payload indexes...")
+    ensure_payload_indexes(qdrant.client)
 
-    main(force="--force" in sys.argv)
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Ingest data/splits/ into Qdrant.")
+    parser.add_argument("--force", action="store_true",
+                        help="ingest even if admin documents are unexported")
+    parser.add_argument("--collection", default=None,
+                        help="target collection (default: $QDRANT_COLLECTION, else "
+                             "mlt_course_bot). Give a NEW name to build alongside the "
+                             "live one instead of replacing it.")
+    args = parser.parse_args()
+    main(force=args.force, collection=args.collection)

@@ -688,3 +688,86 @@ def answer_question(
         "fallback_used": fallback_used,
         "prompt": prompt,
     }
+
+
+# ── Vision: read a question out of a screenshot ───────────────────────────────
+
+class OCRUnavailableError(RuntimeError):
+    """No vision-capable provider could read the image. Surfaces as 503."""
+
+
+def transcribe_image(image_bytes: bytes, media_type: str = "image/png") -> tuple[str, str]:
+    """Read the text of a cropped screenshot. Returns `(text, provider_label)`.
+
+    This exists because Chrome's built-in PDF viewer is sealed off from content scripts:
+    an extension cannot read the text of a question paper, but it *can* screenshot the
+    tab. So the crop is sent here and read back as text.
+
+    No new dependency. `langchain-google-genai` is already required and every model in
+    `GEMINI_MODELS` is vision-capable, so this reuses the existing Gemini key pool and the
+    same key→model failover shape as `generate_llm_response`. Groq is skipped rather than
+    attempted: its configured models are text-only, and a failing call per key would just
+    add latency before the same outcome.
+
+    Falls back to the repo's EasyOCR path when it happens to be installed — a dev-machine
+    convenience, deliberately excluded from the deployed image — and raises otherwise
+    rather than returning an empty string that a caller would mistake for a blank image.
+    """
+    import base64
+
+    keys = get_gemini_api_keys()
+    prompt = (
+        "Transcribe the exam question in this image to plain text. Return the question "
+        "statement, then each answer choice on its own line prefixed by its label. "
+        "Transcribe only what is written — do not solve it, do not mark an option as "
+        "correct, and do not add commentary. If the image contains no question, reply "
+        "with an empty string."
+    )
+    encoded = base64.b64encode(image_bytes).decode("ascii")
+    message = {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": prompt},
+            {"type": "image_url", "image_url": f"data:{media_type};base64,{encoded}"},
+        ],
+    }
+
+    for key_idx, key in enumerate(keys, start=1):
+        skip_key = False
+        for model_name in GEMINI_MODELS:
+            if skip_key:
+                break
+            label = f"gemini/{model_name} [Key #{key_idx}]"
+            try:
+                llm = create_llm(model_name=model_name, provider="gemini",
+                                 api_key=key, temperature=0.0)
+                text = extract_text_from_response(llm.invoke([message]))
+                if text:
+                    print(f"  [OCR] Success with {label}", flush=True)
+                    return text.strip(), f"gemini/{model_name}"
+            except Exception as exc:  # noqa: BLE001
+                err_type = _classify_error(exc)
+                print(f"  [OCR] FAILED {label} ({err_type}): "
+                      f"{type(exc).__name__}: {str(exc)[:160]}", flush=True)
+                if err_type in ("auth", "rate_limit"):
+                    skip_key = True
+
+    try:
+        import easyocr  # noqa: PLC0415
+        import numpy as np  # noqa: PLC0415
+        from PIL import Image  # noqa: PLC0415
+        import io  # noqa: PLC0415
+
+        reader = easyocr.Reader(["en"], gpu=False)
+        image = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB"))
+        lines = reader.readtext(image, detail=0, paragraph=True)
+        if lines:
+            print("  [OCR] Success with local EasyOCR fallback", flush=True)
+            return "\n".join(lines).strip(), "easyocr"
+    except Exception:  # noqa: BLE001 — absent on the deployed image, by design
+        pass
+
+    raise OCRUnavailableError(
+        "No vision provider could read the image: set a Gemini API key, or install "
+        "easyocr for a local fallback."
+    )

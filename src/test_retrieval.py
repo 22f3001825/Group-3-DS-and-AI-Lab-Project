@@ -3,6 +3,12 @@ from dotenv import load_dotenv
 from langchain_qdrant import QdrantVectorStore, FastEmbedSparse, RetrievalMode
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 
+try:
+    from src.config import course_collection_name
+except ModuleNotFoundError:  # run as `python src/<name>.py`, so src/ is sys.path[0]
+    from config import course_collection_name
+
+
 # Load credentials
 load_dotenv()
 
@@ -16,7 +22,7 @@ qdrant = QdrantVectorStore.from_existing_collection(
     sparse_embedding=sparse_embeddings,
     url=os.getenv("QDRANT_URL"),
     api_key=os.getenv("QDRANT_API_KEY"),
-    collection_name="mlt_course_bot",
+    collection_name=course_collection_name(),
     retrieval_mode=RetrievalMode.HYBRID
 )
 

@@ -123,7 +123,12 @@ def normalize_qdrant_url(url: str) -> str:
 
 QDRANT_URL = normalize_qdrant_url(os.getenv("QDRANT_URL", ""))
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
-COLLECTION_NAME = "mlt_course_bot"
+try:
+    from src.config import course_collection_name
+except ModuleNotFoundError:  # run as `python src/<name>.py`, so src/ is sys.path[0]
+    from config import course_collection_name
+
+COLLECTION_NAME = course_collection_name()
 
 if not QDRANT_URL:
     raise ValueError("Missing QDRANT_URL in your .env file.")

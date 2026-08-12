@@ -15,6 +15,12 @@ from dotenv import load_dotenv
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
 
+try:
+    from src.config import course_collection_name
+except ModuleNotFoundError:  # run as `python src/<name>.py`, so src/ is sys.path[0]
+    from config import course_collection_name
+
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
@@ -131,7 +137,7 @@ def normalize_qdrant_url(url: str) -> str:
 def main():
     QDRANT_URL = normalize_qdrant_url(os.getenv("QDRANT_URL", ""))
     QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
-    COLLECTION_NAME = "mlt_course_bot"
+    COLLECTION_NAME = course_collection_name()
 
     if not QDRANT_URL:
         print("Missing QDRANT_URL in .env file.")

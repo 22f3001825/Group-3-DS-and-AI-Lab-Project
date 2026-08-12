@@ -1,0 +1,269 @@
+{
+  "1": {
+    "Introduction_to_Machine_Learning": {
+      "title": "Introduction to Machine Learning",
+      "youtube_id": "KMcUe7GQnf0"
+    },
+    "Paradigms_of_machine_learning": {
+      "title": "Paradigms of machine learning",
+      "youtube_id": "ipjggYk7zXs"
+    },
+    "Principal_component_analysis_Part_1": {
+      "title": "Principal component analysis Part 1",
+      "youtube_id": "_GOADM-SdKU"
+    },
+    "Principal_component_analysis_Part_2": {
+      "title": "Principal component analysis Part 2",
+      "youtube_id": "o__dWBLqPhQ"
+    },
+    "Representation_Learning_Part_1": {
+      "title": "Representation Learning Part 1",
+      "youtube_id": "1V_M4JxygGk"
+    },
+    "Representation_Learning_Part_2": {
+      "title": "Representation Learning Part 2",
+      "youtube_id": "mU6CzvuUM00"
+    },
+    "Representation_Learning_Part_3": {
+      "title": "Representation Learning Part 3",
+      "youtube_id": "t0bA3rsZ6qM"
+    }
+  },
+  "2": {
+    "Feature_Transformation": {
+      "title": "Feature Transformation",
+      "youtube_id": "zcxnCyVSh70"
+    },
+    "Issues_with_PCA": {
+      "title": "Issues with PCA",
+      "youtube_id": "sgU4zbO-W4M"
+    },
+    "Kernel_Functions": {
+      "title": "Kernel Functions",
+      "youtube_id": "G6rMGLhw3IQ"
+    },
+    "Kernel_PCA": {
+      "title": "Kernel PCA",
+      "youtube_id": "K46tdjqxM0w"
+    },
+    "Time-complexity_issue_with_PCA": {
+      "title": "Time-complexity issue with PCA",
+      "youtube_id": "pwpDf2_Pytk"
+    }
+  },
+  "3": {
+    "Choice_of_K.docx": {
+      "title": "Choice of K.docx",
+      "youtube_id": "4-ycWgdMXD4"
+    },
+    "Convergence_of_K-means_algorithm.docx": {
+      "title": "Convergence of K-means algorithm.docx",
+      "youtube_id": "5geXmawaImk"
+    },
+    "Initialization_of_centroids,_K-means_.docx": {
+      "title": "Initialization of centroids, K-means .docx",
+      "youtube_id": "Cbrdtxq6bdk"
+    },
+    "Introduction_to_Clustering.docx": {
+      "title": "Introduction to Clustering.docx",
+      "youtube_id": "A3UNtCuMm7Y"
+    },
+    "K-means_Clustering_(Lloyd_s_algorithm).docx": {
+      "title": "K-means Clustering (Lloyd_s algorithm).docx",
+      "youtube_id": "QrXQ5cMzphA"
+    },
+    "Nature_of_clusters_produced_by_K-means.docx": {
+      "title": "Nature of clusters produced by K-means.docx",
+      "youtube_id": "EY03QHaaSBY"
+    }
+  },
+  "4": {
+    "Bayesian_estimation.docx": {
+      "title": "Bayesian estimation.docx",
+      "youtube_id": "ZnkRbtZLPm4"
+    },
+    "Convex_functions_and_Jensen’s_Inequality.docx": {
+      "title": "Convex functions and Jensen’s Inequality.docx",
+      "youtube_id": "4s0aNldT02Y"
+    },
+    "EM_Algorithm.docx": {
+      "title": "EM Algorithm.docx",
+      "youtube_id": "1jSonYih_sM"
+    },
+    "Estimating_the_Parameters.docx_(2)": {
+      "title": "Estimating the Parameters.docx (2)",
+      "youtube_id": "idWmaE39OIk"
+    },
+    "Gaussian_Mixture_Models.docx": {
+      "title": "Gaussian Mixture Models.docx",
+      "youtube_id": "dyRTVmtML-U"
+    },
+    "Introduction_to_Estimation.docx": {
+      "title": "Introduction to Estimation.docx",
+      "youtube_id": "382yNz5LoX0"
+    },
+    "Likelihood_of_GMM.docx": {
+      "title": "Likelihood of GMM.docx",
+      "youtube_id": "a-VVrP11ZIo"
+    },
+    "Maximum_Likelihood_Estimation.docx": {
+      "title": "Maximum Likelihood Estimation.docx",
+      "youtube_id": "9dQSEn0ooTc"
+    }
+  },
+  "5": {
+    "Geometric_interpretation_of_linear_regression.docx_(1)": {
+      "title": "Geometric interpretation of linear regression.docx (1)",
+      "youtube_id": "SGbelq087Qs"
+    },
+    "Gradient_descent.docx_": {
+      "title": "Gradient descent.docx ",
+      "youtube_id": "vS1LK8xoM4g"
+    },
+    "Kernel_regression.docx_pdf": {
+      "title": "Kernel regression.docx pdf",
+      "youtube_id": "u9ir3yQynpE"
+    },
+    "Optimizing_the_error_function.docx_": {
+      "title": "Optimizing the error function.docx ",
+      "youtube_id": "JQPLz5YhjaM"
+    },
+    "Probabilistic_view_of_linear_regression.docx_": {
+      "title": "Probabilistic view of linear regression.docx ",
+      "youtube_id": "gLGQokSrtDI"
+    },
+    "Supervised_Learning.docx": {
+      "title": "Supervised Learning.docx",
+      "youtube_id": "AIKTk9KtPJ0"
+    }
+  },
+  "6": {},
+  "7": {
+    "Decision_Tree_Algorithm.docx": {
+      "title": "Decision Tree Algorithm.docx",
+      "youtube_id": "5rnu6Hvbt8I"
+    },
+    "Generative_and_Discriminative_Models.docx": {
+      "title": "Generative and Discriminative Models.docx",
+      "youtube_id": "gwa47ZzhYno"
+    },
+    "Introduction_to_Binary_Classification.docx": {
+      "title": "Introduction to Binary Classification.docx",
+      "youtube_id": "_w9irUy_8Cs"
+    },
+    "Introduction_to_Decision_Trees.docx": {
+      "title": "Introduction to Decision Trees.docx",
+      "youtube_id": "gXbAJGd8fO0"
+    },
+    "K-Nearest_Neighbours.docx": {
+      "title": "K-Nearest Neighbours.docx",
+      "youtube_id": "H-Y_A7HvBqk"
+    }
+  },
+  "8": {
+    "Generative_model-based_algorithm.docx": {
+      "title": "Generative model-based algorithm.docx",
+      "youtube_id": "tna8wxoasss"
+    }
+  },
+  "9": {
+    "Lecture_1": {
+      "title": "Lecture 1",
+      "youtube_id": "G7tYdl0Osf4"
+    },
+    "Lecture_2": {
+      "title": "Lecture 2",
+      "youtube_id": "FMRpmR9HNtY"
+    },
+    "Lecture_3": {
+      "title": "Lecture 3",
+      "youtube_id": "fHDouTKwfXw"
+    },
+    "Lecture_4": {
+      "title": "Lecture 4",
+      "youtube_id": "udFWtBLJUvA"
+    },
+    "Lecture_5": {
+      "title": "Lecture 5",
+      "youtube_id": "bb4yn4RssLs"
+    }
+  },
+  "10": {
+    "Lecture_1": {
+      "title": "Lecture 1",
+      "youtube_id": "-guLBqucS_I"
+    },
+    "Lecture_2": {
+      "title": "Lecture 2",
+      "youtube_id": "ZzWFdt_6KLA"
+    },
+    "Lecture_3": {
+      "title": "Lecture 3",
+      "youtube_id": "7Th2YgPMnk0"
+    },
+    "Lecture_4": {
+      "title": "Lecture 4",
+      "youtube_id": "85BxDKkiK4c"
+    },
+    "Lecture_5": {
+      "title": "Lecture 5",
+      "youtube_id": "2LnQ2r7Q3-0"
+    },
+    "Lecture_6": {
+      "title": "Lecture 6",
+      "youtube_id": "leolYGmaFLM"
+    }
+  },
+  "11": {
+    "Lecture_1": {
+      "title": "Lecture 1",
+      "youtube_id": "MZzp4OP8GgQ"
+    },
+    "Lecture_2": {
+      "title": "Lecture 2",
+      "youtube_id": "jthjk2nboDM"
+    },
+    "Lecture_3": {
+      "title": "Lecture 3",
+      "youtube_id": "jbcaJ_kn3CQ"
+    },
+    "Lecture_4": {
+      "title": "Lecture 4",
+      "youtube_id": "VcrPtcJWvDE"
+    },
+    "Lecture_5": {
+      "title": "Lecture 5",
+      "youtube_id": "OXTu2vrsTjY"
+    },
+    "Lecture_6": {
+      "title": "Lecture 6",
+      "youtube_id": "-B534pLpnhk"
+    }
+  },
+  "12": {
+    "Lecture_1": {
+      "title": "Lecture 1",
+      "youtube_id": "1ok_K5EohoU"
+    },
+    "Lecture_2": {
+      "title": "Lecture 2",
+      "youtube_id": "tXVelGBsIPI"
+    },
+    "Lecture_3": {
+      "title": "Lecture 3",
+      "youtube_id": "ZAuZqOM-skQ"
+    },
+    "Lecture_4": {
+      "title": "Lecture 4",
+      "youtube_id": "Y6CNz0wRWpI"
+    },
+    "Lecture_5": {
+      "title": "Lecture 5",
+      "youtube_id": "LctgFHD_RN4"
+    },
+    "Lecture_6": {
+      "title": "Lecture 6",
+      "youtube_id": "06PP-3xUCs0"
+    }
+  }
+}
