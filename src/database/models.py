@@ -17,6 +17,9 @@ QuestionContentDraft, QuestionUpload, QuestionDocument, QuestionEvaluationLabel,
 QuestionBankOutbox. These hold every byte of runtime state that feature produces —
 drafts, uploaded PDFs, committed content, vectors, labels and pending Qdrant work — so
 nothing it does needs a file. Schema changes go through `database/migrations.py`.
+
+AppSetting (at the bottom) is the one table holding operator switches that must survive a
+restart — currently just the reranker toggle.
 """
 from __future__ import annotations
 
@@ -523,3 +526,32 @@ class SocraticEvent(Base):
     __table_args__ = (
         Index("ix_socratic_events_session_created", "session_id", "created_at"),
     )
+
+
+# ── Runtime settings ──────────────────────────────────────────────────────────
+
+class AppSetting(Base):
+    """Operator-controlled switches that outlive a restart.
+
+    Everything else in this application is configured by environment variable, read once
+    at import (`src/config.py`). That is right for values an operator sets when they
+    deploy and wrong for one an admin flips from the UI while students are using the
+    site — an env var would need a restart, which is exactly what a toggle is supposed to
+    avoid. Hence one narrow key/value table rather than a column per feature: adding the
+    next switch costs a row, not a migration.
+
+    Values are stored as TEXT and parsed by the caller. There is one consumer today
+    (`services/rerank_service.py`, key `reranker_enabled`, "true"/"false"), and typing the
+    column to that consumer would be a promise this table cannot keep.
+
+    `updated_by_email` is a plain string, deliberately not a foreign key to `students`:
+    the `X-Admin-Token` path in `dependencies.require_admin` carries no identity at all,
+    so this column has to be able to say "we don't know who".
+    """
+
+    __tablename__ = "app_settings"
+
+    key = Column(String(64), primary_key=True)
+    value = Column(Text, nullable=False)
+    updated_at = Column(DateTime, default=_now, onupdate=_now, nullable=False)
+    updated_by_email = Column(String(255), nullable=True)  # NULL ⇒ set via X-Admin-Token

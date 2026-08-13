@@ -8,6 +8,9 @@ import re
 from typing import Any
 
 from langchain_core.documents import Document
+from sqlalchemy.orm import Session
+
+from . import rerank_service
 
 try:
     from src.rag_pipeline import answer_question
@@ -92,12 +95,16 @@ def run_rag(
     retriever: Any,
     top_k: int = 5,
     history: list[dict[str, Any]] | None = None,
+    db: Session | None = None,
 ) -> dict[str, Any]:
     """Call answer_question() and return a fully serialisable result dict.
 
     Args:
         history: recent {'role', 'content'} turns, oldest first. Trimmed and condensed by
                  `rag_pipeline.format_history`; affects the prompt only, not retrieval.
+        db:      session used only to read the reranker toggle. Optional so the offline
+                 scripts that call this can keep working without one; when it is None the
+                 selection is the plain `[:top_k]` it has always been.
 
     Returns:
         answer        : str
@@ -107,7 +114,10 @@ def run_rag(
         topics_detected: list[str]  (for DB storage)
         raw_sources   : list[Document]
     """
-    result = answer_question(question, retriever, top_k=top_k, history=history)
+    # A closure, so `rag_pipeline` never learns what a Session is.
+    rerank = (lambda q, docs, k: rerank_service.select(db, q, docs, k)) if db is not None else None
+
+    result = answer_question(question, retriever, top_k=top_k, history=history, rerank=rerank)
 
     serialised_sources = [doc_to_dict(doc) for doc in result["sources"]]
     topics = extract_topics_from_sources(result["sources"])
@@ -122,7 +132,15 @@ def run_rag(
     }
 
 
-def run_retrieve_only(question: str, retriever: Any, top_k: int = 5) -> list[dict[str, Any]]:
-    """Retrieve chunks without calling the LLM. Debug endpoint only."""
-    docs: list[Document] = retriever.invoke(question)[:top_k]
+def run_retrieve_only(question: str, retriever: Any, top_k: int = 5,
+                      db: Session | None = None) -> list[dict[str, Any]]:
+    """Retrieve chunks without calling the LLM. Debug endpoint only.
+
+    Reranks when the toggle is on, so this endpoint shows what /chat would actually be
+    grounded on. An inspection endpoint that quietly disagreed with the real pipeline
+    would be worse than not having one.
+    """
+    candidates: list[Document] = retriever.invoke(question)
+    docs = (rerank_service.select(db, question, candidates, top_k)
+            if db is not None else candidates[:top_k])
     return [doc_to_dict(doc) for doc in docs]

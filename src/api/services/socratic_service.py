@@ -42,6 +42,7 @@ from src.database.models import SocraticEvent, SocraticSession
 from src.llm_judge import invoke_judge, new_session
 from src.rag_pipeline import generate_llm_response
 
+from . import rerank_service
 from . import socratic_guard as guard
 from .quiz_service import _as_int, _doc_to_chunk, _norm
 from .rag_service import clean_lecture_title
@@ -490,6 +491,17 @@ def _answer_context(db: Session, selection: str, course_retriever: Any,
     from . import question_repository as repo  # noqa: PLC0415
     from . import question_service  # noqa: PLC0415
 
+    # DELIBERATELY NOT RERANKED — the one retrieval in this codebase where reranking
+    # would make the system worse.
+    #
+    # Every other call site wants precision: the few best chunks to put in front of the
+    # model. This one wants RECALL. Its output is the set of answer strings L4 refuses to
+    # emit, so a doc_id missing from this list is an answer the guard will not catch.
+    # Reranking trades recall for precision by construction, and cutting to a top-N would
+    # silently shrink the denylist — weakening the leak check while every test still
+    # passes, which is precisely the invisible failure this function was written to
+    # prevent. Take all of them, in whatever order they arrive; order is irrelevant
+    # because the whole list is fed to `answers_for_doc_ids` as a set.
     doc_ids: list[str] = []
     try:
         for doc in course_retriever.invoke(selection) or []:
@@ -580,7 +592,16 @@ def analyze(db: Session, student_id: str, selection: str, options: list[str],
     chunks: list[dict[str, Any]] = []
     seen: set[str] = set()
     try:
-        for doc in transcript_retriever.invoke(selection) or []:
+        docs = list(transcript_retriever.invoke(selection) or [])
+
+        # Reorder, but keep every candidate: `top_n` is the full length on purpose.
+        # `chunks` feeds two consumers with different appetites — `build_segments` takes
+        # only the first MAX_PROMPT_CHUNKS, while `shortlist_topics` reads the lot — so
+        # dropping candidates here would quietly narrow the concept shortlist as a side
+        # effect of a change meant to improve card ordering.
+        docs = rerank_service.select(db, selection, docs, len(docs))
+
+        for doc in docs:
             chunk = _doc_to_chunk(doc)
             if chunk and chunk["doc_id"] not in seen:
                 seen.add(chunk["doc_id"])

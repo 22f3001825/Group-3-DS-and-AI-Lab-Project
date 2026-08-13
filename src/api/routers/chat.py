@@ -55,6 +55,7 @@ async def chat(
             retriever,
             top_k=request.top_k,
             history=[turn.model_dump() for turn in request.history],
+            db=db,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"RAG pipeline error: {exc}")
@@ -126,14 +127,17 @@ async def chat(
 async def retrieve_only(
     request: RetrieveRequest,
     retriever: Any = Depends(get_retriever),
+    db: Session = Depends(get_db),
     _: Student = Depends(get_current_student),
 ) -> RetrieveResponse:
     """
     Debug endpoint — retrieves chunks without calling the LLM.
     Useful for inspecting what context will be passed to the model.
+
+    `db` is here only so the reranker toggle is honoured; this endpoint persists nothing.
     """
     try:
-        chunks = run_retrieve_only(request.question, retriever, top_k=request.top_k)
+        chunks = run_retrieve_only(request.question, retriever, top_k=request.top_k, db=db)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Retrieval error: {exc}")
 

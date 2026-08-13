@@ -13,7 +13,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .models import (
-    ChatMessage, ChatSession, QuizAttempt, Student, TopicMastery,
+    AppSetting, ChatMessage, ChatSession, QuizAttempt, Student, TopicMastery,
     TopicRecommendationEvent,
 )
 
@@ -557,3 +557,35 @@ def get_recommendation_events(db: Session,
     if student_id:
         q = q.filter(TopicRecommendationEvent.student_id == student_id)
     return q.order_by(TopicRecommendationEvent.first_recommended_at.asc()).all()
+
+
+# ── App settings ──────────────────────────────────────────────────────────────
+
+def get_app_setting(db: Session, key: str, default: Optional[str] = None) -> Optional[str]:
+    """Read one runtime switch. Returns `default` when the key was never written.
+
+    A missing row means "never configured", which the caller treats as the compiled-in
+    default — so a fresh database behaves like the old hard-coded behaviour rather than
+    needing a seed step.
+    """
+    row = db.query(AppSetting).filter(AppSetting.key == key).first()
+    return row.value if row else default
+
+
+def set_app_setting(db: Session, key: str, value: str,
+                    updated_by_email: Optional[str] = None) -> AppSetting:
+    """Write one runtime switch, creating the row on first use.
+
+    `updated_by_email` is None for the `X-Admin-Token` path, which carries no identity.
+    """
+    row = db.query(AppSetting).filter(AppSetting.key == key).first()
+    if row:
+        row.value = value
+        row.updated_by_email = updated_by_email
+        row.updated_at = _now()
+    else:
+        row = AppSetting(key=key, value=value, updated_by_email=updated_by_email)
+        db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
