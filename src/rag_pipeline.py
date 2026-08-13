@@ -545,6 +545,17 @@ def create_llm(model_name: str, provider: str, api_key: str | None = None, tempe
         local_keys = get_local_api_keys()
         resolved_key = api_key or (local_keys[0] if local_keys else "not-needed")
 
+        # An Anthropic-backed proxy (CLIProxyAPI) forwards Claude Code's own
+        # `clear_thinking_20251015` context-management strategy upstream, and Anthropic 400s
+        # that whole request unless thinking is enabled. `reasoning_effort` is the
+        # OpenAI-shaped lever the translation maps onto it. Unset — the case for every
+        # llama.cpp/vLLM/Ollama server, none of which take the field — sends the request
+        # exactly as before.
+        extra: dict[str, Any] = {}
+        effort = (os.getenv("LOCAL_LLM_REASONING_EFFORT") or "").strip()
+        if effort:
+            extra["reasoning_effort"] = effort
+
         return ChatOpenAI(
             model=model_name,
             api_key=resolved_key,
@@ -554,6 +565,7 @@ def create_llm(model_name: str, provider: str, api_key: str | None = None, tempe
             # default 2 retries would also mask a 429 from the key-rotation logic below.
             timeout=float(os.getenv("LOCAL_LLM_TIMEOUT", "120")),
             max_retries=0,
+            **extra,
         )
 
     if provider == "groq":
