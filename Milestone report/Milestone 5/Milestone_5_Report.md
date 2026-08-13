@@ -238,11 +238,11 @@ The system was evaluated on out-of-scope prompts and successfully returned a gua
 
 The following task-specific figures are embedded directly in the report to illustrate actual evaluation performance.
 
-![Retrieval metrics for the held-out benchmark](plots/retrieval_metrics.png)
+![Retrieval metrics for the held-out benchmark](../../plots/retrieval_metrics.png)
 
 *Figure 1: Retrieval metric performance on the Milestone 5 held-out benchmark.*
 
-![Generation metrics for the held-out benchmark](plots/generation_metrics.png)
+![Generation metrics for the held-out benchmark](../../plots/generation_metrics.png)
 
 *Figure 2: Generation quality and out-of-scope guardrail performance on the Milestone 5 held-out benchmark.*
 
