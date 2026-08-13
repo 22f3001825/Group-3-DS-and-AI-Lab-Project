@@ -1,0 +1,29 @@
+# Caddy obtains and renews a Let's Encrypt certificate for this name automatically over
+# HTTP-01, and redirects http→https. That is the entire reason this container exists:
+# Google Sign-In refuses any non-localhost JavaScript origin that is not HTTPS.
+#
+# STAGING_DOMAIN comes from .env via docker-compose.yml.
+
+{$STAGING_DOMAIN} {
+	encode zstd gzip
+
+	# There is no `file_server` and no `try_files` here on purpose. The SPA history
+	# fallback lives in FastAPI (SPAStaticFiles in src/api/main.py), so exactly one place
+	# decides whether a path is an API route, a static asset, or a client-side route.
+	# Splitting that decision across Caddy and FastAPI is how deep links start 404-ing
+	# in one environment and not the other.
+	reverse_proxy api:8000 {
+		# Quiz generation and short-answer judging are synchronous LLM calls that can run
+		# well past Caddy's 100s default. 300s is generous enough to cover a provider
+		# failover walking the whole key/model ladder.
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

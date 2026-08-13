@@ -131,7 +131,9 @@ def transcribe(file: UploadFile = File(...),
     """Read a question out of a cropped screenshot — the PDF path.
 
     Authenticated like everything else: an open endpoint here would let anyone burn the
-    project's Gemini quota one image at a time.
+    project's vision quota one image at a time. `transcribe_image` walks the vision-capable
+    half of the provider queue (Gemini, then a local multimodal endpoint), so a dead key on
+    one of them no longer takes the capture path down on its own.
     """
     from ...rag_pipeline import OCRUnavailableError, transcribe_image  # noqa: PLC0415
 

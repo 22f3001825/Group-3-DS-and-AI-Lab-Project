@@ -100,6 +100,12 @@ PROVIDER_LABELS: dict[str, str] = {
     "local": "Local / self-hosted (OpenAI-compatible)",
 }
 
+# Providers `transcribe_image` will send an image to, as a subset of the same queue.
+# Groq is excluded because `GROQ_MODELS` is text-only — the call would fail per key for
+# nothing. `local` is in because the endpoint is OpenAI-shaped and what sits behind it is
+# the deployment's business; a text-only model there fails one attempt and the walk goes on.
+VISION_PROVIDERS: frozenset[str] = frozenset({"gemini", "local"})
+
 # Installed by `api/services/llm_settings_service.install()`. Left None everywhere else,
 # which is what keeps this module free of a database import.
 _ORDER_RESOLVER: Optional[Callable[[], Optional[list[str]]]] = None
@@ -547,13 +553,19 @@ def create_llm(model_name: str, provider: str, api_key: str | None = None, tempe
 
         # An Anthropic-backed proxy (CLIProxyAPI) forwards Claude Code's own
         # `clear_thinking_20251015` context-management strategy upstream, and Anthropic 400s
-        # that whole request unless thinking is enabled. `reasoning_effort` is the
-        # OpenAI-shaped lever the translation maps onto it. Unset — the case for every
-        # llama.cpp/vLLM/Ollama server, none of which take the field — sends the request
-        # exactly as before.
+        # that whole request unless thinking is enabled or adaptive — an *absent* thinking
+        # field is rejected exactly like an explicit "disabled". `reasoning_effort` is the
+        # OpenAI-shaped lever the proxy's translation maps onto it, so a Claude model gets
+        # one by default rather than depending on an env var reaching the deployment.
+        # LOCAL_LLM_REASONING_EFFORT overrides the level; the literal "off" omits the field
+        # entirely, which is what every llama.cpp/vLLM/Ollama server wants (none take it).
+        # Note the proxy strips `temperature` from a translated request either way, so the
+        # temperature above reaches Gemini and Groq but never an Anthropic-backed local tier.
         extra: dict[str, Any] = {}
         effort = (os.getenv("LOCAL_LLM_REASONING_EFFORT") or "").strip()
-        if effort:
+        if not effort and model_name.lower().startswith("claude"):
+            effort = "low"
+        if effort and effort.lower() != "off":
             extra["reasoning_effort"] = effort
 
         return ChatOpenAI(
@@ -804,11 +816,15 @@ def transcribe_image(image_bytes: bytes, media_type: str = "image/png") -> tuple
     an extension cannot read the text of a question paper, but it *can* screenshot the
     tab. So the crop is sent here and read back as text.
 
-    No new dependency. `langchain-google-genai` is already required and every model in
-    `GEMINI_MODELS` is vision-capable, so this reuses the existing Gemini key pool and the
-    same key→model failover shape as `generate_llm_response`. Groq is skipped rather than
-    attempted: its configured models are text-only, and a failing call per key would just
-    add latency before the same outcome.
+    No new dependency, and the same provider→key→model failover as `generate_llm_response`:
+    it walks `_build_provider_queue()` — so the admin-set hierarchy applies here too —
+    filtered to the providers that can see. **Groq is dropped, not attempted**: its
+    configured models are text-only, and a failing call per key would just add latency
+    before the same outcome. Gemini qualifies because every model in `GEMINI_MODELS` is
+    vision-capable; `local` qualifies because the endpoint is OpenAI-shaped and the model
+    behind it may well be multimodal (a Claude-backed CLIProxyAPI is), and a text-only
+    local model simply fails its attempt like any other. Without that second tier a dead
+    Gemini key took the whole capture path down while chat carried on failing over.
 
     Falls back to the repo's EasyOCR path when it happens to be installed — a dev-machine
     convenience, deliberately excluded from the deployed image — and raises otherwise
@@ -816,7 +832,6 @@ def transcribe_image(image_bytes: bytes, media_type: str = "image/png") -> tuple
     """
     import base64
 
-    keys = get_gemini_api_keys()
     prompt = (
         "Transcribe the exam question in this image to plain text. Return the question "
         "statement, then each answer choice on its own line prefixed by its label. "
@@ -829,29 +844,36 @@ def transcribe_image(image_bytes: bytes, media_type: str = "image/png") -> tuple
         "role": "user",
         "content": [
             {"type": "text", "text": prompt},
-            {"type": "image_url", "image_url": f"data:{media_type};base64,{encoded}"},
+            # The dict form, not the bare string: langchain-google-genai accepts either,
+            # but an OpenAI-compatible endpoint reads `image_url.url` and a string there
+            # transcribes as a blank image.
+            {"type": "image_url",
+             "image_url": {"url": f"data:{media_type};base64,{encoded}"}},
         ],
     }
 
-    for key_idx, key in enumerate(keys, start=1):
-        skip_key = False
-        for model_name in GEMINI_MODELS:
-            if skip_key:
-                break
-            label = f"gemini/{model_name} [Key #{key_idx}]"
-            try:
-                llm = create_llm(model_name=model_name, provider="gemini",
-                                 api_key=key, temperature=0.0)
-                text = extract_text_from_response(llm.invoke([message]))
-                if text:
-                    print(f"  [OCR] Success with {label}", flush=True)
-                    return text.strip(), f"gemini/{model_name}"
-            except Exception as exc:  # noqa: BLE001
-                err_type = _classify_error(exc)
-                print(f"  [OCR] FAILED {label} ({err_type}): "
-                      f"{type(exc).__name__}: {str(exc)[:160]}", flush=True)
-                if err_type in ("auth", "rate_limit"):
-                    skip_key = True
+    for provider_name, models, keys in _build_provider_queue():
+        if provider_name not in VISION_PROVIDERS:
+            continue
+        for key_idx, key in enumerate(keys, start=1):
+            skip_key = False
+            for model_name in models:
+                if skip_key:
+                    break
+                label = f"{provider_name}/{model_name} [Key #{key_idx}]"
+                try:
+                    llm = create_llm(model_name=model_name, provider=provider_name,
+                                     api_key=key, temperature=0.0)
+                    text = extract_text_from_response(llm.invoke([message]))
+                    if text:
+                        print(f"  [OCR] Success with {label}", flush=True)
+                        return text.strip(), f"{provider_name}/{model_name}"
+                except Exception as exc:  # noqa: BLE001
+                    err_type = _classify_error(exc)
+                    print(f"  [OCR] FAILED {label} ({err_type}): "
+                          f"{type(exc).__name__}: {str(exc)[:160]}", flush=True)
+                    if err_type in ("auth", "rate_limit"):
+                        skip_key = True
 
     try:
         import easyocr  # noqa: PLC0415
@@ -869,6 +891,7 @@ def transcribe_image(image_bytes: bytes, media_type: str = "image/png") -> tuple
         pass
 
     raise OCRUnavailableError(
-        "No vision provider could read the image: set a Gemini API key, or install "
-        "easyocr for a local fallback."
+        "No vision provider could read the image: set a working Gemini API key, point "
+        "LOCAL_LLM_BASE_URL at a multimodal endpoint, or install easyocr for a local "
+        "fallback."
     )

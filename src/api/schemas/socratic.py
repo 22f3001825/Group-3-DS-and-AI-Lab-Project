@@ -81,7 +81,7 @@ class AnalyzeResponse(BaseModel):
     concept: Optional[TopicCard] = None
     alternatives: list[TopicCard] = Field(default_factory=list)
     segments: list[SegmentCard] = Field(default_factory=list)
-    coverage: str = "ok"             # ok | no_transcript
+    coverage: str = "ok"             # ok | no_transcript | retrieval_unavailable
     related_questions: list[RelatedQuestion] = Field(default_factory=list)
     why_this_concept: str = ""
     guiding_question: str = ""
@@ -102,7 +102,15 @@ class AttemptRequest(BaseModel):
 
 
 class AttemptResponse(BaseModel):
-    verdict: str                     # on_track | partially_correct | off_track
+    """A diagnosis, or a request for one. Never a grade on the submitted answer.
+
+    `needs_reasoning` is the fourth verdict and is not a position on the third axis of the
+    other three: it means nothing was reviewed, because the submission was a choice rather
+    than an argument (or because the review was withheld). The panel renders it without a
+    correctness badge for that reason — see `record_attempt`'s L6.
+    """
+
+    verdict: str                     # on_track | partially_correct | off_track | needs_reasoning
     first_error: str = ""
     why: str = ""
     concept_to_revisit: str = ""

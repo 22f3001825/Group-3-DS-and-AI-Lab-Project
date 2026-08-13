@@ -249,5 +249,14 @@ SOCRATIC_REQUIRE_ATTEMPT_FOR_TIER3 = True
 # past this is a whole page and retrieves noise.
 SOCRATIC_MAX_SELECTION_CHARS = 2000
 
+# Words of prose an attempt must carry before it is treated as *reasoning* rather than as
+# a bare answer. Below this — and with no because/then/first/so marker anywhere — the
+# submission is just a choice, and reviewing a choice means saying whether it is right.
+# That path never reaches a model (see `record_attempt`): the student is asked how they
+# got there instead. Ten is deliberately generous; a false "tell me more" costs one
+# round trip, whereas a false "let's review it" is the failure this feature exists to
+# prevent.
+SOCRATIC_MIN_REASONING_WORDS = 10
+
 # Largest PNG the screenshot-OCR endpoint accepts, in megabytes.
 SOCRATIC_CAPTURE_MAX_MB = 8

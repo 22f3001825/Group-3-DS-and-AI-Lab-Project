@@ -2,7 +2,7 @@
 api/services/socratic_guard.py
 The mechanical half of the Socratic no-answer policy.
 
-Two jobs, both deliberately dumb — no LLM is consulted anywhere in this file:
+Three jobs, all deliberately dumb — no LLM is consulted anywhere in this file:
 
   - **Input** (`sanitise_selection`): the highlighted text arrives from a web page and is
     fully attacker-controllable. Delimiter tokens and injection phrasing are stripped
@@ -10,6 +10,10 @@ Two jobs, both deliberately dumb — no LLM is consulted anywhere in this file:
   - **Output** (`check_leak`): before anything reaches the student, generated text is
     matched against the *known* answers pulled from `question_units`. A hit is a text
     match, not an opinion, which is what makes it un-arguable-with.
+  - **Confirmation** (`check_confirmation`, `looks_like_bare_answer`): on the attempt path
+    the student supplies the candidate answer themselves, so "yes, that's right" discloses
+    it while containing none of it. `check_leak` passes such a reply and always will —
+    these two are the pair that does not.
 
 **There is no redaction here, and that is the design.** An earlier version of this feature
 scrubbed `### **Answer**` sections out of retrieved chunks at request time. That layer is
@@ -160,15 +164,102 @@ def check_leak(text: Optional[str], denylist: Iterable[str]) -> Optional[dict[st
     return None
 
 
-def check_payload(payload: dict[str, Any], denylist: Iterable[str]) -> Optional[dict[str, Any]]:
-    """Run `check_leak` over every string a response envelope carries.
+# ── Output: the confirmation check ────────────────────────────────────────────
+#
+# `check_leak` asks "does this text contain the answer?". That is not enough on the
+# attempt path, where the student has already written the answer down: replying "yes,
+# that's the right sequence" reveals it without ever restating it, and every rule above
+# passes such a reply cleanly. Confirming is disclosing when the student supplied the
+# candidate — so it is checked separately, and only there.
+
+# Deliberately narrow: it must assert that the *submission as a whole* is right. Partial
+# diagnosis ("your first two steps are fine", "that substitution is correct") is exactly
+# what a Socratic review is for and must keep passing.
+_CONFIRMATION_RE = re.compile(
+    # "your <anything> is correct" is deliberately NOT here: "your substitution is correct"
+    # is a diagnosis of one step and must pass. The noun branch below is what catches
+    # "your answer is correct", because there the noun is the submission itself.
+    r"\b(?:that|this|it)(?:'s|\s+is|\s+are)\s+(?:the\s+)?"
+    r"(?:correct|right|exactly\s+right)\b"
+    r"|\byou(?:'re|\s+are|\s+have)\s+(?:got\s+it\s+)?(?:correct|right)\b"
+    r"|\b(?:the\s+)?(?:sequence|order|ordering|answer|option|choice|result|value|"
+    r"conclusion|selection)\b[^.!?]{0,50}\b(?:is|are|was|were)\s+"
+    r"(?:indeed\s+|in\s+fact\s+)?(?:correct|right|the\s+correct\s+one)\b"
+    r"|\b(?:correct|right)\b[!,]?\s*(?:well\s+done|good\s+job|nice\s+work)\b"
+    r"|\b(?:well\s+done|good\s+job|spot\s+on|exactly)\b[!,.]?\s*(?:that|this|your)\b",
+    re.IGNORECASE,
+)
+
+
+def check_confirmation(text: Optional[str]) -> Optional[dict[str, Any]]:
+    """Does `text` tell the student their submitted answer is right (or wrong)? L6.
+
+    Returns a hit dict shaped like `check_leak`'s so both feed the same event field.
+    """
+    if not text:
+        return None
+    match = _CONFIRMATION_RE.search(text)
+    if match:
+        return {"rule": "confirmation", "detail": match.group(0)[:120]}
+    return None
+
+
+# ── Input: is this an answer, or is it reasoning? ─────────────────────────────
+
+# Any one of these is enough to treat the text as an argument rather than a choice. The
+# list is about *shape*, not correctness — "because", "then", "so" mean the student is
+# showing a step, whether or not the step is right.
+_REASONING_MARKERS_RE = re.compile(
+    r"\b(?:because|since|therefore|thus|hence|so\s+that|so\s+the|so\s+we|so\s+it|"
+    r"which\s+means|that\s+means|implies|follows|by\s+definition|according\s+to|"
+    r"first|firstly|next|then|after\s+that|finally|start|begin|"
+    r"step|steps|assume|assuming|suppose|substitut|deriv|compute|computed|calculat|"
+    r"minimis|minimiz|maximis|maximiz|converge|iterate|iteration|update|"
+    r"if\s+we|if\s+the|when\s+we|when\s+the|my\s+reasoning|i\s+think\s+that\s+the)\b",
+    re.IGNORECASE,
+)
+
+# The whole submission is option letters, digits and separators: "c", "(b)", "5,3,1,4,2",
+# "5 → 3 → 1". Caught before the word count, because such a string can be long.
+_ANSWER_SHAPE_RE = re.compile(r"^[\s(\[]*[a-eA-E0-9](?:[\s)\].,;:/>→→-]+[a-eA-E0-9])*[\s)\].]*$")
+
+_WORD_RE = re.compile(r"[A-Za-z]{2,}")
+
+
+def looks_like_bare_answer(text: Optional[str], min_words: int) -> bool:
+    """Is this submission a choice rather than an argument? No LLM, by design.
+
+    Three tests, in order of confidence:
+
+    1. **Answer-shaped** — the text is nothing but option letters, digits and separators.
+    2. **Carries a reasoning marker** — a because/then/first/substitute anywhere means the
+       student is showing work, however briefly, and it goes to the reviewer.
+    3. **Word count** — below `min_words` of prose with no marker, there is no reasoning
+       in it to review; whatever is there is an assertion.
+
+    Rule 2 outranks rule 3 on purpose: brevity is not the signal, absence of an argument
+    is. "I picked c because the centres would not move" is eight words and reviewable;
+    "5,3,1,4,2 it's the most logical sequence" is six and is not.
+    """
+    stripped = (text or "").strip()
+    if not stripped:
+        return True
+    if _ANSWER_SHAPE_RE.match(stripped):
+        return True
+    if _REASONING_MARKERS_RE.search(stripped):
+        return False
+    return len(_WORD_RE.findall(stripped)) < min_words
+
+
+def _walk_strings(payload: Any, test: Any) -> Optional[dict[str, Any]]:
+    """Apply `test` to every string anywhere in `payload`; return the first hit.
 
     Walks nested dicts and lists rather than checking known keys, so a field added to the
     envelope later is covered by default instead of silently bypassing the guard.
     """
     def walk(node: Any, path: str) -> Optional[dict[str, Any]]:
         if isinstance(node, str):
-            hit = check_leak(node, denylist)
+            hit = test(node)
             if hit:
                 return {**hit, "field": path}
             return None
@@ -187,3 +278,17 @@ def check_payload(payload: dict[str, Any], denylist: Iterable[str]) -> Optional[
         return None
 
     return walk(payload, "")
+
+
+def check_payload(payload: dict[str, Any], denylist: Iterable[str]) -> Optional[dict[str, Any]]:
+    """Run `check_leak` over every string a response envelope carries."""
+    return _walk_strings(payload, lambda text: check_leak(text, denylist))
+
+
+def check_payload_confirmation(payload: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """Run `check_confirmation` over every string a response envelope carries.
+
+    Attempt path only. On `analyze` there is no submitted answer to confirm, and the
+    phrasing it would flag ("the correct approach is to...") is legitimate there.
+    """
+    return _walk_strings(payload, check_confirmation)
