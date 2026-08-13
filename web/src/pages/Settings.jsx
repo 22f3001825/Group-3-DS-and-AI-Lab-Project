@@ -2,6 +2,7 @@ import React from 'react';
 import { Moon, Sun, Palette, Info, User, LogOut, ShieldCheck } from 'lucide-react';
 import { useTheme } from '../theme/theme-context';
 import { useAuth } from '../auth/auth-context';
+import LLMProviderOrder from '../components/LLMProviderOrder';
 import './Settings.css';
 
 /** Dates arrive as ISO strings from FastAPI; a missing one is normal (a row that has
@@ -129,6 +130,12 @@ const Settings = () => {
 
 
       </section>
+
+      {/* Deployment-wide, so it is the one card here that is not about this account.
+          `is_admin` comes from the server on every /auth/me, and the endpoints behind
+          this component are admin-gated too — hiding it is presentation, not the
+          control. */}
+      {student?.is_admin && <LLMProviderOrder />}
 
       <p className="settings-footnote">Active theme: <strong>{theme}</strong></p>
     </div>

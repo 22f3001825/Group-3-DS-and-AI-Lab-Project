@@ -348,6 +348,25 @@ class APIClient {
   static async rebuildClusters() {
     return this.request('/questions/rebuild', { method: 'POST' });
   }
+
+  // ── Admin: runtime settings ────────────────────────────────────────────────
+  // Admin-gated on both verbs, the read included: the payload enumerates which
+  // providers are reachable and which environment variables are missing, which is
+  // deployment shape rather than anything a student page should be able to ask for.
+
+  /** The LLM provider hierarchy in force, plus per-provider state for the UI. */
+  static async getLLMProviderOrder() {
+    return this.request('/admin/settings/llm-providers');
+  }
+
+  /** Set the order every user's NEXT request follows. Answers already generating
+   *  finish on the provider they started with. 400 on an unknown or repeated id. */
+  static async setLLMProviderOrder(order) {
+    return this.request('/admin/settings/llm-providers', {
+      method: 'PUT',
+      body: JSON.stringify({ order }),
+    });
+  }
 }
 
 export default APIClient;

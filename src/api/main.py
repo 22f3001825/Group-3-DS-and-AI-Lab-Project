@@ -26,6 +26,7 @@ from .routers.auth import router as auth_router
 from .routers.chat import router as chat_router
 from .routers.learner import router as learner_router
 from .routers.questions import router as questions_router
+from .routers.settings import router as settings_router
 from .routers.socratic import router as socratic_router
 from .services.auth_service import cors_origins
 
@@ -66,10 +67,33 @@ def _warm_retriever():
               "Models will load on the first request instead.")
 
 
+def _install_llm_provider_order():
+    """Let the RAG pipeline read the admin-set provider hierarchy.
+
+    `rag_pipeline` has no database import — it is used by scripts with no app around them —
+    so the API hands it a resolver instead. Without this call the pipeline keeps its
+    original behaviour and follows `LLM_PROVIDER`, which is exactly what should happen in
+    those scripts.
+
+    Advisory, like the retriever warm-up: a failure here costs the admin ordering, not the
+    ability to answer questions, so it must not stop the app from booting.
+    """
+    try:
+        from .services import llm_settings_service
+
+        llm_settings_service.install()
+        print("[Startup] LLM provider hierarchy is admin-configurable "
+              "(GET/PUT /admin/settings/llm-providers).")
+    except Exception as exc:  # noqa: BLE001 - advisory only, never fatal
+        print(f"[Startup] Admin LLM ordering unavailable ({type(exc).__name__}: {exc}); "
+              "falling back to LLM_PROVIDER.")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
     print("[Startup] SQLite tables and schema ready.")
+    _install_llm_provider_order()
     threading.Thread(target=_warm_retriever, name="retriever-warmup", daemon=True).start()
     yield
     print("[Shutdown] MLT RAG API shutting down.")
@@ -105,6 +129,7 @@ app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(learner_router)
 app.include_router(questions_router)
+app.include_router(settings_router)
 app.include_router(socratic_router)
 
 

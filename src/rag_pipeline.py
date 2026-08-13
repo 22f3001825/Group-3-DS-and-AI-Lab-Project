@@ -13,7 +13,7 @@ from __future__ import annotations
 import itertools
 import os
 import re
-from typing import Any
+from typing import Any, Callable, Iterable, Optional
 
 from langchain_core.documents import Document
 
@@ -79,6 +79,83 @@ def get_local_base_url() -> str | None:
     if not raw.rsplit("/", 1)[-1].startswith("v1") and raw.count("/") <= 2:
         raw = f"{raw}/v1"
     return raw
+
+
+# ── Provider hierarchy ────────────────────────────────────────────────────────
+# Which backend is tried first, second and last. Two inputs, in priority order: an
+# admin-set order held in the database, and `LLM_PROVIDER` from the environment. This
+# module owns neither — it owns the *shape* of an order, and reads the database one
+# through a resolver the API installs, so scripts and evaluation runs that import
+# `rag_pipeline` without an app keep working off the environment alone.
+
+# Every backend `create_llm` can build, in the order used when nothing says otherwise.
+# This is the closed set: an id outside it is a typo rather than a provider that happens
+# to be switched off, so `normalize_provider_order` drops it instead of queueing an entry
+# that would only fail at invoke time.
+PROVIDER_IDS: tuple[str, ...] = ("gemini", "groq", "local")
+
+PROVIDER_LABELS: dict[str, str] = {
+    "gemini": "Google Gemini",
+    "groq": "Groq",
+    "local": "Local / self-hosted (OpenAI-compatible)",
+}
+
+# Installed by `api/services/llm_settings_service.install()`. Left None everywhere else,
+# which is what keeps this module free of a database import.
+_ORDER_RESOLVER: Optional[Callable[[], Optional[list[str]]]] = None
+
+
+def set_provider_order_resolver(resolver: Optional[Callable[[], Optional[list[str]]]]) -> None:
+    """Register (or with None, clear) the callback that supplies the admin-set order.
+
+    The resolver returns a list of provider ids, or None to mean "no admin preference —
+    use the environment". It is called once per queue build, so it must be cheap; the
+    settings service caches the database read behind a short TTL for exactly that reason.
+    """
+    global _ORDER_RESOLVER
+    _ORDER_RESOLVER = resolver
+
+
+def normalize_provider_order(order: Optional[Iterable[str]]) -> list[str]:
+    """Clean an arbitrary list into a usable hierarchy: known ids, no repeats, complete.
+
+    Unknown ids and duplicates are dropped. Anything the caller did not mention is
+    *appended* in default order rather than excluded — a saved hierarchy must not silently
+    disable a provider that was added to the catalogue after it was saved, which would
+    turn a new backend into dead configuration nobody remembers to enable. Ordering is the
+    admin control here; whether a provider can run at all is still the key configuration.
+    """
+    seen: list[str] = []
+    for raw in order or ():
+        name = str(raw or "").strip().lower()
+        if name in PROVIDER_IDS and name not in seen:
+            seen.append(name)
+    return seen + [p for p in PROVIDER_IDS if p not in seen]
+
+
+def env_provider_order() -> list[str]:
+    """The hierarchy `LLM_PROVIDER` alone describes: that provider first, then the rest."""
+    preferred = (os.getenv("LLM_PROVIDER") or "gemini").strip().lower()
+    return normalize_provider_order([preferred])
+
+
+def provider_order() -> list[str]:
+    """The hierarchy this process should use right now, most preferred first.
+
+    A resolver failure falls back to the environment rather than propagating: an
+    unreachable database must degrade the *preference*, not the ability to answer.
+    """
+    resolver = _ORDER_RESOLVER   # read once — it can be replaced concurrently
+    if resolver is not None:
+        try:
+            resolved = resolver()
+        except Exception as exc:  # noqa: BLE001 — preference is never worth a 500
+            print(f"  [LLM] Could not read the configured provider order ({exc}); "
+                  "falling back to LLM_PROVIDER.", flush=True)
+        else:
+            if resolved:
+                return normalize_provider_order(resolved)
+    return env_provider_order()
 
 
 # ── Multi-Key Discovery & Load Balancing ───────────────────────────────────────
@@ -521,34 +598,27 @@ def create_llm(model_name: str, provider: str, api_key: str | None = None, tempe
 def _build_provider_queue() -> list[tuple[str, list[str], list[str]]]:
     """Return an ordered list of (provider, [models], [available_keys]).
 
-    Supports provider preference via LLM_PROVIDER ('groq' | 'gemini' | 'local') and
-    pools all configured API keys for automatic round-robin and multi-key failover.
+    The order comes from `provider_order()` — the admin-set hierarchy when one is saved,
+    `LLM_PROVIDER` otherwise. A provider with no usable key is left out entirely, so the
+    hierarchy expresses preference and the environment still decides reachability: moving
+    `local` to the top of the list does nothing until LOCAL_LLM_BASE_URL is set.
 
-    The 'local' provider exists only when LOCAL_LLM_BASE_URL is set, and it is never
-    reordered ahead of a hosted provider unless it is the preferred one — a test rig
-    must not capture traffic just by being switched on.
+    The returned lists are fresh objects, and callers are expected to hold ONE queue for
+    the whole of an LLM call. That is what makes an order change take effect on the next
+    request rather than half way through one already in flight.
     """
-    preferred = (os.getenv("LLM_PROVIDER") or "gemini").strip().lower()
-
     gemini_keys = get_gemini_api_keys()
     groq_keys = get_groq_api_keys()
     local_keys = get_local_api_keys() if get_local_base_url() else []
 
-    gemini_entry = ("gemini", GEMINI_MODELS, gemini_keys)
-    groq_entry = ("groq", GROQ_MODELS, groq_keys)
-    local_entry = ("local", get_local_models(), local_keys)
-
     available = {
-        "gemini": gemini_entry if gemini_keys else None,
-        "groq": groq_entry if groq_keys else None,
-        "local": local_entry if local_keys else None,
+        "gemini": ("gemini", GEMINI_MODELS, gemini_keys) if gemini_keys else None,
+        "groq": ("groq", GROQ_MODELS, groq_keys) if groq_keys else None,
+        "local": ("local", get_local_models(), local_keys) if local_keys else None,
     }
 
-    # Preferred first, then the rest in a stable default order.
-    order = [preferred] + [p for p in ("gemini", "groq", "local") if p != preferred]
-
     queue: list[tuple[str, list[str], list[str]]] = []
-    for name in order:
+    for name in provider_order():
         entry = available.get(name)
         if entry and entry not in queue:
             queue.append(entry)
@@ -562,15 +632,22 @@ def generate_llm_response(
     prompt: str,
     temperature: float = 0.2,
     max_tokens: int | None = None,
+    provider_queue: list[tuple[str, list[str], list[str]]] | None = None,
 ) -> tuple[str | None, str]:
     """Resiliently invoke an LLM with automatic multi-key rotation and multi-provider failover.
-    
+
     Rotates across all available Groq and Gemini API keys upon rate limits (429) or auth errors.
-    
+
+    The provider hierarchy is snapshotted ONCE here, before the first attempt. An admin
+    reordering the providers mid-call therefore cannot change which backend this call
+    fails over to — the new order is picked up by the next call instead. Pass
+    `provider_queue` to share one snapshot with a caller that already built it.
+
     Returns:
       (answer_text, provider_label_used)
     """
-    provider_queue = _build_provider_queue()
+    if provider_queue is None:
+        provider_queue = _build_provider_queue()
     if not provider_queue:
         print("  [LLM] Warning: No API keys configured for Groq or Gemini.", flush=True)
         return None, "none"
@@ -643,7 +720,12 @@ def answer_question(
       answer        (str)           — final answer text
       sources       (list[Document])— retrieved context chunks
       provider_used (str)           — e.g. 'groq/llama-3.3-70b-versatile'
-      fallback_used (bool)          — True if primary provider was bypassed
+      fallback_used (bool)          — True if the answer did not come from the first
+                                      REACHABLE provider in the hierarchy. A ranked
+                                      provider with no key is not "bypassed": it was
+                                      never in the queue, and reporting a fallback on
+                                      every answer for a permanently absent key says
+                                      nothing about the call that just happened.
       prompt        (str)           — the exact prompt sent to the LLM
     """
     # 1. Retrieve context
@@ -652,12 +734,19 @@ def answer_question(
     # 2. Build prompt once
     prompt = build_prompt(question, retrieved_docs, history=history)
 
-    # 3. Generate answer using multi-key resilient completion
-    answer_text, provider_used = generate_llm_response(prompt, temperature=0.2)
+    # 3. Generate answer using multi-key resilient completion.
+    #
+    # The queue is built here rather than inside `generate_llm_response` so `fallback_used`
+    # is measured against the hierarchy THIS call actually ran on. Re-reading the preferred
+    # provider afterwards would compare against whatever the order happens to be by then,
+    # and report a fallback that never happened when an admin reorders mid-request.
+    provider_queue = _build_provider_queue()
+    answer_text, provider_used = generate_llm_response(
+        prompt, temperature=0.2, provider_queue=provider_queue)
     fallback_used = False
 
-    preferred = (os.getenv("LLM_PROVIDER") or "gemini").strip().lower()
-    if provider_used != "none" and not provider_used.startswith(preferred):
+    preferred = provider_queue[0][0] if provider_queue else ""
+    if provider_used != "none" and preferred and not provider_used.startswith(preferred):
         fallback_used = True
 
     # 4. Fallback if all providers and keys failed
