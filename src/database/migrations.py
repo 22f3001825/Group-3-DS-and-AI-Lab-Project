@@ -186,6 +186,21 @@ def _m0010_socratic_sessions_and_events(conn: Connection) -> None:
             model.__table__.create(bind=conn)
 
 
+def _m0011_app_settings(conn: Connection) -> None:
+    """The runtime-settings table behind the admin LLM provider hierarchy.
+
+    A whole table like 0010, so this is a no-op on a fresh database that `create_all`
+    already served, and created from the model for the same anti-drift reason. No seed
+    row: an absent `llm_provider_order` means "nobody has chosen", which the settings
+    service answers from `LLM_PROVIDER` — writing a default here instead would freeze
+    today's environment value into the database on upgrade.
+    """
+    from .models import AppSetting  # noqa: PLC0415
+
+    if not _table_exists(conn, AppSetting.__tablename__):
+        AppSetting.__table__.create(bind=conn)
+
+
 MIGRATIONS: list[tuple[str, str, Callable[[Connection], None]]] = [
     ("0001", "topic_mastery: elo_rating, streak, chat_interactions", _m0001_topic_mastery_elo),
     ("0002", "quiz_attempts: options, reason", _m0002_quiz_attempt_generation),
@@ -197,6 +212,7 @@ MIGRATIONS: list[tuple[str, str, Callable[[Connection], None]]] = [
     ("0008", "question_documents: unique stem per ACTIVE row", _m0008_documents_unique_per_active_stem),
     ("0009", "students: google profile, admin flag, login stats", _m0009_students_google_identity),
     ("0010", "socratic_sessions + socratic_events", _m0010_socratic_sessions_and_events),
+    ("0011", "app_settings: admin-set runtime settings", _m0011_app_settings),
 ]
 
 
