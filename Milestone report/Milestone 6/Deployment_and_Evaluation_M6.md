@@ -1,23 +1,29 @@
 
-# Milestone 6 — Deployment and Evaluation Report
+# Milestone 6 — Deployment, Evaluation, and Appendix
 
 ## Executive Summary
 
 This report documents the deployment strategy, infrastructure requirements, and comprehensive evaluation methodology for the Retrieval-Augmented Generation (RAG) system developed for the IIT Madras MLT course assistant. The system has been containerized and is ready for both local development and cloud production deployment. Evaluation results demonstrate high-quality retrieval accuracy, faithful answer generation, and robust out-of-scope query handling.
 
-## 1. Deployment Architecture
+---
 
-### 1.1 System Components
+## 1. What gets deployed
 
-The deployment consists of three primary components:
 
-1. **Backend API (FastAPI)**: Exposes REST endpoints for query processing, document ingestion, learner profile management, and quiz generation. Located in `src/api/main.py` with supporting services in `src/api/services/` and `src/api/routers/`.
+| Component | What it is |
+|---|---|
+| `api` | One image containing **both** the FastAPI backend and the built React SPA. FastAPI serves `web/dist` through `SPAStaticFiles` (`src/api/main.py`).Exposes REST endpoints for query processing, document ingestion, learner profile management, and quiz generation.  |
+| `caddy` | `caddy:2-alpine`, terminating TLS with an automatic Let's Encrypt certificate and reverse-proxying to `api`. |
+| Qdrant Cloud | Managed vector store holding the `mlt_course_bot` collection (hybrid dense + sparse retrieval). Can be deployed locally via Docker or used as a managed cloud service (Qdrant Cloud). |
+| LLM providers | Gemini / Groq over HTTPS, through the provider/key/model failover queue in `src/rag_pipeline.py`. |
+| SQLite (`state/mlt_learner.db`) | Students, quiz attempts, topic mastery **and** the question bank, including the `question_units` vector BLOBs. |
 
-2. **Vector Database (Qdrant)**: Stores dense and sparse embeddings for all indexed course chunks. Provides sub-millisecond similarity search capabilities for hybrid retrieval (dense semantic + sparse BM25 keyword-based). Can be deployed locally via Docker or used as a managed cloud service (Qdrant Cloud).
 
-3. **Frontend Application (React + Vite)**: Single-page application providing user interface for chat queries, document upload, preset examples, personalized quiz generation, and learner progress tracking. Located in `web/` directory.
+---
 
-### 1.2 Local Development Deployment (Docker Compose)
+## 2. Local deployment
+
+### 2.1 Local Development Deployment (Docker Compose)
 
 The local deployment uses Docker Compose to orchestrate all services. Prerequisites include Docker Engine (version 20.10+) and Docker Compose (version 2.0+).
 
@@ -44,22 +50,56 @@ curl http://localhost:6333/collections     # Qdrant collections endpoint
 - Qdrant vector database runs on `http://localhost:6333`
 - Frontend development server runs on `http://localhost:5173`
 
-All services automatically start with required environment variables defined in `.env` file (QDRANT_URL, EMBEDDING_MODEL, LLM_PROVIDER, API_KEY).
 
-### 1.3 Cloud Deployment Strategy
 
-For production deployment on cloud platforms (AWS, Azure, GCP), the following architecture is recommended:
+## 3. Cloud deployment — provisioning the infrastructure
 
-**Infrastructure Components:**
-- Container orchestration platform (Kubernetes or managed container services)
-- Managed Qdrant instance (Qdrant Cloud) or alternative vector database (Pinecone, Weaviate)
-- Managed FastAPI hosting (AWS App Runner, Azure Container Instances, GCP Cloud Run)
-- CDN for static frontend assets
-- Secrets management service (AWS Secrets Manager, Azure Key Vault, GCP Secret Manager)
 
-**Configuration for Cloud Deployment:**
+```
+browser ──https──> Caddy :443 ──http──> api :8000 ──> Qdrant Cloud (vectors)
+                     │                    │           Gemini / Groq (generation)
+              Let's Encrypt (TLS)   ./state/mlt_learner.db   <- the only mutable state
 
-Update environment variables for cloud services:
+  GitHub Actions ──build──> ECR (private registry) ──pull──> the instance
+```
+
+### 3.1 Deploy via Terraform 
+
+`deploy/terraform/main.tf` declares the whole AWS footprint: two ECR repositories with lifecycle
+policies, the instance role **and its instance profile**, the GitHub Actions OIDC push role, the
+local-operator IAM policy and user, a security group, one `t3.micro` on Amazon Linux 2023 resolved
+through SSM, and an optional EventBridge Scheduler rule that stops the box overnight.
+
+```powershell
+cd deploy\terraform
+Copy-Item terraform.tfvars.example terraform.tfvars    # gitignored; fill in the two required values
+terraform init
+terraform plan  -var-file=terraform.tfvars
+terraform apply -var-file=terraform.tfvars
+terraform output next_steps
+```
+
+The first two variables have no default and must be supplied; everything else is defaulted and can
+be left alone unless a row below says otherwise.
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `key_pair_name` | An **existing** EC2 key pair, by name. | *required* |
+| `ssh_cidr` | The CIDR allowed to reach TCP 22 — your own address, `/32`. Ports 80 and 443 are open to the world by necessity, so 22 is the only rule that can be narrowed. | *required* |
+| `region` | AWS region for every resource. Must match `AWS_REGION` in the GitHub repository variables and the profile the AWS CLI uses. | `ap-south-1` |
+| `name_prefix` | Prefix applied to every created name, so a Terraform-managed stack cannot collide with hand-made resources of the same name. | `mlt-tf` |
+| `ecr_repository_name` | Repository path for the application image | `<org>/<image>` |
+| `github_repo` | The `owner/repo` allowed to assume the Actions push role — one half of the OIDC trust condition, and the security-critical value (§4). | `<owner>/<repo>` |
+| `github_ref` | The git ref allowed to push, as it appears in the OIDC `sub` claim — the other half of the trust condition. A `workflow_dispatch` from another branch does not match. | `refs/heads/main` |
+| `github_sub_wildcard` | Allows any ref within `github_repo` instead of the single `github_ref`. Still scoped to the one repository. | `false` |
+| `create_github_oidc_provider` | Creates the GitHub OIDC provider. It is account-unique, so this stays `false` in any account that already has one; a second create fails with `EntityAlreadyExists`. | `false` |
+| `instance_type` | x86-64 only. | `t3.micro` |
+| `root_volume_gb` | Root volume size | `16` |
+| `create_ops_user` | Creates the laptop IAM user and attaches the operator policy | `true` |
+
+### 3.2 Configuration for Cloud Deployment:
+
+Update environment variables for cloud services via AWS Secrets Manager:
 ```bash
 QDRANT_URL=https://<qdrant-cloud-api-key>.api.qdrant.io    # Managed Qdrant endpoint
 OPENAI_API_KEY=<your-key>                                   # LLM provider key
@@ -72,13 +112,24 @@ Secrets must never be committed to version control. Use cloud provider secret ma
 - Configure application to retrieve secrets at startup
 - Implement automatic secret rotation policies
 
-**Scaling Considerations:**
+### 3.3 Scaling Considerations:
 - API auto-scaling: configure horizontal pod autoscaling based on CPU and memory metrics
 - Vector database scaling: Qdrant Cloud handles scaling automatically; monitor query latency
 - LLM provider management: implement rate-limit handling and fallback logic (configured in `src/api/dependencies.py`)
 - Cross-encoder reranker usage: disable in production for latency-sensitive deployments; enable only for offline batch evaluation
 
-### 1.4 Data Ingestion and Vector Index Management
+---
+
+
+
+### 3.4 Verifying a deploy
+
+```bash
+curl -sS  https://<domain>/health          # {"status":"ok"}
+curl -sSI https://<domain>/quiz            # 200 text/html   <- SPA history fallback
+```
+
+## 5 Data Ingestion and Vector Index Management
 
 Before deployment, the system must be initialized with indexed course content:
 
@@ -103,9 +154,10 @@ python -c "from qdrant_client import QdrantClient; c = QdrantClient('localhost',
 
 The corpus consists of 9,427 semantic chunks extracted from lecture transcripts, instructor notes, FAQs, and previous year questions, each with metadata fields: `chunk_id`, `doc_id`, `section`, `source_path`, `topic_tags`, `tokens`.
 
-## 2. Evaluation Methodology
 
-### 2.1 Evaluation Framework
+## 6. Evaluation Methodology
+
+### 6.1 Evaluation Framework
 
 The system evaluation is conducted through a comprehensive framework measuring retrieval quality, generation faithfulness, user experience, and safety. Evaluation results from Milestone 5 demonstrated:
 
@@ -118,7 +170,7 @@ The system evaluation is conducted through a comprehensive framework measuring r
 | Answer Relevance | 1.00 |
 | Context Precision | 0.85 |
 
-### 2.2 Metric Definitions and Justification
+### 6.2 Metric Definitions and Justification
 
 **Retrieval Metrics:**
 - `Precision@5`: Percentage of top-5 retrieved chunks containing relevant course content for the query. Measures retrieval specificity.
@@ -140,7 +192,7 @@ The system evaluation is conducted through a comprehensive framework measuring r
 - `Out-of-Scope Detection Accuracy`: Measures correct rejection of queries outside MLT course scope
 - `Safe Rejection Consistency`: Verifies guardrail responses are non-hallucinatory and consistent
 
-### 2.3 Evaluation Dataset
+### 6.3 Evaluation Dataset
 
 Evaluation uses a held-out benchmark of 10 curated student-style queries:
 
@@ -152,7 +204,7 @@ Evaluation uses a held-out benchmark of 10 curated student-style queries:
 
 This distribution ensures comprehensive coverage of query types and validates guardrail behavior without data leakage (evaluation queries are kept separate from indexed training corpus).
 
-### 2.4 Evaluation Execution
+### 6.4 Evaluation Execution
 
 ```bash
 # Run full evaluation pipeline
@@ -174,7 +226,7 @@ Evaluation logs are stored as JSON in `experiment_logs/` with structure:
 - `category_metrics`: aggregated performance by query category
 - `config_snapshot`: exact configuration (models, hyperparameters, seeds) for reproducibility
 
-### 2.5 Monitoring and Observability
+### 6.5 Monitoring and Observability
 
 In deployed environments, implement the following monitoring:
 
@@ -197,9 +249,9 @@ In deployed environments, implement the following monitoring:
 - Set alerts for: >1s query latency, >5% error rate, LLM provider failures
 - Weekly reports on system health and query performance trends
 
-## 3. Testing and Validation
+## 7. Testing and Validation
 
-### 3.1 Test Coverage
+### 7.1 Test Coverage
 
 The system includes test suites in `src/tests/`:
 - Unit tests for individual components (chunking, embedding, retrieval)
@@ -207,7 +259,7 @@ The system includes test suites in `src/tests/`:
 - API endpoint tests validating request/response schemas
 - UI integration tests for frontend functionality
 
-### 3.2 Preset Examples and Manual Testing
+### 7.2 Preset Examples and Manual Testing
 
 Preset examples in `web/public/examples.json` facilitate manual testing and demonstration:
 - "What is gradient descent?" — validates mathematical explanation capability
@@ -216,7 +268,7 @@ Preset examples in `web/public/examples.json` facilitate manual testing and demo
 
 Start with small test files before uploading large documents. The system handles markdown (.md) and text (.txt) files natively; PDFs should be converted using `scripts/pdf_to_text.py`.
 
-## 4. Key Artifacts and Locations
+## 8. Key Artifacts and Locations
 
 - `experiment_logs/` — JSON results from each evaluation run, including per-query metrics and aggregated performance
 - `reports/` — analysis reports (final_evaluation_metrics.md, question_intelligence_report.md)
@@ -227,3 +279,5 @@ Start with small test files before uploading large documents. The system handles
 - `scripts/generate_experiment_plots.py` — plotting and visualization utilities
 - `web/` — frontend React application
 - `data/splits/` — train/val/test split JSONL files for reproducible evaluation
+- `deploy/terraform/main.tf` | The whole AWS footprint, declared |
+- `deploy/terraform/terraform.tfvars.example` | Variables template |
