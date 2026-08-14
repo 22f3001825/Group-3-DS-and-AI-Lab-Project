@@ -1,6 +1,6 @@
 """
 api/routers/admin_settings.py
-Runtime switches an administrator controls from the admin panel.
+Runtime switches an administrator controls from the Settings page.
 
 One switch today: cross-encoder reranking. The reranker runs on its own EC2 instance
 (`infra/reranker/`) because the API host has no memory to spare for it, so "is it on" and

@@ -101,6 +101,50 @@ if grep -qE '^COMPOSE_PROFILES=.*\bcliproxy\b' .env; then
 	fi
 fi
 
+# ── Reranker preflight (only when .env opts in) ───────────────────────────────
+# The reranker fails OPEN by design — rerank_service.py ends every failure path in
+# docs[:top_n] — so a misconfigured one costs slightly worse chunk ordering and NOTHING
+# else. That is exactly why it needs checking here: nothing downstream will ever complain.
+# A wrong RERANKER_URL produces a deployment that looks entirely healthy and silently
+# never reranks.
+if grep -qE '^COMPOSE_PROFILES=.*\breranker\b' .env; then
+	say "Reranker is enabled - checking its config"
+	if ! grep -qE '^RERANKER_IMAGE_REF=.+' .env; then
+		fail "COMPOSE_PROFILES enables reranker but RERANKER_IMAGE_REF is not set in .env."
+		echo "    docker-compose.yml falls back to a placeholder name that does not exist,"
+		echo "    so the pull would fail. Build and push the image first:"
+		echo "      .\\deploy\\reranker.ps1 -Build -Push -Env .env.staging"
+		exit 1
+	fi
+	if ! grep -qE '^RERANKER_API_KEY=.+' .env; then
+		fail "COMPOSE_PROFILES enables reranker but RERANKER_API_KEY is empty in .env."
+		echo "    Both containers read this one value - the API sends it as a bearer token"
+		echo "    and the reranker checks it. Empty means every rerank call gets a 401 and"
+		echo "    silently falls back to retrieval order."
+		exit 1
+	fi
+	RERANKER_URL_VALUE="$(env_value RERANKER_URL)"
+	# The container publishes no host port: it is reachable only by service name on the
+	# compose network. A leftover private IP from the standalone infra/reranker/ instance
+	# is the likely value here, and it fails open - invisibly.
+	case "$RERANKER_URL_VALUE" in
+		http://reranker:*) echo "    RERANKER_URL: OK (${RERANKER_URL_VALUE})" ;;
+		"")
+			fail "COMPOSE_PROFILES enables reranker but RERANKER_URL is not set in .env."
+			echo "    Set:  RERANKER_URL=http://reranker:8080"
+			exit 1
+			;;
+		*)
+			fail "RERANKER_URL is '${RERANKER_URL_VALUE}', which cannot reach the container."
+			echo "    The reranker runs in THIS compose stack and publishes no host port, so"
+			echo "    localhost, 127.0.0.1 and any IP address all fail - including the private"
+			echo "    IP of the old standalone instance, if that is what this is."
+			echo "    Set:  RERANKER_URL=http://reranker:8080"
+			exit 1
+			;;
+	esac
+fi
+
 IMAGE_REF="$(env_value IMAGE_REF)"
 if [[ -n "$TAG" ]]; then
 	IMAGE_REF="${IMAGE_REF%:*}:${TAG}"
@@ -242,6 +286,35 @@ for _ in $(seq 1 30); do        # 30 x 2s = 60s
 	sleep 2
 done
 (( WARM )) && echo "    Retrieval is warm."
+
+# ── Reranker health (advisory) ────────────────────────────────────────────────
+# Never exits non-zero, for the same reason the service itself never raises: reranking is
+# an optimisation, and a deployment that serves answers with plain retrieval ordering is a
+# working deployment. But it IS reported, because the alternative is a silent degradation
+# nobody notices for a week.
+#
+# Probed from inside the api container, because that is the only network position that
+# proves what actually matters: that the API can resolve and reach `reranker`. Curling it
+# from the host would prove nothing - the port is not published there.
+if grep -qE '^COMPOSE_PROFILES=.*\breranker\b' .env; then
+	say "Checking the reranker (advisory)"
+	RERANK_OK=0
+	for _ in $(seq 1 45); do        # 45 x 2s = 90s, matching the image's start_period
+		if docker compose exec -T api curl -fsS --max-time 3 http://reranker:8080/health 2>/dev/null | grep -q '"status":"ok"'; then
+			RERANK_OK=1
+			break
+		fi
+		sleep 2
+	done
+	if (( RERANK_OK )); then
+		echo "    Reranker is up and reachable from the api container."
+		echo "    It is still OFF until an admin turns it on (Settings -> Retrieval -> Cross-encoder reranking)."
+	else
+		echo "    WARNING: the reranker did not report healthy within 90s."
+		echo "    The app is fine - retrieval falls back to Qdrant's ordering - but reranking"
+		echo "    will do nothing. Check:  docker compose logs --tail=40 reranker"
+	fi
+fi
 
 # ── Housekeeping ──────────────────────────────────────────────────────────────
 # Matters more than it used to: every deploy pulls a new image and leaves the previous

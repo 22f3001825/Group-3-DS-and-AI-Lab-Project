@@ -1,0 +1,75 @@
+/* Retrieval settings card. Ported from Admin.css's .ad-rerank block when this moved to
+   the Settings page; the card chrome itself (.settings-card, .setting-desc) comes from
+   Settings.css, exactly as LLMProviderOrder does. */
+
+.rr-admin-only {
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rr-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.rr-spin { animation: rr-spin 1s linear infinite; }
+
+@keyframes rr-spin { to { transform: rotate(360deg); } }
+
+.rr-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.rr-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2, transparent);
+}
+
+.rr-panel p { margin: 0; }
+
+.rr-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rr-checkbox input { margin-top: 3px; accent-color: var(--accent); }
+
+/* A disabled toggle here means "no endpoint configured", which the warning text next to
+   it explains. Dimming it is what stops an admin clicking at a control that cannot act. */
+.rr-checkbox:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.rr-warn {
+  color: var(--warning);
+  font-size: 13px;
+  line-height: 1.6;
+}

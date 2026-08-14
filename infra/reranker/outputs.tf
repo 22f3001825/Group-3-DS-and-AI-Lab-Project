@@ -1,6 +1,16 @@
 output "private_ip" {
-  description = "Private IP of the reranker. This is what the API talks to — there is no public route in."
+  description = "Private IP of the reranker. This is what the API talks to, and what belongs in RERANKER_URL — never the public address below."
   value       = aws_instance.reranker.private_ip
+}
+
+// The instance has a public IPv4 because it needs egress and this stack has no NAT
+// gateway. It is emitted for cost accounting and for confirming the box has a route out —
+// NOT as an endpoint. The security group admits the API's SG and nothing else, so curling
+// this address times out, and RERANKER_URL pointed at it would send the API's bearer token
+// over the public internet.
+output "public_ip" {
+  description = "Egress address. Not reachable — the SG allows ingress from the API only. Do not put this in RERANKER_URL."
+  value       = aws_instance.reranker.public_ip
 }
 
 output "instance_id" {

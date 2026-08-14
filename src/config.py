@@ -265,17 +265,21 @@ SOCRATIC_CAPTURE_MAX_MB = 8
 # ── Cross-encoder reranking ───────────────────────────────────────────────────
 # Qdrant orders hits by RRF over dense + sparse scores, which judges query and document
 # separately. A cross-encoder reads the pair together and re-orders the shortlist. It is
-# too heavy to run in this process (the API host is a t3.micro), so it lives on its own
-# instance — see `infra/reranker/` — and is reached over HTTP.
+# too heavy to run in this process — a second ONNX model beside the embedding models —
+# so it runs as its own service and is reached over HTTP.
 #
 # Whether it is USED is not decided here. That is a runtime switch an admin flips from
 # the admin panel, stored in `app_settings`; these constants only describe how to reach
 # the service and how hard to try. See `api/services/rerank_service.py`.
 
-# Base URL of the reranker, e.g. http://10.0.1.42:8080 — the instance's PRIVATE address,
-# since the security group admits nothing else. Empty disables reranking outright, no
-# matter what the admin toggle says: an endpoint that was never configured cannot be
-# switched on by accident.
+# Base URL of the reranker. Two deployment shapes, and the value differs:
+#   * co-located container (the default) — `http://reranker:8080`, the compose service
+#     name, resolved by Docker's embedded DNS. It publishes no host port, so `localhost`
+#     does NOT work.
+#   * standalone instance (`infra/reranker/`) — `http://<private-ip>:8080`, since that
+#     box's security group admits only the API's.
+# Empty disables reranking outright, no matter what the admin toggle says: an endpoint
+# that was never configured cannot be switched on by accident.
 RERANK_ENDPOINT_URL = (os.getenv("RERANKER_URL") or "").strip().rstrip("/")
 
 RERANK_API_KEY = (os.getenv("RERANKER_API_KEY") or "").strip()

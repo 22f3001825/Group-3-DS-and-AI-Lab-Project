@@ -1,9 +1,9 @@
 # MLT staging on AWS, declared.
 #
-# This is DEPLOY.md section 2 ("One-time setup / AWS") as code: two ECR repositories, the
-# instance role and its INSTANCE PROFILE, the GitHub Actions OIDC push role, the operator
-# policy, a security group, and one t3.micro. Everything up to a running, ECR-authorised,
-# correctly-firewalled box.
+# This is DEPLOY.md section 2 ("One-time setup / AWS") as code: three ECR repositories (the
+# app, cliproxy, the reranker), the instance role and its INSTANCE PROFILE, the GitHub
+# Actions OIDC push role, the operator policy, a security group, and one t3.medium.
+# Everything up to a running, ECR-authorised, correctly-firewalled box.
 #
 # What it deliberately does NOT do:
 #   * build or push the image      -> .github/workflows/image.yml
@@ -66,6 +66,12 @@ variable "ecr_repository_name" {
   default     = "iitm/ailab-tf"
 }
 
+variable "create_reranker_repo" {
+  description = "Create a third ECR repository for the cross-encoder reranker image, which deploy/reranker.ps1 builds and pushes. Needed whenever COMPOSE_PROFILES includes 'reranker'; harmless otherwise (an empty repository costs nothing)."
+  type        = bool
+  default     = true
+}
+
 variable "create_cliproxy_repo" {
   description = "Create a second repository for the optional CLIProxyAPI image. It needs its own repository because the app repository's lifecycle policy keeps only 2 images, and two MLT builds would evict the proxy."
   type        = bool
@@ -117,9 +123,9 @@ variable "ssh_cidr" {
 }
 
 variable "instance_type" {
-  description = "x86-64 only. The image is linux/amd64 (Dockerfile runtime stage, the workflow's platforms:, and docker-compose.yml all pin it), so a Graviton t4g.* fails at 'docker compose up' with an exec-format error."
+  description = "x86-64 only. The image is linux/amd64 (Dockerfile runtime stage, the workflow's platforms:, and docker-compose.yml all pin it), so a Graviton t4g.* fails at 'docker compose up' with an exec-format error. t3.medium (4 GiB) is the default because the reranker container now runs HERE rather than on its own instance: ~700 MB api + ~400 MB reranker + ~300 MB caddy/cliproxy/host. t3.small (2 GiB) fits only with the swapfile and no headroom for a cold start of both models at once; t3.micro does not fit at all with the reranker profile on."
   type        = string
-  default     = "t3.micro"
+  default     = "t3.medium"
 
   validation {
     condition     = !can(regex("^[a-z]+[0-9]+g", var.instance_type))
@@ -128,7 +134,7 @@ variable "instance_type" {
 }
 
 variable "root_volume_gb" {
-  description = "Root volume size. Billed 24/7 whether the instance runs or not, and at 16 GB gp3 in ap-south-1 it is essentially the entire standing bill (~$1.46/mo). 16 is enough because the box never builds — it only pulls the ~1.4 GB image."
+  description = "Root volume size. Billed 24/7 whether the instance runs or not (~$1.46/mo at 16 GB gp3 in ap-south-1). 16 still holds the reranker: ~2.5 GB OS, ~1.4 GB api image, ~1.0 GB reranker image, ~0.15 GB caddy+cliproxy, peaking near 6.5 GB mid-deploy while the superseded image is still on disk. The box never builds, so there is no build cache."
   type        = number
   default     = 16
 }
@@ -192,11 +198,15 @@ data "aws_iam_openid_connect_provider" "github" {
 }
 
 locals {
-  # Both repository ARNs, so the pull role and the operator policy cover cliproxy without
-  # a second edit when it is enabled.
+  # Every repository ARN, so the pull role and the operator policy cover cliproxy and the
+  # reranker without a second edit when either is enabled. An ECR repository's ARN is its
+  # own even when its NAME shares a prefix with another, so a wildcard on the app repo
+  # would not have covered these — which is the 403-on-push that deploy/reranker.ps1 and
+  # deploy/cliproxy.ps1 both explain in their failure output.
   ecr_repository_arns = concat(
     [aws_ecr_repository.app.arn],
     var.create_cliproxy_repo ? [aws_ecr_repository.cliproxy[0].arn] : [],
+    var.create_reranker_repo ? [aws_ecr_repository.reranker[0].arn] : [],
   )
 
   github_oidc_provider_arn = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
@@ -256,6 +266,40 @@ resource "aws_ecr_lifecycle_policy" "cliproxy" {
   count = var.create_cliproxy_repo ? 1 : 0
 
   repository = aws_ecr_repository.cliproxy[0].name
+
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep the last 2 images"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 2
+      }
+      action = { type = "expire" }
+    }]
+  })
+}
+
+# The cross-encoder reranker. A third repository for the same reason cliproxy gets a
+# second one: two MLT builds would evict anything sharing the app repository's 2-image
+# lifecycle policy. Pushed by deploy/reranker.ps1, pulled by the `reranker` compose
+# profile on the instance below.
+resource "aws_ecr_repository" "reranker" {
+  count = var.create_reranker_repo ? 1 : 0
+
+  name                 = "${var.ecr_repository_name}/reranker"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_lifecycle_policy" "reranker" {
+  count = var.create_reranker_repo ? 1 : 0
+
+  repository = aws_ecr_repository.reranker[0].name
 
   policy = jsonencode({
     rules = [{
@@ -589,8 +633,17 @@ resource "aws_instance" "app" {
     ignore_changes = [ami]
 
     # Uncomment once this instance is the live one. It makes `terraform destroy` and any
-    # replacement-forcing change (instance_type, subnet, key_name) fail loudly instead of
-    # taking the database with them. Take an EBS snapshot before commenting it back out.
+    # replacement-forcing change (subnet_id, key_name, availability_zone) fail loudly
+    # instead of taking the database with them. Take an EBS snapshot before commenting it
+    # back out.
+    #
+    # instance_type is NOT in that list, despite what this comment used to say. The AWS
+    # provider changes it IN PLACE — stop, ModifyInstanceAttribute, start — so resizing
+    # this box to t3.medium for the reranker keeps the root volume and everything on it,
+    # and prevent_destroy does not block it. Growing root_volume_gb is likewise an
+    # in-place volume modification. What the stop/start does cost is a few minutes of
+    # downtime and a NEW public IPv4, which bootstrap.sh's @reboot DuckDNS cron repoints
+    # the domain at within seconds of boot.
     # prevent_destroy = true
   }
 }
@@ -698,6 +751,11 @@ output "cliproxy_image_ref" {
   value       = var.create_cliproxy_repo ? "${aws_ecr_repository.cliproxy[0].repository_url}:latest" : null
 }
 
+output "reranker_image_ref" {
+  description = "RERANKER_IMAGE_REF for .env, if you enable the reranker profile. Build and push it with: .\\deploy\\reranker.ps1 -Build -Push -Env .env.staging"
+  value       = var.create_reranker_repo ? "${aws_ecr_repository.reranker[0].repository_url}:latest" : null
+}
+
 output "github_repository_variables" {
   description = "Settings -> Secrets and variables -> Actions -> Variables. The two VITE_* values are not derivable from AWS and must match .env.staging exactly — update.sh compares them against the image's labels and refuses to start on a mismatch."
   value = {
@@ -714,7 +772,7 @@ output "ops_policy_arn" {
 
 output "ops_user_next_step" {
   description = "Terraform creates the operator user but never its access key — the secret would land in terraform.tfstate in plaintext."
-  value = var.create_ops_user ? "aws iam create-access-key --user-name ${aws_iam_user.ops[0].name}   # then: aws configure (region ${data.aws_region.current.name})" : "create_ops_user = false; attach ${aws_iam_policy.ops.arn} to your own IAM user"
+  value       = var.create_ops_user ? "aws iam create-access-key --user-name ${aws_iam_user.ops[0].name}   # then: aws configure (region ${data.aws_region.current.name})" : "create_ops_user = false; attach ${aws_iam_policy.ops.arn} to your own IAM user"
 }
 
 output "next_steps" {

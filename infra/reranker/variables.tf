@@ -10,7 +10,7 @@ variable "vpc_id" {
 }
 
 variable "subnet_id" {
-  description = "Subnet for the reranker instance. Must be in var.vpc_id and must have a route to ECR (an internet/NAT gateway, or ECR + S3 VPC endpoints)."
+  description = "PUBLIC subnet for the reranker instance. Must be in var.vpc_id, and its route table must carry 0.0.0.0/0 -> igw-... — the instance gets a public IPv4 for egress instead of a NAT gateway (see the header of main.tf), and apply fails with a precondition if the route is missing. Nothing may reach the instance from outside: ingress is the API's security group only."
   type        = string
 }
 

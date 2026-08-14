@@ -551,24 +551,8 @@
 
 /* Retrieval settings. Same card as .ad-sync — these are the two operational panels in
    the sidebar and they should not look like different kinds of thing. */
-.ad-rerank {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2, transparent);
-}
-
-.ad-rerank p { margin: 0; }
-
-/* A disabled toggle here means "no endpoint configured", which the warning text next to
-   it explains. Dimming it is what stops an admin clicking at a control that cannot act. */
-.ad-rerank .ad-checkbox:has(input:disabled) {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
+/* The .ad-rerank block lived here until the Retrieval settings moved to the Settings
+   page; its styles now live in components/RetrievalSettings.css. */
 
 @media (max-width: 1080px) {
   .ad-create-layout,

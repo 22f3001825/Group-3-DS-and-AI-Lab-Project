@@ -3,14 +3,40 @@
 // A single EC2 instance running the cross-encoder reranker container, plus the ECR
 // repository it pulls from.
 //
-// The shape of this stack is driven by one constraint: the API host is a t3.micro with
-// ~1 GiB of RAM, which cannot hold a second ML model in-process. So the reranker gets
-// its own box, and the API reaches it over the VPC's private network.
+// ─────────────────────────────────────────────────────────────────────────────
+// THIS IS NO LONGER THE DEFAULT. The reranker now runs as a fourth container on the API
+// instance itself — `docker-compose.yml`, service `reranker`, profile `reranker`, built
+// by `deploy/reranker.ps1`. That became possible when the API box moved from t3.micro
+// (1 GiB) to t3.medium (4 GiB), which holds both ONNX models with room to spare.
+//
+// Apply THIS stack instead when the reranker outgrows the API box: sustained rerank load
+// competing with request handling on the same burstable vCPUs, or a model larger than the
+// MiniLM cross-encoder. It costs a second instance (~$16/mo) and a network hop that the
+// co-located container does not. The two are alternatives — running both means paying for
+// an instance nothing points at, since RERANKER_URL names exactly one endpoint.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The shape of this stack is driven by one constraint: an API host too small to hold a
+// second ML model in-process. So the reranker gets its own box, and the API reaches it
+// over the VPC's private network.
 //
 // Two things are deliberately absent:
 //   * No public ingress. The only way in is from the API's security group.
 //   * No SSH key. Shell access is via SSM Session Manager, which leaves an audit trail
 //     and needs no open port.
+//
+// A third is absent on purpose and is worth spelling out: NO NAT GATEWAY. The instance
+// goes in a PUBLIC subnet and gets an auto-assigned public IPv4, which is the same shape
+// DEPLOY.md:106 already prescribes for the API instance. The box needs egress — ECR, SSM,
+// the OS mirrors — but only at boot and on service restart; the container itself needs
+// none, because the model is baked into the image. Renting a NAT gateway (~$41/mo, more
+// than twice this t3.small) to broker a handful of image pulls is not a trade worth
+// making, and ECR + SSM VPC endpoints cost more still. The public IPv4 costs $0.005/h.
+//
+// The address is for egress only. Nothing may connect IN: `aws_security_group.reranker`
+// has exactly one ingress rule and it is SG-to-SG. Note that this is now the ONLY thing
+// standing between the internet and port 8080 — in a private subnet the routing table
+// was a second, independent barrier. Read the ingress rule below with that in mind.
 
 terraform {
   required_version = ">= 1.5.0"
@@ -191,12 +217,24 @@ data "aws_ssm_parameter" "al2023" {
 
 data "aws_region" "current" {}
 
+// The route table the subnet actually uses — an explicitly associated one, or the VPC's
+// main table when there is no association. Only read so the precondition below can check
+// it; nothing here modifies routing.
+data "aws_route_table" "subnet" {
+  subnet_id = var.subnet_id
+}
+
 resource "aws_instance" "reranker" {
   ami                    = data.aws_ssm_parameter.al2023.value
   instance_type          = var.instance_type
   subnet_id              = var.subnet_id
   vpc_security_group_ids = [aws_security_group.reranker.id]
   iam_instance_profile   = aws_iam_instance_profile.reranker.name
+
+  // Egress without a NAT gateway. Set explicitly rather than inherited from the subnet's
+  // map_public_ip_on_launch, so the stack does not silently depend on a subnet attribute
+  // that someone can flip in the console.
+  associate_public_ip_address = true
 
   user_data = templatefile("${path.module}/user_data.sh", {
     aws_region     = data.aws_region.current.name
@@ -224,6 +262,32 @@ resource "aws_instance" "reranker" {
     http_endpoint               = "enabled"
     http_tokens                 = "required"
     http_put_response_hop_limit = 2
+  }
+
+  // Fail at plan time, not four minutes into a boot that goes nowhere.
+  //
+  // Without an IGW route the instance still launches and still passes both status checks;
+  // what fails is user_data, silently, because `dnf install` and `docker pull` have no
+  // path out. You get a healthy-looking box that serves nothing, and the only evidence is
+  // in /var/log/cloud-init-output.log on a machine you have to SSM into to read. That is
+  // the exact failure DEPLOY.md:106 warns about for the API instance.
+  //
+  // `try(..., false)` because a route with no gateway_id (a peering, NAT or endpoint
+  // route) leaves the attribute null, and an unguarded startswith() on it errors out —
+  // turning a clear message into a Terraform type error.
+  lifecycle {
+    precondition {
+      condition = anytrue([
+        for r in data.aws_route_table.subnet.routes :
+        try(r.cidr_block == "0.0.0.0/0" && startswith(r.gateway_id, "igw-"), false)
+      ])
+      error_message = join("", [
+        "subnet_id ${var.subnet_id} has no 0.0.0.0/0 route to an Internet Gateway. ",
+        "This stack has no NAT gateway by design, so the instance would boot, pass its ",
+        "status checks, and never reach ECR. Pass a PUBLIC subnet: attach an IGW to the ",
+        "VPC and add 0.0.0.0/0 -> igw-... to this subnet's route table.",
+      ])
+    }
   }
 
   tags = merge(local.tags, { Name = var.name_prefix })

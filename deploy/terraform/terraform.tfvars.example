@@ -38,10 +38,16 @@ ssh_cidr = "203.0.113.4/32"
 # Leave false unless you are applying into a fresh account.
 # create_github_oidc_provider = false
 
-# instance_type  = "t3.micro"     # x86-64 only; the image is linux/amd64
-# root_volume_gb = 16
+# x86-64 only; the image is linux/amd64. t3.medium (4 GiB) is the default because the
+# reranker runs as a fourth container on this box — see COMPOSE_PROFILES in
+# .env.staging.example. Drop to t3.micro only if you never enable that profile.
+# Changing this on a LIVE instance is an in-place stop/modify/start: the root volume and
+# state/mlt_learner.db survive, you lose a few minutes and get a new public IP.
+# instance_type  = "t3.medium"
+# root_volume_gb = 16             # holds both images; peaks ~6.5 GB mid-deploy
 
 # create_cliproxy_repo = true
+# create_reranker_repo = true     # third ECR repo, pushed by deploy\reranker.ps1
 # create_ops_user      = true
 
 # EventBridge Scheduler rule that stops the box overnight.

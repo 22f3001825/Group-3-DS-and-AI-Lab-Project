@@ -151,10 +151,39 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 
 sudo usermod -aG docker "$TARGET_USER"
+
+# Cap container logs BEFORE the daemon starts. Docker's default json-file driver has no
+# max-size, so a container's stdout grows without bound on the root volume — the only
+# unbounded consumer on it, since the box never builds and update.sh prunes images after
+# every deploy. A box that is stopped nightly rarely reaches the limit; one left up for a
+# month can, and it fails as a full disk rather than as anything mentioning logs.
+#
+# Merged with any existing daemon.json for the same reason ~/.docker/config.json is below.
+say "Capping container log size (3 x 10 MB per container)"
+sudo mkdir -p /etc/docker
+[[ -f /etc/docker/daemon.json ]] || echo '{}' | sudo tee /etc/docker/daemon.json >/dev/null
+sudo python3 - /etc/docker/daemon.json <<'PY'
+import json, sys
+path = sys.argv[1]
+try:
+    with open(path) as fh:
+        cfg = json.load(fh)
+except (ValueError, OSError):
+    cfg = {}
+cfg["log-driver"] = "json-file"
+cfg.setdefault("log-opts", {}).update({"max-size": "10m", "max-file": "3"})
+with open(path, "w") as fh:
+    json.dump(cfg, fh, indent=2)
+PY
+
 # enable, not just start: the box is stopped between demos, and this plus
 # `restart: unless-stopped` in docker-compose.yml is what brings the app back on boot
 # with nobody SSH'd in.
 sudo systemctl enable --now docker
+# Applies the log settings above to an ALREADY-RUNNING daemon (re-bootstrapping an
+# existing box). A no-op on first boot, and it does not stop containers — the setting
+# takes effect for containers created after it, which is every one update.sh recreates.
+sudo systemctl reload docker 2>/dev/null || true
 
 # ── 3. ECR pull authentication ────────────────────────────────────────────────
 # The credential helper reads the instance profile through the normal AWS credential
@@ -231,8 +260,15 @@ echo "    (AWS: the instance's Security Group; Oracle: VCN → Security List)."
 # ── 5. Swap on small instances ────────────────────────────────────────────────
 # Steady state is ~500-700 MB but the first model load peaks near 1 GB, so a 1 GB box
 # (t3.micro, t2.micro) OOM-kills the container mid-warm-up without this.
+#
+# The threshold is 3 GB rather than 2 so a t3.small also gets a swapfile: with the
+# reranker profile on, two ONNX models can be constructing sessions at the same moment,
+# and `free -m` on a 2 GiB box reports ~1900, which is under 2048 only by accident of
+# accounting. A t3.medium (the default, ~3900 MB) is above the line and gets none — it has
+# the headroom in RAM, and swap is not a substitute for it: the box would still be slow if
+# it ever swapped an inference.
 TOTAL_MB=$(free -m | awk '/^Mem:/{print $2}')
-if (( TOTAL_MB < 2048 )) && [[ ! -f /swapfile ]]; then
+if (( TOTAL_MB < 3072 )) && [[ ! -f /swapfile ]]; then
 	say "Only ${TOTAL_MB} MB RAM — creating a 2 GB swapfile"
 	sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
 	sudo chmod 600 /swapfile
