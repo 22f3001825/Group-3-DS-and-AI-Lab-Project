@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>MLT Socratic Companion — Settings</title>
+<style>
+  body { font: 15px/1.6 -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 620px;
+         margin: 40px auto; padding: 0 20px; color: #1a1a1a; }
+  label { display: block; margin: 18px 0 5px; font-weight: 600; font-size: 13px; }
+  input { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 7px;
+          font: inherit; box-sizing: border-box; }
+  button { margin-top: 18px; padding: 9px 16px; border-radius: 8px; border: 0;
+           background: #1a6ed8; color: #fff; font: 600 14px inherit; cursor: pointer; }
+  button.ghost { background: transparent; color: #1a6ed8; border: 1px solid #1a6ed8; }
+  .row { display: flex; gap: 10px; }
+  .hint { font-size: 13px; color: #666; margin-top: 4px; }
+  #status { margin-top: 20px; padding: 11px 13px; border-radius: 8px; background: #f2f4f7;
+            font-size: 13px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #17181b; color: #e9e9ea; }
+    input { background: #24262a; border-color: #3a3d42; color: inherit; }
+    #status { background: #24262a; }
+  }
+</style>
+
+<h1>MLT Socratic Companion</h1>
+
+<label for="api">API URL</label>
+<input id="api" placeholder="http://localhost:8000">
+<p class="hint">Where the study assistant backend is running.</p>
+
+<label for="client">Google Client ID</label>
+<input id="client" placeholder="…apps.googleusercontent.com">
+<p class="hint">
+  The same OAuth <strong>Web</strong> client the app uses. Add this extension's redirect
+  URI to it in the Google Console — shown below once you save.
+</p>
+
+<div class="row">
+  <button id="save">Save</button>
+  <button id="signin" class="ghost">Sign in</button>
+  <button id="signout" class="ghost">Sign out</button>
+</div>
+
+<div id="status">Not signed in.</div>
+
+<script src="options.js"></script>

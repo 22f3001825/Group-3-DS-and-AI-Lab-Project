@@ -52,6 +52,7 @@ from src.rag_pipeline import generate_llm_response
 
 from . import rerank_service
 from . import socratic_guard as guard
+from . import topic_vectors
 from .quiz_service import _as_int, _doc_to_chunk, _norm
 from .rag_service import clean_lecture_title
 from .recommendation_service import find_topic, load_taxonomy
@@ -167,57 +168,24 @@ def _lecture_title(week: Optional[int], lecture_id: str, doc_id: str,
 # retrieves nothing — but taxonomy similarity still names the concept, and the panel
 # returns a real card with an empty segment list instead of an empty response.
 
-def _topic_document(topic: dict[str, Any]) -> str:
-    aliases = " ".join(topic.get("aliases", []) or [])
-    return f"{topic.get('name', '')}. {topic.get('description', '')} {aliases}".strip()
-
-
-@lru_cache(maxsize=1)
-def _topic_matrix() -> tuple[tuple[int, ...], Any]:
-    """Embed all 48 topics once per process.
-
-    Uses the SAME FastEmbed instance the vector store holds, so the topic vectors live in
-    the space the chunks were embedded into and no second model is loaded. Cached because
-    the taxonomy only changes when the file does, which needs a restart anyway.
-    """
-    import numpy as np  # noqa: PLC0415
-
-    from ..dependencies import _build_vector_store  # noqa: PLC0415
-
-    topics = load_taxonomy()
-    if not topics:
-        return (), None
-    embeddings = _build_vector_store().embeddings
-    matrix = np.asarray(embeddings.embed_documents([_topic_document(t) for t in topics]),
-                        dtype="float32")
-    norms = np.linalg.norm(matrix, axis=1, keepdims=True)
-    matrix = matrix / np.clip(norms, 1e-9, None)
-    return tuple(t["id"] for t in topics), matrix
-
-
 def shortlist_topics(selection: str, chunks: list[dict[str, Any]],
                      limit: int = SOCRATIC_TOPIC_SHORTLIST) -> list[dict[str, Any]]:
     """Rank taxonomy topics against the selection; return the top `limit` entries.
+
+    The embedding half lives in `topic_vectors`, shared with the chat scope guard so the
+    48 topics are embedded once for the whole process rather than once per feature.
 
     The retrieved chunks contribute a **prior**, not the answer. `topic_tags` are assigned
     per week rather than per chunk, so every week-1 chunk carries all four week-1 topics —
     a tag alone cannot discriminate within a week, but it is good evidence about *which*
     week, so it is worth a bounded nudge rather than a veto.
     """
-    import numpy as np  # noqa: PLC0415
-
     topics = load_taxonomy()
     if not topics:
         return []
-    ids, matrix = _topic_matrix()
-    if matrix is None:
+    ids, scores = topic_vectors.topic_scores(topic_vectors.embed_query(selection))
+    if scores is None:
         return []
-
-    from ..dependencies import _build_vector_store  # noqa: PLC0415
-
-    query = np.asarray(_build_vector_store().embeddings.embed_query(selection), dtype="float32")
-    query = query / max(float(np.linalg.norm(query)), 1e-9)
-    scores = matrix @ query
 
     tagged: set[str] = set()
     for chunk in chunks or []:

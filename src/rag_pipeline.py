@@ -413,6 +413,54 @@ def format_history(history: list[dict[str, Any]] | None) -> str:
 
 # ── Prompt Engineering ────────────────────────────────────────────────────────
 
+# The one out-of-scope decline in the system. Two things now emit it — the model, told to
+# by the prompt below, and `answer_question`, when `scope_check` refuses before any model
+# is called — so it lives here rather than being typed twice and drifting.
+#
+# `src/evaluate_rag.py`, the frontend and `experiment_logs/*.json` all recognise a decline
+# by the substring "outside the scope of the ML course assistant". Keep that phrase intact.
+# The copy interpolated into the prompt is indented (it sits inside a rule block); this,
+# the emitted form, is not.
+OUT_OF_SCOPE_MESSAGE = (
+    "This question is outside the scope of the ML course assistant.\n"
+    "I can only answer questions about Machine Learning, AI, and related course topics.\n"
+    "Please ask a course-related question."
+)
+
+
+# Matching on the phrase rather than on the whole message is what lets a model reformat
+# the decline — bolding it, re-indenting it, apologising after it — without the match
+# falling through. Lowercase because it is compared against normalised text.
+_DECLINE_MARKER = "outside the scope of the ml course assistant"
+
+
+def _looks_like_decline(text: str | None) -> bool:
+    """Did the model produce the out-of-scope decline, however it chose to format it?
+
+    Deliberately narrow. It must not fire on an in-scope answer that happens to discuss
+    scope ("...which is outside the scope of this lecture"), so it matches the full
+    assistant-naming phrase and only within the first few lines, where a decline lives —
+    a real answer's Direct Answer section starts there instead.
+    """
+    head = " ".join((text or "").split())[:400].lower()
+    return _DECLINE_MARKER in head
+
+
+def _sanitise_question(question: str) -> str:
+    """Strip prompt-structure tokens out of the question before it is interpolated.
+
+    The question is client-supplied and lands between `═` banners, so without this a
+    question containing its own banner plus a forged rule line can rewrite the prompt's
+    section structure — the same attack `_sanitise_turn` already blocks on history, which
+    is why it reuses that regex rather than introducing a second one.
+
+    Repair rather than reject: the question IS the request, so removing the tokens and
+    keeping the residue is the only behaviour that does not turn a stray `═` into a blank
+    reply. Newlines are preserved — a multi-part question is legitimate.
+    """
+    return _PROMPT_STRUCTURE_RE.sub(" ", str(question or "")).strip()
+
+
 def build_prompt(
     question: str,
     documents: list[Document],
@@ -446,6 +494,10 @@ def build_prompt(
             )
         context_block = "\n\n---\n\n".join(context_parts)
 
+    # Indented to sit inside the rule block, so the prompt reads the way it always has.
+    decline_block = "\n".join(f"  {line}" for line in OUT_OF_SCOPE_MESSAGE.splitlines())
+    safe_question = _sanitise_question(question)
+
     history_text = format_history(history)
     history_block = ""
     if history_text:
@@ -472,9 +524,7 @@ OUT-OF-SCOPE RULE  (check this FIRST before answering)
 ══════════════════════════════════════════════════════
 If the question is NOT related to Machine Learning, AI, Data Science, Statistics, Optimization, Linear Algebra, or any topic covered in the IIT Madras MLT course, you MUST respond with EXACTLY this message and nothing else:
 
-  This question is outside the scope of the ML course assistant.
-    I can only answer questions about Machine Learning, AI, and related course topics.
-    Please ask a course-related question.
+{decline_block}
 
 ══════════════════════════════════════════════════════
 IN-SCOPE ANSWER RULES  (apply when the question IS about the course)
@@ -516,7 +566,7 @@ RETRIEVED COURSE CONTEXT
 ══════════════════════════════════════════════════════
 QUESTION
 ══════════════════════════════════════════════════════
-{question}
+{safe_question}
 
 ══════════════════════════════════════════════════════
 ANSWER
@@ -730,6 +780,7 @@ def answer_question(
     top_k: int = 5,
     history: list[dict[str, Any]] | None = None,
     rerank: Callable[[str, list[Document], int], list[Document]] | None = None,
+    scope_check: Callable[[str], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Retrieve relevant chunks and generate a grounded, structured answer.
 
@@ -741,6 +792,14 @@ def answer_question(
     module is the pipeline used by the offline scripts too (`run_rag.py`, `evaluate_rag.py`)
     and must not acquire a dependency on the database session or the HTTP client that the
     API's `rerank_service` needs. Omit it and the behaviour is exactly what it always was.
+
+    `scope_check` is the out-of-syllabus guardrail, injected for the same reason — it needs
+    the vector store and the taxonomy, neither of which this module knows about. It is
+    given the question and returns a verdict dict (see `api/services/scope_guard.py`); an
+    `out_of_scope` verdict returns `OUT_OF_SCOPE_MESSAGE` **before the LLM is called and
+    before anything is retrieved**, which is what makes it a guardrail rather than a
+    request to the model. Omit it and the only scope rule is the one in the prompt, exactly
+    as before.
 
     Failover strategy:
       - Rate limit (429) / Quota -> rotate to next Groq/Gemini key -> next model -> next provider
@@ -757,8 +816,30 @@ def answer_question(
                                       never in the queue, and reporting a fallback on
                                       every answer for a permanently absent key says
                                       nothing about the call that just happened.
-      prompt        (str)           — the exact prompt sent to the LLM
+      prompt        (str)           — the exact prompt sent to the LLM, or "" when the
+                                      scope guard refused before one was built
+      scope         (dict | None)    — the guardrail verdict, when `scope_check` was given
     """
+    # 0. Scope guardrail, before retrieval and before any LLM.
+    #
+    # Refusing here rather than after generation is the whole point: there is no prompt for
+    # a jailbreak to win against, no tokens spent, and no retrieved context sitting in a
+    # variable waiting to be dumped by the all-providers-failed path below. `sources` is
+    # emptied deliberately — chunks pulled for an off-syllabus question are noise, and
+    # returning them would put unexplained course excerpts under a refusal in the UI.
+    # The literal is `scope_guard.OUT_OF_SCOPE`, not imported: `scope_guard` lives in the
+    # API package and this module is also the pipeline the offline scripts run on.
+    scope = scope_check(question) if scope_check else None
+    if scope and scope.get("verdict") == "out_of_scope":
+        return {
+            "answer": OUT_OF_SCOPE_MESSAGE,
+            "sources": [],
+            "provider_used": "none (out of scope)",
+            "fallback_used": False,
+            "prompt": "",
+            "scope": scope,
+        }
+
     # 1. Retrieve context
     candidates: list[Document] = retriever.invoke(question)
     retrieved_docs: list[Document] = (
@@ -804,12 +885,24 @@ def answer_question(
         provider_used = "none (all providers failed)"
         fallback_used = True
 
+    # 5. Canonicalise a model-side decline.
+    #
+    # The prompt asks for OUT_OF_SCOPE_MESSAGE verbatim and models mostly comply, but they
+    # reformat it — extra indentation, a bolded first line, a trailing apology. Normalising
+    # here means the code rule and the prompt rule have ONE observable outcome, so the
+    # frontend, `condense_answer` and `evaluate_rag` never have to recognise two shapes.
+    if _looks_like_decline(answer_text):
+        answer_text = OUT_OF_SCOPE_MESSAGE
+        retrieved_docs = []
+        scope = {**(scope or {}), "verdict": "out_of_scope", "reason": "model declined"}
+
     return {
         "answer": answer_text.strip(),
         "sources": retrieved_docs,
         "provider_used": provider_used,
         "fallback_used": fallback_used,
         "prompt": prompt,
+        "scope": scope,
     }
 
 

@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "MLT Socratic Study Companion",
+  "version": "0.1.0",
+  "description": "Highlight a question on any course page and get the concept, the exact lecture segments, and a guiding question — never the answer.",
+  "permissions": ["storage", "identity", "activeTab", "tabs", "contextMenus", "scripting"],
+  "host_permissions": [
+    "https://learningassistant.duckdns.org/*",
+    "http://localhost:8000/*"
+  ],
+  "background": {
+    "service_worker": "background/sw.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/bundle.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "action": {
+    "default_title": "MLT Socratic Companion"
+  }
+}

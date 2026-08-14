@@ -26,11 +26,16 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
 try:
-    from src.rag_pipeline import answer_question
+    from src.rag_pipeline import OUT_OF_SCOPE_MESSAGE, answer_question
     from src import llm_judge
 except ModuleNotFoundError:
-    from rag_pipeline import answer_question
+    from rag_pipeline import OUT_OF_SCOPE_MESSAGE, answer_question
     import llm_judge
+
+# The one phrase every consumer recognises a decline by. Derived from the message itself
+# rather than typed again here, so a reworded decline cannot leave this harness silently
+# scoring every refusal as a normal answer.
+DECLINE_MARKER = OUT_OF_SCOPE_MESSAGE.splitlines()[0].rstrip(".").split("This question is ")[-1]
 
 load_dotenv()
 
@@ -83,7 +88,14 @@ def run_llm_judge(query: str, context: str, answer: str) -> dict:
     a model marking its own homework wherever the key pool allows it.
     """
     # Fast path: If out-of-scope guardrail triggered correctly, give perfect scores
-    if "outside the scope of the ML course assistant" in answer:
+    #
+    # Note this is score inflation, not a measurement — `newissues.md` A4. Guardrail
+    # behaviour now has its own harness with its own numbers
+    # (`src/evaluate_scope_guard.py`, which reports detection rate and false-positive rate
+    # separately); this constant 1.0 remains only so the existing report keeps comparing
+    # like with like against the runs already published, and should not be read as a
+    # faithfulness measurement.
+    if DECLINE_MARKER in answer:
         return {"faithfulness": 1.0, "answer_relevance": 1.0, "context_precision": 1.0}
 
     prompt = f"""You are an expert evaluator grading a RAG (Retrieval-Augmented Generation) system.
