@@ -729,11 +729,18 @@ def answer_question(
     retriever: Any,
     top_k: int = 5,
     history: list[dict[str, Any]] | None = None,
+    rerank: Callable[[str, list[Document], int], list[Document]] | None = None,
 ) -> dict[str, Any]:
     """Retrieve relevant chunks and generate a grounded, structured answer.
 
     `history` is optional short-term conversation memory ({'role', 'content'} dicts, oldest
     first). It reaches the prompt only — the retrieval query stays the raw question.
+
+    `rerank` optionally replaces the plain "keep the first top_k" selection with a
+    cross-encoder ordering. It is injected as a callable rather than imported because this
+    module is the pipeline used by the offline scripts too (`run_rag.py`, `evaluate_rag.py`)
+    and must not acquire a dependency on the database session or the HTTP client that the
+    API's `rerank_service` needs. Omit it and the behaviour is exactly what it always was.
 
     Failover strategy:
       - Rate limit (429) / Quota -> rotate to next Groq/Gemini key -> next model -> next provider
@@ -753,7 +760,10 @@ def answer_question(
       prompt        (str)           — the exact prompt sent to the LLM
     """
     # 1. Retrieve context
-    retrieved_docs: list[Document] = retriever.invoke(question)[:top_k]
+    candidates: list[Document] = retriever.invoke(question)
+    retrieved_docs: list[Document] = (
+        rerank(question, candidates, top_k) if rerank else candidates[:top_k]
+    )
 
     # 2. Build prompt once
     prompt = build_prompt(question, retrieved_docs, history=history)

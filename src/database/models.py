@@ -19,7 +19,7 @@ drafts, uploaded PDFs, committed content, vectors, labels and pending Qdrant wor
 nothing it does needs a file. Schema changes go through `database/migrations.py`.
 
 AppSetting (last in this file) holds the settings an admin changes at runtime for the
-whole deployment — currently the LLM provider hierarchy.
+whole deployment — currently the LLM provider hierarchy and the reranker toggle.
 """
 from __future__ import annotations
 
@@ -533,16 +533,25 @@ class SocraticEvent(Base):
 class AppSetting(Base):
     """Deployment-wide settings an admin can change without a redeploy.
 
-    One narrow table rather than a column per setting: these are operator preferences
-    read by name, not entities, and each new one would otherwise cost a migration. What
-    belongs here is what an admin may change *at runtime for everyone* — today only
-    `llm_provider_order`. Secrets and connection details stay in `.env`, where a
-    compromised admin session cannot reach them, and tuning constants stay in
-    `src/config.py`, where they are reviewed as code.
+    Everything else in this application is configured by environment variable, read once
+    at import (`src/config.py`). That is right for values an operator sets when they
+    deploy and wrong for one an admin flips from the UI while students are using the
+    site — an env var would need a restart, which is exactly what a toggle is supposed to
+    avoid. Hence one narrow key/value table rather than a column per setting: these are
+    operator preferences read by name, not entities, and adding the next one costs a row,
+    not a migration. Secrets and connection details stay in `.env`, where a compromised
+    admin session cannot reach them, and tuning constants stay in `src/config.py`, where
+    they are reviewed as code.
+
+    `value` is JSON because the two consumers disagree about shape and neither should have
+    to hand-roll serialization: `llm_provider_order` (`services/llm_settings_service.py`)
+    stores a list of provider ids, `reranker_enabled` (`services/rerank_service.py`) a
+    "true"/"false" scalar. Readers parse what they wrote — typing this column to either
+    consumer would be a promise the table cannot keep.
 
     `updated_by` is an email (or `admin-token` for the shared-secret path) rather than a
     student_id foreign key: the audit line has to stay readable after the row it names is
-    gone, and the token path has no row at all.
+    gone, and the `X-Admin-Token` path in `dependencies.require_admin` has no row at all.
     """
 
     __tablename__ = "app_settings"
@@ -550,4 +559,4 @@ class AppSetting(Base):
     key        = Column(String(64), primary_key=True)
     value      = Column(JSON, nullable=False)
     updated_at = Column(DateTime, default=_now, onupdate=_now, nullable=False)
-    updated_by = Column(String(255), nullable=True)
+    updated_by = Column(String(255), nullable=True)  # NULL ⇒ set via X-Admin-Token

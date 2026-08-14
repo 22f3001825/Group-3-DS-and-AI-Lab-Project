@@ -1,0 +1,13 @@
+# Line endings for files that are consumed by Linux, regardless of who checked them out.
+#
+# This repository is developed on Windows with core.autocrlf=true, which rewrites text
+# files to CRLF on checkout. That is harmless for Python and JS — and fatal for a shell
+# script that Linux has to execute.
+#
+# infra/reranker/user_data.sh is the sharp edge. Terraform reads it verbatim via
+# templatefile() and hands the result to EC2 as user_data; a CRLF checkout makes the
+# shebang "#!/bin/bash\r", cloud-init fails with "bad interpreter", and the instance boots
+# with no reranker on it and nothing obvious in the console to say why.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.dockerfile text eol=lf

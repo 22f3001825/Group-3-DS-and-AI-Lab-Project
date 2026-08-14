@@ -81,9 +81,18 @@ def _build_vector_store() -> Any:
 
 @lru_cache(maxsize=1)
 def _build_retriever() -> Any:
-    """Build and cache the Qdrant retriever. Derived from the vector-store singleton."""
-    retriever = _build_vector_store().as_retriever(search_kwargs={"k": 10})
-    print("[Startup] Retriever ready.")
+    """Build and cache the Qdrant retriever. Derived from the vector-store singleton.
+
+    `k` was the literal 10 for a long time and is now `config.CHAT_RETRIEVAL_K`, still 10
+    by default. It is a knob because the cross-encoder reranker can only choose from what
+    Qdrant hands it: at k=10 and top_k=5 it picks 5 from 10, and raising k to ~20 widens
+    that field for a few milliseconds of extra Qdrant time. Nothing downstream changes
+    when the reranker is off — the pipeline truncates to top_k regardless.
+    """
+    from ..config import CHAT_RETRIEVAL_K  # noqa: PLC0415
+
+    retriever = _build_vector_store().as_retriever(search_kwargs={"k": CHAT_RETRIEVAL_K})
+    print(f"[Startup] Retriever ready (k={CHAT_RETRIEVAL_K}).")
     return retriever
 
 

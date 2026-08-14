@@ -15,6 +15,7 @@ from ...config import (
     QI_MIN_COMMON_DOUBT_SIZE, QI_MIN_DISPLAY_MEMBERS, QI_MIN_TITLE_READABILITY,
 )
 from . import question_repository as repo
+from . import rerank_service
 
 _LOCK = threading.Lock()
 _CACHE: dict[tuple[Any, ...], tuple[float, Any]] = {}
@@ -101,7 +102,12 @@ def search(db: Session, query: str, retriever: Any, limit: int = 10) -> list[dic
         docs = retriever.invoke(query)
     except Exception as exc:  # noqa: BLE001
         raise QuestionBankUnavailableError(f"Retrieval failed: {type(exc).__name__}") from exc
-    doc_ids = [doc.metadata.get("doc_id", "") for doc in (docs or [])]
+    # Reranked before the mapping to doc_ids, because that mapping is order-preserving and
+    # `related_to_doc_ids` cuts the list at `limit` — so the order arriving here decides
+    # which units survive, not just how they are arranged.
+    docs = rerank_service.select(db, query, list(docs or []), limit)
+
+    doc_ids = [doc.metadata.get("doc_id", "") for doc in docs]
     # Related units include canonical siblings. Search should return the units directly
     # mapped to retrieval hits; the repository's cluster detail supplies the full graph.
     rows = repo.related_to_doc_ids(db, doc_ids, limit)

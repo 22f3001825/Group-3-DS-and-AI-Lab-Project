@@ -367,6 +367,26 @@ class APIClient {
       body: JSON.stringify({ order }),
     });
   }
+  /** Reranker toggle state. `endpoint_configured: false` means the server has no
+   *  RERANKER_URL, so switching `enabled` on would change nothing. */
+  static async getRerankerSetting() {
+    return this.request('/admin/settings/reranker');
+  }
+
+  /** Turn cross-encoder reranking on or off for EVERY user. Takes effect immediately on
+   *  the worker that serves this call, and within ~30s on any others. */
+  static async setRerankerSetting(enabled) {
+    return this.request('/admin/settings/reranker', {
+      method: 'PUT',
+      body: JSON.stringify({ enabled }),
+    });
+  }
+
+  /** Probe the reranker's /health. Independent of the toggle — this is how you check the
+   *  endpoint works BEFORE switching it on. */
+  static async testReranker() {
+    return this.request('/admin/settings/reranker/test', { method: 'POST' });
+  }
 }
 
 export default APIClient;

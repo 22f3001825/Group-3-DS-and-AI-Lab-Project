@@ -286,6 +286,8 @@ export default function Admin() {
   const [staged, setStaged] = useState([]);
   const [uploads, setUploads] = useState([]);
   const [sync, setSync] = useState(null);
+  const [reranker, setReranker] = useState(null);
+  const [probe, setProbe] = useState(null);   // last "Test connection" result
   const originalRef = useRef('');
 
   const kind = SOURCE_KINDS[meta.source_type] || 'prose';
@@ -299,6 +301,7 @@ export default function Admin() {
     // A commit succeeds even when Qdrant is down, which is the right trade only if the
     // resulting queue is visible somewhere other than the server log.
     APIClient.getVectorSync().then(setSync).catch(() => setSync(null));
+    APIClient.getRerankerSetting().then(setReranker).catch(() => setReranker(null));
   }, []);
 
   useEffect(() => { refreshLists(); }, [refreshLists]);
@@ -414,6 +417,16 @@ export default function Admin() {
 
   const retrySync = () => guard(async () => {
     setSync(await APIClient.runVectorSync());
+  });
+
+  const toggleReranker = (enabled) => guard(async () => {
+    setReranker(await APIClient.setRerankerSetting(enabled));
+  });
+
+  // Separate from the toggle on purpose: an admin should be able to confirm the endpoint
+  // answers before switching it on for every student.
+  const testReranker = () => guard(async () => {
+    setProbe(await APIClient.testReranker());
   });
 
   // ── Gates ─────────────────────────────────────────────────────────────────
@@ -605,6 +618,59 @@ export default function Admin() {
             <button className="btn btn-secondary ad-rebuild" onClick={rebuild} disabled={busy}>
               <RefreshCw size={14} /> Rebuild clusters
             </button>
+
+            <h3>Retrieval</h3>
+            {!reranker && <p className="ad-muted">Unavailable.</p>}
+            {reranker && (
+              <div className="ad-rerank">
+                <label className="ad-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={reranker.enabled}
+                    disabled={busy || !reranker.endpoint_configured}
+                    onChange={e => toggleReranker(e.target.checked)}
+                  />
+                  Cross-encoder reranking
+                </label>
+
+                <p className="ad-muted">
+                  Re-scores retrieved chunks against the question before the model sees
+                  them. Applies to every user, not just you.
+                </p>
+
+                {/* An admin can otherwise flip this on, see no change, and have no way to
+                    learn that the server was never given an endpoint to call. */}
+                {!reranker.endpoint_configured && (
+                  <p className="ad-warn-text">
+                    No reranker endpoint configured. Set RERANKER_URL and
+                    RERANKER_API_KEY in the API's environment and restart it.
+                  </p>
+                )}
+
+                {reranker.enabled && reranker.last_error && (
+                  <p className="ad-warn-text">
+                    Last call failed, so results fell back to retrieval order:
+                    {' '}{reranker.last_error}
+                  </p>
+                )}
+
+                <button
+                  className="btn btn-secondary"
+                  onClick={testReranker}
+                  disabled={busy || !reranker.endpoint_configured}
+                >
+                  <RefreshCw size={14} /> Test connection
+                </button>
+
+                {probe && (
+                  <p className={probe.ok ? 'ad-muted' : 'ad-warn-text'}>
+                    {probe.ok ? 'Reachable' : 'Failed'}
+                    {probe.latency_ms != null ? ` · ${probe.latency_ms} ms` : ''}
+                    {probe.detail ? ` · ${probe.detail}` : ''}
+                  </p>
+                )}
+              </div>
+            )}
           </aside>
         </div>
       ) : (

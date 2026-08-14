@@ -201,6 +201,25 @@ def _m0011_app_settings(conn: Connection) -> None:
         AppSetting.__table__.create(bind=conn)
 
 
+def _m0012_app_settings_updated_by(conn: Connection) -> None:
+    """Reconcile the two `app_settings` shapes the reranker merge produced.
+
+    The reranker branch created this table with `updated_by_email`; the settings branch
+    with `updated_by`. Both were 0011, so a database that ran either one has 0011 recorded
+    and no chance to pick up the other's column. Add `updated_by` when it is missing and
+    carry the old audit values across — the branch column is left in place because SQLite
+    cannot drop one without rebuilding the table, and an unused nullable column is
+    cheaper than that.
+    """
+    columns = _columns(conn, "app_settings")
+    if not columns or "updated_by" in columns:
+        return
+
+    _add_column(conn, "app_settings", "updated_by", "VARCHAR(255)")
+    if "updated_by_email" in columns:
+        conn.execute(text("UPDATE app_settings SET updated_by = updated_by_email"))
+
+
 MIGRATIONS: list[tuple[str, str, Callable[[Connection], None]]] = [
     ("0001", "topic_mastery: elo_rating, streak, chat_interactions", _m0001_topic_mastery_elo),
     ("0002", "quiz_attempts: options, reason", _m0002_quiz_attempt_generation),
@@ -213,6 +232,7 @@ MIGRATIONS: list[tuple[str, str, Callable[[Connection], None]]] = [
     ("0009", "students: google profile, admin flag, login stats", _m0009_students_google_identity),
     ("0010", "socratic_sessions + socratic_events", _m0010_socratic_sessions_and_events),
     ("0011", "app_settings: admin-set runtime settings", _m0011_app_settings),
+    ("0012", "app_settings: updated_by (reconciles the reranker branch's column)", _m0012_app_settings_updated_by),
 ]
 
 

@@ -260,3 +260,48 @@ SOCRATIC_MIN_REASONING_WORDS = 10
 
 # Largest PNG the screenshot-OCR endpoint accepts, in megabytes.
 SOCRATIC_CAPTURE_MAX_MB = 8
+
+
+# ── Cross-encoder reranking ───────────────────────────────────────────────────
+# Qdrant orders hits by RRF over dense + sparse scores, which judges query and document
+# separately. A cross-encoder reads the pair together and re-orders the shortlist. It is
+# too heavy to run in this process (the API host is a t3.micro), so it lives on its own
+# instance — see `infra/reranker/` — and is reached over HTTP.
+#
+# Whether it is USED is not decided here. That is a runtime switch an admin flips from
+# the admin panel, stored in `app_settings`; these constants only describe how to reach
+# the service and how hard to try. See `api/services/rerank_service.py`.
+
+# Base URL of the reranker, e.g. http://10.0.1.42:8080 — the instance's PRIVATE address,
+# since the security group admits nothing else. Empty disables reranking outright, no
+# matter what the admin toggle says: an endpoint that was never configured cannot be
+# switched on by accident.
+RERANK_ENDPOINT_URL = (os.getenv("RERANKER_URL") or "").strip().rstrip("/")
+
+RERANK_API_KEY = (os.getenv("RERANKER_API_KEY") or "").strip()
+
+# Deliberately short. This sits on the critical path in front of an LLM call that already
+# costs seconds, and a reranker that has not answered in two seconds is not going to
+# improve the answer enough to justify making the student wait for it. On timeout the
+# caller keeps Qdrant's ordering and moves on.
+RERANK_TIMEOUT_S = float(os.getenv("RERANKER_TIMEOUT_S", "2.0"))
+
+# How many candidates the chat path pulls from Qdrant. Reranking can only help when there
+# are more candidates than survivors: at k=10 with top_k=5 the cross-encoder chooses 5
+# from 10. Raise this to ~20 to give it a wider field — the extra chunks cost a few
+# milliseconds of Qdrant time and nothing else, because the truncation to top_k happens
+# either way.
+CHAT_RETRIEVAL_K = int(os.getenv("CHAT_RETRIEVAL_K", "10"))
+
+# Seconds the toggle's value is cached in-process before the database is consulted again.
+# Without this every retrieval would add a SELECT; with it, flipping the switch takes up
+# to this long to reach an already-running worker. The admin endpoint clears the cache on
+# write, so the delay only applies to workers that did not serve the PUT.
+RERANK_SETTING_TTL_S = 30.0
+
+# The `app_settings` key holding the toggle.
+RERANK_SETTING_KEY = "reranker_enabled"
+
+# Value used when the key has never been written. Off: a fresh deployment must behave
+# exactly like one without this feature.
+RERANK_DEFAULT_ENABLED = False
