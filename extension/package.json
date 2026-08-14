@@ -1,0 +1,13 @@
+{
+  "name": "mlt-socratic-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome MV3 extension for the MLT Socratic Study Companion.",
+  "scripts": {
+    "build": "esbuild content/detect.js --bundle --format=iife --target=chrome110 --outfile=content/bundle.js",
+    "watch": "npm run build -- --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.5"
+  }
+}

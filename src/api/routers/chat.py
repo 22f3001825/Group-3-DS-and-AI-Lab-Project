@@ -55,6 +55,7 @@ async def chat(
             retriever,
             top_k=request.top_k,
             history=[turn.model_dump() for turn in request.history],
+            db=db,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"RAG pipeline error: {exc}")
@@ -90,26 +91,34 @@ async def chat(
     )
     message_id = assistant_msg.message_id
 
+    # Everything below this line is learner modelling, and a refused question is not
+    # evidence about the learner. `run_rag` empties `sources` on a refusal, so the two
+    # blocks would be no-ops anyway — the explicit branch is here to say that is intended
+    # rather than incidental, and to skip the question-bank round trip.
+    out_of_scope = bool(result.get("out_of_scope"))
+
     # Auto-track topics explored in chat — the "explored" signal the recommender reads.
-    for t_name in result.get("topics_detected", []):
-        matched = find_topic(t_name)
-        if matched:
-            crud.record_chat_topic_interaction(
-                db,
-                student_id=student_id,
-                topic_id=matched["id"],
-                topic_name=matched["name"],
-            )
+    if not out_of_scope:
+        for t_name in result.get("topics_detected", []):
+            matched = find_topic(t_name)
+            if matched:
+                crud.record_chat_topic_interaction(
+                    db,
+                    student_id=student_id,
+                    topic_id=matched["id"],
+                    topic_name=matched["name"],
+                )
 
     # "Students also asked" — canonical siblings of the chunks that were just retrieved.
     # Wrapped because a missing or broken question bank must never take the chat path
     # down: the answer is the product, this is a garnish.
     related: list[RelatedQuestion] = []
-    try:
-        doc_ids = [s["metadata"].get("doc_id", "") for s in result["sources"]]
-        related = [RelatedQuestion(**r) for r in question_service.related_to_doc_ids(db, doc_ids)]
-    except Exception:  # noqa: BLE001
-        related = []
+    if not out_of_scope:
+        try:
+            doc_ids = [s["metadata"].get("doc_id", "") for s in result["sources"]]
+            related = [RelatedQuestion(**r) for r in question_service.related_to_doc_ids(db, doc_ids)]
+        except Exception:  # noqa: BLE001
+            related = []
 
     return ChatResponse(
         answer=result["answer"],
@@ -119,6 +128,7 @@ async def chat(
         session_id=session_id,
         message_id=message_id,
         related_questions=related,
+        out_of_scope=out_of_scope,
     )
 
 
@@ -126,14 +136,17 @@ async def chat(
 async def retrieve_only(
     request: RetrieveRequest,
     retriever: Any = Depends(get_retriever),
+    db: Session = Depends(get_db),
     _: Student = Depends(get_current_student),
 ) -> RetrieveResponse:
     """
     Debug endpoint — retrieves chunks without calling the LLM.
     Useful for inspecting what context will be passed to the model.
+
+    `db` is here only so the reranker toggle is honoured; this endpoint persists nothing.
     """
     try:
-        chunks = run_retrieve_only(request.question, retriever, top_k=request.top_k)
+        chunks = run_retrieve_only(request.question, retriever, top_k=request.top_k, db=db)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Retrieval error: {exc}")
 

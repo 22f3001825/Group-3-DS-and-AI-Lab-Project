@@ -8,10 +8,16 @@ import re
 from typing import Any
 
 from langchain_core.documents import Document
+from sqlalchemy.orm import Session
+
+from . import rerank_service
+from . import scope_guard
 
 try:
+    from src.config import SCOPE_PROBE_K
     from src.rag_pipeline import answer_question
 except ModuleNotFoundError:
+    from config import SCOPE_PROBE_K  # type: ignore
     from rag_pipeline import answer_question  # type: ignore
 
 
@@ -87,17 +93,70 @@ def extract_topics_from_sources(sources: list[Document]) -> list[str]:
     return topics
 
 
+# ── The scope guardrail's two callables ───────────────────────────────────────
+# `scope_guard` holds the policy and takes its inputs as functions, so the policy can be
+# tested with two lambdas. These are the real implementations, and they live here because
+# this is the layer that already knows about the vector store.
+
+
+def _embed(question: str) -> Any:
+    """Unit-length query vector, in the space the chunks were embedded into."""
+    from . import topic_vectors  # noqa: PLC0415
+
+    return topic_vectors.embed_query(question)
+
+
+def _nearest_topic(vector: Any) -> tuple[str | None, float]:
+    """`(topic name, cosine)` for the closest of the 48 taxonomy topics.
+
+    Shares `topic_vectors`' one embedded matrix with `socratic_service.shortlist_topics`,
+    so the taxonomy is embedded once per process rather than once per feature.
+    """
+    from . import topic_vectors  # noqa: PLC0415
+
+    topic, score = topic_vectors.best_topic(vector)
+    return (topic or {}).get("name"), score
+
+
+def _probe(vector: Any, k: int) -> list[float]:
+    """Similarity of the `k` nearest chunks to `vector`, best first.
+
+    **Dense, by vector, on purpose.** The store is built in `RetrievalMode.HYBRID`, and
+    `similarity_search_with_score` on a hybrid store fuses with RRF — a rank-reciprocal
+    number that barely moves between a perfect match and a nonsense query, so thresholding
+    it would produce a guard that never fires. `similarity_search_with_score_by_vector`
+    goes straight at the dense vector and returns the collection's actual cosine.
+
+    Reuses the same `_build_vector_store()` singleton as retrieval, so this costs one
+    Qdrant round trip and no extra model.
+    """
+    from ..dependencies import _build_vector_store  # noqa: PLC0415
+
+    hits = _build_vector_store().similarity_search_with_score_by_vector(
+        list(map(float, vector)), k=k)
+    return [float(score) for _doc, score in hits]
+
+
+def check_scope(question: str) -> dict[str, Any]:
+    """The `scope_check` callable handed to `answer_question`."""
+    return scope_guard.classify(question, _embed, _nearest_topic, _probe, SCOPE_PROBE_K)
+
+
 def run_rag(
     question: str,
     retriever: Any,
     top_k: int = 5,
     history: list[dict[str, Any]] | None = None,
+    db: Session | None = None,
 ) -> dict[str, Any]:
     """Call answer_question() and return a fully serialisable result dict.
 
     Args:
         history: recent {'role', 'content'} turns, oldest first. Trimmed and condensed by
                  `rag_pipeline.format_history`; affects the prompt only, not retrieval.
+        db:      session used only to read the reranker toggle. Optional so the offline
+                 scripts that call this can keep working without one; when it is None the
+                 selection is the plain `[:top_k]` it has always been.
 
     Returns:
         answer        : str
@@ -106,11 +165,18 @@ def run_rag(
         fallback_used : bool
         topics_detected: list[str]  (for DB storage)
         raw_sources   : list[Document]
+        out_of_scope  : bool        (the guardrail refused; `answer` is the decline)
+        scope         : dict        (the verdict and the two scores behind it)
     """
-    result = answer_question(question, retriever, top_k=top_k, history=history)
+    # A closure, so `rag_pipeline` never learns what a Session is.
+    rerank = (lambda q, docs, k: rerank_service.select(db, q, docs, k)) if db is not None else None
+
+    result = answer_question(question, retriever, top_k=top_k, history=history,
+                             rerank=rerank, scope_check=check_scope)
 
     serialised_sources = [doc_to_dict(doc) for doc in result["sources"]]
     topics = extract_topics_from_sources(result["sources"])
+    scope = result.get("scope") or {}
 
     return {
         "answer":          result["answer"],
@@ -119,10 +185,20 @@ def run_rag(
         "fallback_used":   result["fallback_used"],
         "topics_detected": topics,
         "raw_sources":     result["sources"],
+        "out_of_scope":    scope_guard.is_refusal(scope),
+        "scope":           scope,
     }
 
 
-def run_retrieve_only(question: str, retriever: Any, top_k: int = 5) -> list[dict[str, Any]]:
-    """Retrieve chunks without calling the LLM. Debug endpoint only."""
-    docs: list[Document] = retriever.invoke(question)[:top_k]
+def run_retrieve_only(question: str, retriever: Any, top_k: int = 5,
+                      db: Session | None = None) -> list[dict[str, Any]]:
+    """Retrieve chunks without calling the LLM. Debug endpoint only.
+
+    Reranks when the toggle is on, so this endpoint shows what /chat would actually be
+    grounded on. An inspection endpoint that quietly disagreed with the real pipeline
+    would be worse than not having one.
+    """
+    candidates: list[Document] = retriever.invoke(question)
+    docs = (rerank_service.select(db, question, candidates, top_k)
+            if db is not None else candidates[:top_k])
     return [doc_to_dict(doc) for doc in docs]

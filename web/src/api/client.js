@@ -348,6 +348,45 @@ class APIClient {
   static async rebuildClusters() {
     return this.request('/questions/rebuild', { method: 'POST' });
   }
+
+  // ── Admin: runtime settings ────────────────────────────────────────────────
+  // Admin-gated on both verbs, the read included: the payload enumerates which
+  // providers are reachable and which environment variables are missing, which is
+  // deployment shape rather than anything a student page should be able to ask for.
+
+  /** The LLM provider hierarchy in force, plus per-provider state for the UI. */
+  static async getLLMProviderOrder() {
+    return this.request('/admin/settings/llm-providers');
+  }
+
+  /** Set the order every user's NEXT request follows. Answers already generating
+   *  finish on the provider they started with. 400 on an unknown or repeated id. */
+  static async setLLMProviderOrder(order) {
+    return this.request('/admin/settings/llm-providers', {
+      method: 'PUT',
+      body: JSON.stringify({ order }),
+    });
+  }
+  /** Reranker toggle state. `endpoint_configured: false` means the server has no
+   *  RERANKER_URL, so switching `enabled` on would change nothing. */
+  static async getRerankerSetting() {
+    return this.request('/admin/settings/reranker');
+  }
+
+  /** Turn cross-encoder reranking on or off for EVERY user. Takes effect immediately on
+   *  the worker that serves this call, and within ~30s on any others. */
+  static async setRerankerSetting(enabled) {
+    return this.request('/admin/settings/reranker', {
+      method: 'PUT',
+      body: JSON.stringify({ enabled }),
+    });
+  }
+
+  /** Probe the reranker's /health. Independent of the toggle — this is how you check the
+   *  endpoint works BEFORE switching it on. */
+  static async testReranker() {
+    return this.request('/admin/settings/reranker/test', { method: 'POST' });
+  }
 }
 
 export default APIClient;

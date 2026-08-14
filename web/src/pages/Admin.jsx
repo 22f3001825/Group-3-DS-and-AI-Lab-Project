@@ -605,6 +605,11 @@ export default function Admin() {
             <button className="btn btn-secondary ad-rebuild" onClick={rebuild} disabled={busy}>
               <RefreshCw size={14} /> Rebuild clusters
             </button>
+
+            {/* The Retrieval block (the cross-encoder toggle and its connection test)
+                moved to Settings -> Retrieval, rendered behind `student.is_admin`. It is
+                a deployment-wide switch rather than anything to do with authoring, and it
+                now sits beside the other deployment-wide one, the LLM provider order. */}
           </aside>
         </div>
       ) : (

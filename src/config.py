@@ -89,6 +89,79 @@ CHAT_MEMORY_ANSWER_CHARS = 400
 CHAT_MEMORY_QUESTION_CHARS = 300
 
 
+# ── Chat scope guardrail ──────────────────────────────────────────────────────
+# The out-of-syllabus check on /chat, in code rather than in the prompt.
+#
+# `build_prompt` has always carried an OUT-OF-SCOPE RULE telling the model to decline a
+# non-course question. That is an instruction, and an instruction is exactly what a
+# jailbreak overrides — after which the answer contract is six sections including a Worked
+# Example. `api/services/scope_guard.py` re-decides the same question mechanically, before
+# any LLM is called, from two measured signals:
+#
+#   topic_score   max cosine between the question and the 48 taxonomy topic vectors
+#                 (`api/services/topic_vectors.py`, embedded once per process).
+#   corpus_score  cosine between the question and the nearest chunk in the collection,
+#                 from a DENSE scored probe.
+#
+# The probe must be dense. `similarity_search_with_score` on a HYBRID store fuses with RRF,
+# whose score is rank-reciprocal and therefore near-constant regardless of relevance;
+# `similarity_search_with_score_by_vector` is the only call that returns real cosine.
+#
+# The verdict is three-way and only the confident end refuses. A borderline question falls
+# through to the LLM, where the prompt rule still applies — so the cost of a mis-set floor
+# is the behaviour that existed before this feature, not a refused student.
+
+# Master switch. False makes every classification `uncertain`, which is byte-identical to
+# the pre-feature behaviour: retrieve, prompt, generate.
+SCOPE_GUARD_ENABLED = True
+
+# **Only the two HARD floors below decide whether anything is refused.** A question is
+# refused when it is under both of them; being under one is never enough. These two soft
+# floors decide nothing about behaviour — they only split everything that was not refused
+# into the reported labels `in_scope` and `uncertain`, which is what
+# `evaluate_scope_guard.py` breaks its arms down by and what `ChatResponse.scope` carries.
+# Raising or lowering them cannot refuse a student.
+#
+# Measured on the live collection over 105 labelled queries: in-scope topic scores run
+# 0.567–0.883 and corpus 0.749–0.890, so these sit just under the observed in-scope floor.
+SCOPE_TOPIC_FLOOR = 0.65
+SCOPE_CORPUS_FLOOR = 0.75
+
+# Under BOTH of these, the question is confidently off-syllabus and is refused in code
+# before any LLM is called. `and`, not `or`: one weak signal is the awkwardly-phrased real
+# question this band exists to protect, and the two signals fail in different directions —
+# "my error keeps going down on the training set but up on the test set" scores only 0.567
+# against the taxonomy but 0.861 against the corpus, and would be refused by either floor
+# acting alone.
+#
+# Set from `python src/evaluate_scope_guard.py --sweep`, which reports out-of-scope
+# detection rate and false-positive rate on in-scope queries as separate numbers — they
+# trade against each other and a single accuracy figure hides which way it was tuned. At
+# 0.62/0.70 that sweep gives **82.4% detection at 0.0% false positives**, and the in-scope
+# query that comes closest to being refused still clears a floor by 0.072. Pushing to
+# 0.64/0.74 buys 88.2% detection but cuts that margin to 0.032, which is one unusually
+# phrased question away from refusing a real one — the wrong side to be wrong on.
+#
+# Re-run the sweep after any re-ingest: both scores are properties of the collection.
+SCOPE_TOPIC_HARD_FLOOR = 0.62
+SCOPE_CORPUS_HARD_FLOOR = 0.70
+
+# Chunks pulled by the dense probe. Only the best score is read, so this is 3 rather than 1
+# purely so a single mis-embedded chunk cannot decide the verdict on its own.
+#
+# **The probe is skipped entirely when the topic score already clears SCOPE_TOPIC_FLOOR**,
+# because no corpus score could change that verdict. That is what keeps the guard off the
+# critical path: the taxonomy score is a 48-row matrix multiply against resident vectors
+# (~5 ms including the embedding), while the probe is a round trip to Qdrant Cloud
+# (~530 ms measured). A normal in-scope question therefore never pays for it, and the
+# questions that do are the ones actually being considered for refusal.
+SCOPE_PROBE_K = 3
+
+# Longest question the guard scores. Past this the embedding is dominated by whatever the
+# sender padded it with, which is the shape a scope-evasion attempt takes.
+SCOPE_MAX_QUESTION_CHARS = 2000
+
+
 # ── Question intelligence: clustering policy ──────────────────────────────────
 
 # Source folders under data/cleaned/ that the question bank is built from. "discourse"
@@ -249,5 +322,63 @@ SOCRATIC_REQUIRE_ATTEMPT_FOR_TIER3 = True
 # past this is a whole page and retrieves noise.
 SOCRATIC_MAX_SELECTION_CHARS = 2000
 
+# Words of prose an attempt must carry before it is treated as *reasoning* rather than as
+# a bare answer. Below this — and with no because/then/first/so marker anywhere — the
+# submission is just a choice, and reviewing a choice means saying whether it is right.
+# That path never reaches a model (see `record_attempt`): the student is asked how they
+# got there instead. Ten is deliberately generous; a false "tell me more" costs one
+# round trip, whereas a false "let's review it" is the failure this feature exists to
+# prevent.
+SOCRATIC_MIN_REASONING_WORDS = 10
+
 # Largest PNG the screenshot-OCR endpoint accepts, in megabytes.
 SOCRATIC_CAPTURE_MAX_MB = 8
+
+
+# ── Cross-encoder reranking ───────────────────────────────────────────────────
+# Qdrant orders hits by RRF over dense + sparse scores, which judges query and document
+# separately. A cross-encoder reads the pair together and re-orders the shortlist. It is
+# too heavy to run in this process — a second ONNX model beside the embedding models —
+# so it runs as its own service and is reached over HTTP.
+#
+# Whether it is USED is not decided here. That is a runtime switch an admin flips from
+# the admin panel, stored in `app_settings`; these constants only describe how to reach
+# the service and how hard to try. See `api/services/rerank_service.py`.
+
+# Base URL of the reranker. Two deployment shapes, and the value differs:
+#   * co-located container (the default) — `http://reranker:8080`, the compose service
+#     name, resolved by Docker's embedded DNS. It publishes no host port, so `localhost`
+#     does NOT work.
+#   * standalone instance (`infra/reranker/`) — `http://<private-ip>:8080`, since that
+#     box's security group admits only the API's.
+# Empty disables reranking outright, no matter what the admin toggle says: an endpoint
+# that was never configured cannot be switched on by accident.
+RERANK_ENDPOINT_URL = (os.getenv("RERANKER_URL") or "").strip().rstrip("/")
+
+RERANK_API_KEY = (os.getenv("RERANKER_API_KEY") or "").strip()
+
+# Deliberately short. This sits on the critical path in front of an LLM call that already
+# costs seconds, and a reranker that has not answered in two seconds is not going to
+# improve the answer enough to justify making the student wait for it. On timeout the
+# caller keeps Qdrant's ordering and moves on.
+RERANK_TIMEOUT_S = float(os.getenv("RERANKER_TIMEOUT_S", "2.0"))
+
+# How many candidates the chat path pulls from Qdrant. Reranking can only help when there
+# are more candidates than survivors: at k=10 with top_k=5 the cross-encoder chooses 5
+# from 10. Raise this to ~20 to give it a wider field — the extra chunks cost a few
+# milliseconds of Qdrant time and nothing else, because the truncation to top_k happens
+# either way.
+CHAT_RETRIEVAL_K = int(os.getenv("CHAT_RETRIEVAL_K", "10"))
+
+# Seconds the toggle's value is cached in-process before the database is consulted again.
+# Without this every retrieval would add a SELECT; with it, flipping the switch takes up
+# to this long to reach an already-running worker. The admin endpoint clears the cache on
+# write, so the delay only applies to workers that did not serve the PUT.
+RERANK_SETTING_TTL_S = 30.0
+
+# The `app_settings` key holding the toggle.
+RERANK_SETTING_KEY = "reranker_enabled"
+
+# Value used when the key has never been written. Off: a fresh deployment must behave
+# exactly like one without this feature.
+RERANK_DEFAULT_ENABLED = False

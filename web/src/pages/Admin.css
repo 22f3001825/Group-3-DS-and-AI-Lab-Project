@@ -549,6 +549,11 @@
 
 .ad-sync p { margin: 0; }
 
+/* Retrieval settings. Same card as .ad-sync — these are the two operational panels in
+   the sidebar and they should not look like different kinds of thing. */
+/* The .ad-rerank block lived here until the Retrieval settings moved to the Settings
+   page; its styles now live in components/RetrievalSettings.css. */
+
 @media (max-width: 1080px) {
   .ad-create-layout,
   .ad-review-grid,

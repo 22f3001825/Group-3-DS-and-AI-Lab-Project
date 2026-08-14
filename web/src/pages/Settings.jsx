@@ -1,7 +1,9 @@
 import React from 'react';
-import { Moon, Sun, Palette, Info, User, LogOut, ShieldCheck } from 'lucide-react';
+import { Moon, Sun, Palette, User, LogOut, ShieldCheck } from 'lucide-react';
 import { useTheme } from '../theme/theme-context';
 import { useAuth } from '../auth/auth-context';
+import LLMProviderOrder from '../components/LLMProviderOrder';
+import RetrievalSettings from '../components/RetrievalSettings';
 import './Settings.css';
 
 /** Dates arrive as ISO strings from FastAPI; a missing one is normal (a row that has
@@ -129,6 +131,14 @@ const Settings = () => {
 
 
       </section>
+
+      {/* Deployment-wide, so these are the cards here that are not about this account.
+          `is_admin` comes from the server on every /auth/me, and the endpoints behind
+          both components are admin-gated too — hiding them is presentation, not the
+          control. The flag also keeps a student from firing admin-only GETs that would
+          403 on every visit to this page. */}
+      {student?.is_admin && <LLMProviderOrder />}
+      {student?.is_admin && <RetrievalSettings />}
 
       <p className="settings-footnote">Active theme: <strong>{theme}</strong></p>
     </div>

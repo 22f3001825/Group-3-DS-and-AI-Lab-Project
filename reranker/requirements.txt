@@ -1,0 +1,16 @@
+# Reranker service dependencies — deliberately NOT the root requirements.txt.
+#
+# This image holds three packages and their transitive deps, nothing else. The root file
+# pulls easyocr (and therefore PyTorch, ~2 GB), pymupdf, pandas and the whole LangChain
+# stack, none of which this service touches.
+#
+# fastembed runs the cross-encoder on ONNX Runtime, so no torch is involved here either.
+
+# >=0.4.0 is load-bearing: `fastembed.rerank.cross_encoder.TextCrossEncoder` does not
+# exist in the 0.3.x line that the root requirements.txt still permits. Verified against
+# 0.8.0, where `rerank(query, documents, batch_size)` returns one score per document in
+# input order.
+fastembed>=0.4.0
+
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0

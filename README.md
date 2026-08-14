@@ -93,9 +93,14 @@ QDRANT_API_KEY=your_qdrant_api_key
 GROQ_API_KEY=your_groq_api_key       # Recommended (free, fast)
 GOOGLE_API_KEY=your_gemini_api_key   # Optional fallback
 
-# Set preferred provider (groq or gemini):
+# Set preferred provider (groq, gemini or local):
 LLM_PROVIDER=groq
 ```
+
+An administrator can reorder the full failover hierarchy at runtime from
+**Settings → LLM providers** (`PUT /admin/settings/llm-providers`). That order is stored in
+the database, applies to every user's next request, and overrides `LLM_PROVIDER` until it is
+changed again. Keys stay here: the setting ranks providers, it cannot enable one.
 
 ### 2. Install Python Dependencies
 

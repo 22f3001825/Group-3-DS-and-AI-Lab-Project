@@ -79,3 +79,17 @@ web/node_modules/
 web/dist/
 web/.vite/
 
+# Terraform (infra/reranker)
+# .terraform/ is the downloaded provider cache — 686 MB of platform-specific binaries
+# that `terraform init` recreates on demand. The LOCK FILE is deliberately NOT ignored:
+# it pins provider versions, so it belongs in the repository.
+**/.terraform/
+*.tfstate
+*.tfstate.*
+# Holds var.api_key, the reranker's shared secret.
+*.tfvars
+*.tfvars.json
+crash.log
+override.tf
+override.tf.json
+

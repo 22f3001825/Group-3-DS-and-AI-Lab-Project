@@ -54,6 +54,11 @@ class ChatResponse(BaseModel):
     # Defaulted, so every existing client keeps working and a missing question bank is
     # indistinguishable from "nothing related" rather than being an error.
     related_questions: list[RelatedQuestion] = []
+    # True when the out-of-syllabus guardrail refused the question, in which case `answer`
+    # is `rag_pipeline.OUT_OF_SCOPE_MESSAGE` and `sources` is empty. Defaulted for the same
+    # reason as above — a client that ignores it sees exactly what it saw before, because
+    # the decline has always been delivered as an ordinary answer string.
+    out_of_scope: bool = False
 
 
 class RetrieveRequest(BaseModel):
